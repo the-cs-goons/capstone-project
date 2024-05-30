@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cs3900-deployment
+  labels:
+    app.kubernetes.io/name: cs3900
+spec:
+  selector:
+    matchLabels:
+      app: cs3900
+  template:
+    metadata:
+      labels:
+        app: cs3900
+    spec:
+      containers:
+      - name: cs3900
+        image: nginx:1.25.5
+        ports:
+        - containerPort: 80
