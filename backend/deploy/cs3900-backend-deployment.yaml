@@ -24,7 +24,10 @@ spec:
           name: nginx-conf
           readOnly: true
         ports:
+        - containerPort: 80
+          name: http
         - containerPort: 443
+          name: https
       volumes:
       - name: nginx-ssl
         secret:
