@@ -6,8 +6,6 @@ metadata:
     app.kubernetes.io/name: cs3900-backend
   annotations:
     oci.oraclecloud.com/load-balancer-type: "nlb"
-    service.beta.kubernetes.io/oci-load-balancer-ssl-ports: "443"
-    service.beta.kubernetes.io/oci-load-balancer-tls-secret: cs3900-ssl-certificate-secret
 spec:
   selector:
     app.kubernetes.io/name: cs3900-backend
@@ -15,7 +13,4 @@ spec:
   ports:
   - name: http
     port: 80
-    targetPort: 80
-  - name: https
-    port: 443
     targetPort: 80
