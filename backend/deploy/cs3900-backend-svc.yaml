@@ -11,9 +11,6 @@ spec:
     app.kubernetes.io/name: cs3900-backend
   type: LoadBalancer
   ports:
-  - name: http
-    port: 80
-    targetPort: 80
   - name: https
     port: 443
     targetPort: 443
