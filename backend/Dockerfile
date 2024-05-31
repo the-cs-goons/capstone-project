@@ -14,7 +14,7 @@ ARG CS3900_ENV=development
 ENV CS3900_ENV=${CS3900_ENV}
 
 COPY pyproject.toml poetry.lock .
-RUN poetry install $(test "$CS3900_ENV" = "production" && echo "--only=main") --no-interaction --no-ansi
+RUN poetry install $(test "$CS3900_ENV" = "production" && echo "--only=main") --no-root --no-interaction --no-ansi
 
 COPY src .
 
