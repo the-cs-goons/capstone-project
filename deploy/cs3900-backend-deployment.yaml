@@ -14,8 +14,8 @@ spec:
         app.kubernetes.io/name: cs3900-backend
     spec:
       containers:
-      - name: nginx
-        image: nginx:1.25.5
+      - name: backend
+        image: ghcr.io/unsw-cse-comp99-3900-24t1/capstone-project-3900w11athecsgoons-backend:sha-6aff591
         volumeMounts:
         - mountPath: "/usr/src/ssl"
           name: ssl-certs
