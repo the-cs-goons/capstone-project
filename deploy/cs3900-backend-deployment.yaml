@@ -34,3 +34,5 @@ spec:
       - name: ssl-certs
         secret:
           secretName: cs3900-ssl-certificate-secret
+      imagePullSecrets:
+      - name: ghcr-pull-credential-secret
