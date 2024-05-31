@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: ghcr.io/unsw-cse-comp99-3900-24t1/capstone-project-3900w11athecsgoons-backend:sha-6aff591
+        image: ghcr.io/unsw-cse-comp99-3900-24t1/capstone-project-3900w11athecsgoons-backend:sha-d6238df
         volumeMounts:
         - mountPath: "/usr/src/ssl"
           name: ssl-certs
