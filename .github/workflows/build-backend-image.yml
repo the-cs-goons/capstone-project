@@ -5,7 +5,8 @@ on:
     branches:
       - deployment-test
     paths:
-      - 'backend/**'
+      - backend/**
+      - .github/workflows/build-backend-image.yml
 
 env:
   REGISTRY: ghcr.io
@@ -15,8 +16,8 @@ jobs:
   build-and-push-image:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      packages: read
+      contents: read
+      packages: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
