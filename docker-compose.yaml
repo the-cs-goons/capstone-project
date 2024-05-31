@@ -1,0 +1,14 @@
+name: 3900w11athecsgoons
+
+services:
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    ports:
+    - 8080:8080
+    volumes:
+    - type: bind
+      source: backend/src
+      target: /usr/src
+      read_only: true

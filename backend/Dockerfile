@@ -8,7 +8,7 @@ ENV POETRY_VIRTUALENVS_CREATE=false \
 RUN apt update && apt install -y curl
 RUN curl -sSL https://install.python-poetry.org | python -
 
-WORKDIR /usr/src/app
+WORKDIR /usr/src
 
 ARG CS3900_ENV=development
 ENV CS3900_ENV=${CS3900_ENV}
@@ -19,4 +19,4 @@ RUN poetry install $(test "$CS3900_ENV" = "production" && echo "--only=main") --
 COPY src .
 
 EXPOSE 8443
-ENTRYPOINT python main.py
+ENTRYPOINT python serve.py
