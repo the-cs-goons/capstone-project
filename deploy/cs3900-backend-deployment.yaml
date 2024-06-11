@@ -25,11 +25,17 @@ spec:
           name: https
         resources:
           requests:
+            memory: "1.5Gi"
+            cpu: "250m"
+          limits:
             memory: "3Gi"
             cpu: "500m"
-          limits:
-            memory: "6Gi"
-            cpu: "1"
+        env:
+        - name: CS3900_DATABASE_URI
+          valueFrom:
+            secretKeyRef:
+              name: cs3900-database-app
+              key: uri
         # TODO livenessProbe
       volumes:
       - name: ssl-certs

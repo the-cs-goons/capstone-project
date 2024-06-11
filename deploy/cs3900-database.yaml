@@ -14,3 +14,10 @@ spec:
           storage: 1Gi
       storageClassName: cs3900-oci-sc
       volumeMode: Filesystem
+  resources:
+    requests:
+      memory: "1.5Gi"
+      cpu: "250m"
+    limits:
+      memory: "3Gi"
+      cpu: "500m"
