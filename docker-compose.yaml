@@ -1,14 +1,53 @@
 name: 3900w11athecsgoons
 
 services:
-  backend:
+  # owner-ui:
+  #   build:
+  #     context: owner-ui
+  #     dockerfile: Dockerfile
+  #   ports:
+  #   - $CS3900_OWNER_UI_PORT:$CS3900_OWNER_UI_PORT
+  #   volumes:
+  #   - type: bind
+  #     source: owner-ui
+  #     target: /usr/src/app
+  #     read_only: true
+  #   env_file: .env
+  owner-lib:
     build:
-      context: backend
+      context: owner-lib
       dockerfile: Dockerfile
     ports:
-    - 8080:8080
+    - $CS3900_OWNER_AGENT_PORT:$CS3900_OWNER_AGENT_PORT
     volumes:
     - type: bind
-      source: backend/src
-      target: /usr/src
+      source: owner-lib/owner
+      target: /usr/src/owner
       read_only: true
+    env_file: .env
+
+  issuer-lib:
+    build:
+      context: issuer-lib
+      dockerfile: Dockerfile
+    ports:
+    - $CS3900_ISSUER_AGENT_PORT:$CS3900_ISSUER_AGENT_PORT
+    volumes:
+    - type: bind
+      source: issuer-lib/issuer
+      target: /usr/src/issuer
+      read_only: true
+    env_file: .env
+
+  service-lib:
+    build:
+      context: service-lib
+      dockerfile: Dockerfile
+    ports:
+    - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
+    volumes:
+    - type: bind
+      source: service-lib/service
+      target: /usr/src/service
+      read_only: true
+    env_file: .env
