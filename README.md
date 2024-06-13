@@ -4,6 +4,8 @@
 
 This project requires you have **Python 3.12** and **Node.js 20** installed.
 
+You also need to make a copy of `example.env` and call it `.env`. This file contains environment variables that are passed to all tests and Docker containers. You can then modify `.env` as you like (it is ignored by `.gitignore`).
+
 ### Running tests
 
 #### Testing the Python agents
