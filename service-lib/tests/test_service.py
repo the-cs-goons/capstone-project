@@ -1,6 +1,10 @@
-from .utils import get
+import pytest
 
-def test_hello_world():
-    res = get("/")
-    assert res.status_code == 200
-    assert res.json() == {"hello": "Hello", "world": "World"}
+from service import ServiceProvider
+
+@pytest.mark.asyncio
+async def test_hello_world():
+    service_provider = ServiceProvider()
+    response = await service_provider.hello_world()
+    assert response.hello == "Hello"
+    assert response.world == "World"
