@@ -4,7 +4,7 @@
 
 This project requires you have **Python 3.12** and **Node.js 20** installed.
 
-You also need to make a copy of `example.env` and call it `.env`. This file contains environment variables that are passed to all tests and Docker containers. You can then modify `.env` as you like (it is ignored by `.gitignore`).
+If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env`  (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
 
 ### Running tests
 
