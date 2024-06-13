@@ -11,6 +11,11 @@ services:
     - type: bind
       source: owner-ui
       target: /usr/src
+    env_file:
+    - path: example.env
+      required: true
+    - path: .env
+      required: false
     environment:
     - PORT=$CS3900_OWNER_UI_PORT
   owner-lib:
@@ -24,7 +29,11 @@ services:
       source: owner-lib/owner
       target: /usr/src/owner
       read_only: true
-    env_file: .env
+    env_file:
+    - path: example.env
+      required: true
+    - path: .env
+      required: false
 
   issuer-lib:
     build:
@@ -37,7 +46,11 @@ services:
       source: issuer-lib/issuer
       target: /usr/src/issuer
       read_only: true
-    env_file: .env
+    env_file:
+    - path: example.env
+      required: true
+    - path: .env
+      required: false
 
   service-lib:
     build:
@@ -50,4 +63,8 @@ services:
       source: service-lib/service
       target: /usr/src/service
       read_only: true
-    env_file: .env
+    env_file:
+    - path: example.env
+      required: true
+    - path: .env
+      required: false

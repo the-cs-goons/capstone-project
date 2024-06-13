@@ -35,7 +35,7 @@ jobs:
 
       - name: Run Python tests
         id: test-python
-        run: pip install tox && tox
+        run: pip install tox && cp example.env .env && tox
         if: ${{ steps.setup-python.conclusion == 'success' }}
 
       - name: Archive Python code coverage results
