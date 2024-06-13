@@ -10,7 +10,7 @@ This project requires you have **Python 3.12** and **Node.js 20** installed.
 
 To install the Python testing framework, run `pip install tox`.
 
-To perform tests, run `tox` from the root directory of this repo. Any arguments you provide to `tox` (e.g. `tox --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
+To perform tests, run `tox` from the root directory of this repo. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
 
 Running these tests also generates an HTML coverage report in the `htmlcov/` folder.
 
