@@ -1,4 +1,4 @@
-name: 'Run tests on backend agents'
+name: 'Run tests on agents'
 
 on:
   workflow_dispatch:
