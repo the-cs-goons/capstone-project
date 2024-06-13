@@ -1,0 +1,51 @@
+name: 'Run tests on agents'
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+concurrency:
+  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  cancel-in-progress: true
+
+jobs:
+  run-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 20
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Python tests
+        id: test-python
+        run: pip install tox && cp example.env .env && tox
+        if: ${{ steps.setup-python.conclusion == 'success' }}
+
+      - name: Archive Python code coverage results
+        uses: actions/upload-artifact@v4
+        with:
+          name: code-coverage-report
+          path: htmlcov/
+        if: ${{ steps.test-python.conclusion == 'success' }}
+
+      - name: Run React tests
+        working-directory: owner-ui
+        run: npm install && npm test
+        if: ${{ steps.setup-node.conclusion == 'success' }}
