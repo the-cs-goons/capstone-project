@@ -1,12 +1,7 @@
 FROM node:lts
 
-ENV CI=true
-ENV PORT=8080
-
-WORKDIR /usr/src/app
+WORKDIR /usr/src
 
 COPY . .
 
 ENTRYPOINT npm start
-
-# TODO npx create-react-app

@@ -22,18 +22,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python 3.12
+        id: setup-python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
 
-      - name: Install testing framework
-        run: pip install tox
+      - name: Set up Node.js 20
+        id: setup-node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
 
-      - name: Run tests
-        run: tox
+      - name: Run Python tests
+        id: test-python
+        run: pip install tox && tox
+        if: steps.setup-python.conclusion == 'success'
 
-      - name: Archive code coverage results
+      - name: Archive Python code coverage results
         uses: actions/upload-artifact@v4
         with:
           name: code-coverage-report
           path: htmlcov/
+        if: steps.test-python.conclusion == 'success'
+
+      - name: Run React tests
+        working-directory: owner-ui
+        run: npm install && npm test
+        if: steps.setup-node.conclusion == 'success'
