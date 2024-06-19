@@ -1,6 +1,6 @@
 import pytest
-
 from issuer import CredentialIssuer
+
 
 @pytest.mark.asyncio
 async def test_hello_world():
