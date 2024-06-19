@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from .models.hello_world import HelloWorldResponse
 
+
 class CredentialIssuer:
     async def hello_world(self) -> HelloWorldResponse:
         return HelloWorldResponse(hello="Hello", world="World")

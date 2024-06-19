@@ -1,6 +1,6 @@
 import pytest
-
 from service import ServiceProvider
+
 
 @pytest.mark.asyncio
 async def test_hello_world():

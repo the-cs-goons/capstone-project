@@ -14,6 +14,8 @@ To install the Python testing framework, run `pip install tox`.
 
 To perform tests, run `tox` from the root directory of this repo. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
 
+The `tox` tests will also run a linter (called `ruff`) to validate that all your code follows a certain style. If it fails your code, you will need to run `ruff` yourself. This involves running `pip install ruff` followed by `ruff check --fix`.
+
 Running these tests also generates an HTML coverage report in the `htmlcov/` folder.
 
 #### Testing the React frontend
