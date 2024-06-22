@@ -1,13 +1,10 @@
-from fastapi import FastAPI
+from requests import request
 
-from .models.hello_world import HelloWorldResponse
+def request_credential(url: str):
+    pass
 
+def poll_for_credential():
+    pass
 
-class IdentityOwner:
-    async def hello_world(self) -> HelloWorldResponse:
-        return HelloWorldResponse(hello="Hello", world="World")
-
-    def get_server(self) -> FastAPI:
-        router = FastAPI()
-        router.get("/")(self.hello_world)
-        return router
+def request_ID():
+    pass
