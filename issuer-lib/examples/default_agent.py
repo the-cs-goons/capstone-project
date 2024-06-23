@@ -7,6 +7,32 @@ class DefaultIssuer(CredentialIssuer):
     def __init__(self):
         super().__init__()
         self.statuses = {}
+        self.credentials = {
+            "id": {
+                "name": {
+                    "type": "string",
+                    "optional": False,
+                },
+                "age": {
+                    "type": "number",
+                    "optional": False,
+                },
+            },
+            "id2": {
+                "firstname": {
+                    "type": "string",
+                    "optional": False,
+                },
+                "lastname": {
+                    "type": "string",
+                    "optional": True,
+                },
+                "adult": {
+                    "type": "boolean",
+                    "optional": False,
+                },
+            }
+        }
 
     @override
     def get_request(self, ticket: int, cred_type: str, information: object) -> Any:
