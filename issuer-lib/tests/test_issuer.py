@@ -7,15 +7,25 @@ from issuer import CredentialIssuer
 async def test_request_credential():
     credential_issuer = CredentialIssuer()
 
-    info = {
+    info_1 = {
         "string": "string",
         "number": 0,
         "boolean": True,
         "optional": None,
     }
-    response = await credential_issuer.recieve_credential_request("default", info)
+    response = await credential_issuer.recieve_credential_request("default", info_1)
     assert response.ticket == 1
     assert response.link == "1"
+
+    info_2 = {
+        "string": "letters",
+        "number": 20,
+        "boolean": False,
+        "optional": "None",
+    }
+    response = await credential_issuer.recieve_credential_request("default", info_2)
+    assert response.ticket == 2
+    assert response.link == "2"
 
 
 @pytest.mark.asyncio
@@ -36,15 +46,15 @@ async def test_check_credential_status():
     assert response.ticket == 1
     assert response.status == "Pending"
 
+
 @pytest.mark.asyncio
 async def test_invalid_credentials():
     credential_issuer = CredentialIssuer()
 
-    info = {
-        "name": "Name Lastname"
-    }
+    info = {"name": "Name Lastname"}
     with pytest.raises(HTTPException):
         await credential_issuer.recieve_credential_request("id", info)
+
 
 @pytest.mark.asyncio
 async def test_invalid_information():

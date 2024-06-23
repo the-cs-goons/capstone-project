@@ -4,6 +4,12 @@ from issuer import CredentialIssuer
 
 
 class DefaultIssuer(CredentialIssuer):
+    """Example implementation of the `CredentialIssuer` base class.
+    
+    ### Added Attributes
+    - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
+      of active credential requests."""
+    statuses: dict[int, (str, dict)]
     def __init__(self):
         super().__init__()
         self.statuses = {}
@@ -31,11 +37,11 @@ class DefaultIssuer(CredentialIssuer):
                     "type": "boolean",
                     "optional": False,
                 },
-            }
+            },
         }
 
     @override
-    def get_request(self, ticket: int, cred_type: str, information: object) -> Any:
+    def get_request(self, ticket: int, cred_type: str, information: dict):
         self.statuses[ticket] = (cred_type, information)
         return
 
