@@ -10,35 +10,6 @@ class DefaultIssuer(CredentialIssuer):
     - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
       of active credential requests."""
     statuses: dict[int, (str, dict)]
-    def __init__(self):
-        super().__init__()
-        self.statuses = {}
-        self.credentials = {
-            "id": {
-                "name": {
-                    "type": "string",
-                    "optional": False,
-                },
-                "age": {
-                    "type": "number",
-                    "optional": False,
-                },
-            },
-            "id2": {
-                "firstname": {
-                    "type": "string",
-                    "optional": False,
-                },
-                "lastname": {
-                    "type": "string",
-                    "optional": True,
-                },
-                "adult": {
-                    "type": "boolean",
-                    "optional": False,
-                },
-            },
-        }
 
     @override
     def get_request(self, ticket: int, cred_type: str, information: dict):
@@ -50,5 +21,32 @@ class DefaultIssuer(CredentialIssuer):
         return self.statuses[ticket]
 
 
-credential_issuer = DefaultIssuer()
+credentials = {
+    "id": {
+        "name": {
+            "type": "string",
+            "optional": False,
+        },
+        "age": {
+            "type": "number",
+            "optional": False,
+        },
+    },
+    "id2": {
+        "firstname": {
+            "type": "string",
+            "optional": False,
+        },
+        "lastname": {
+            "type": "string",
+            "optional": True,
+        },
+        "adult": {
+            "type": "boolean",
+            "optional": False,
+        },
+    },
+}
+
+credential_issuer = DefaultIssuer(credentials)
 credential_issuer_server = credential_issuer.get_server()

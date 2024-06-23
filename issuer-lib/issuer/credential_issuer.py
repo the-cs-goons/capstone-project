@@ -1,4 +1,5 @@
 from typing import Any
+from uuid import uuid4
 
 from fastapi import Body, FastAPI, HTTPException
 
@@ -10,36 +11,15 @@ class CredentialIssuer:
     Base class used for the credential issuer agent.
 
     ### Attributes
-    - credentials(`str`): A list of available credentials that can be issued
+    - credentials(`dict`): A dictionary of available credentials that can be issued,
+      with required fields and types
     - ticket(`int`): Internal tracking of current ticket number
-    - link(`int`): Internal tracking of current used link, used to check status 
-      of application
-    - mapping(`dict[int, int]`): Mapping of links to tickets
+    - mapping(`dict[str, int]`): Mapping of links to tickets
     """
 
-    def __init__(self):
-        self.credentials = {
-            "default": {
-                "string": {
-                    "type": "string",
-                    "optional": False,
-                },
-                "number": {
-                    "type": "number",
-                    "optional": False,
-                },
-                "boolean": {
-                    "type": "boolean",
-                    "optional": False,
-                },
-                "optional": {
-                    "type": "string",
-                    "optional": True,
-                },
-            },
-        }
+    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]]):
+        self.credentials = credentials
         self.ticket = 0
-        self.link = 0
         self.mapping = {}
 
     async def get_credential_options(self) -> OptionsResponse:
@@ -69,21 +49,18 @@ class CredentialIssuer:
         Valid credential formats and required fields can be accessed through 
         `get_credential_options()`.
         """
-        cred_type = cred_type.lower()
         if cred_type not in self.credentials:
             raise HTTPException(status_code=404, detail="Item not found")
 
-        if not information.keys() == self.credentials[
-            cred_type
-        ].keys() or not self.check_input_typing(cred_type, information):
+        if not self.check_input_typing(cred_type, information):
             raise HTTPException(status_code=400, detail="Malformed request")
 
         self.ticket += 1
-        self.link += 1
-        self.mapping[str(self.link)] = self.ticket
+        link = str(uuid4())
+        self.mapping[link] = self.ticket
 
         self.get_request(self.ticket, cred_type, information)
-        return RequestResponse(ticket=self.ticket, link=str(self.link))
+        return RequestResponse(ticket=self.ticket, link=link)
 
     async def credential_status(self, token: str) -> UpdateResponse:
         """Returns the current status of an active credential request.
@@ -97,30 +74,35 @@ class CredentialIssuer:
 
     def check_input_typing(self, cred_type: str, information: dict) -> bool:
         """Checks fields in the given information are of the correct type."""
-        for field, value in information.items():
-            if value is None:
-                if not self.credentials[cred_type][field]["optional"]:
+        for field_name, field_info in self.credentials[cred_type].items():
+            if field_name in information:
+                value = information[field_name]
+                if value is None:
+                    if not field_info["optional"]:
+                        return False
+                else:
+                    match field_info["type"]:
+                        case "string":
+                            if not isinstance(value, str):
+                                return False
+                        case "number":
+                            # bools can count as ints, and need to be explicitly checked
+                            if not (
+                                isinstance(value, int) and not isinstance(value, bool)
+                            ) and not isinstance(value, float):
+                                return False
+                        case "boolean":
+                            if not isinstance(value, bool):
+                                return False
+                        case ["array[", _typ, "]"]:
+                            pass
+                        case "object":
+                            pass
+            elif not field_info["optional"]:
+                return False
+        for field_name in information.keys():
+            if field_name not in self.credentials[cred_type]:
                     return False
-            else:
-                match self.credentials[cred_type][field]["type"]:
-                    case "string":
-                        if not isinstance(value, str):
-                            return False
-                    case "number":
-                        # bools can count as ints, and need to be explicitly checked
-                        if not (
-                            isinstance(value, int) and not isinstance(value, bool)
-                        ) and not isinstance(value, float):
-                            return False
-                    case "boolean":
-                        if not isinstance(value, bool):
-                            return False
-                    case ["array[", _typ, "]"]:
-                        pass
-                    case ["optional[", _typ, "]"]:
-                        pass
-                    case "object":
-                        pass
         return True
 
     def get_server(self) -> FastAPI:
