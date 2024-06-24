@@ -24,6 +24,13 @@ MOCK_INFORMATION = {
 }
 
 @pytest.mark.asyncio
+async def test_credential_options():
+    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+
+    response = await credential_issuer.get_credential_options()
+    assert response.options == MOCK_INFORMATION
+
+@pytest.mark.asyncio
 async def test_request_credential():
     credential_issuer = CredentialIssuer(MOCK_INFORMATION)
 
@@ -35,7 +42,6 @@ async def test_request_credential():
     }
     response = await credential_issuer.recieve_credential_request("default", info_1)
     assert response.ticket == 1
-    # assert response.link == "1"
 
     info_2 = {
         "string": "letters",
@@ -45,7 +51,14 @@ async def test_request_credential():
     }
     response = await credential_issuer.recieve_credential_request("default", info_2)
     assert response.ticket == 2
-    # assert response.link == "2"
+
+    info_3 = {
+        "string": "alphabet",
+        "number": 50,
+        "boolean": True,
+    }
+    response = await credential_issuer.recieve_credential_request("default", info_3)
+    assert response.ticket == 3
 
 
 @pytest.mark.asyncio
@@ -59,7 +72,6 @@ async def test_check_credential_status():
     }
     response = await credential_issuer.recieve_credential_request("default", info)
     assert response.ticket == 1
-    # assert response.link == "1"
 
     response = await credential_issuer.credential_status(response.link)
     assert response.ticket == 1
@@ -103,3 +115,16 @@ async def test_invalid_information():
     }
     with pytest.raises(HTTPException):
         await credential_issuer.recieve_credential_request("default", invalid_info_3)
+
+    invalid_info_4 = {
+        "string": "string",
+        "number": 0,
+        "boolean": True,
+        "optional": None,
+        "not_field": True,
+    }
+    with pytest.raises(HTTPException):
+        await credential_issuer.recieve_credential_request("default", invalid_info_4)
+
+    with pytest.raises(HTTPException):
+        await credential_issuer.recieve_credential_request("default")

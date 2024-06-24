@@ -12,12 +12,19 @@ class DefaultIssuer(CredentialIssuer):
     statuses: dict[int, (str, dict)]
 
     @override
+    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]]):
+        super().__init__(credentials)
+        self.statuses = {}
+
+    @override
     def get_request(self, ticket: int, cred_type: str, information: dict):
         self.statuses[ticket] = (cred_type, information)
         return
 
     @override
     def get_status(self, ticket: int) -> Any:
+        # In a real world case the application's information should NOT be returned
+        # This is purely for demonstration purposes
         return self.statuses[ticket]
 
 
