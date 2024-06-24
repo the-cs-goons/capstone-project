@@ -1,16 +1,21 @@
 from base64 import b64encode, b64decode
 from json import loads
 from uuid import uuid4
-from models.credentials import Credential
+from .models import Credential
 from requests import Session, Response
 
 class IdentityOwner:
     """
     Base Identity Owner class
+
+    ### Attributes
+    - credentials(`dict[str, Credential]`): A dictionary of credentials, mapped by their IDs
+    - dev_mode(`bool`): Flag for running in development environment (currently unused)
+    - storage_key(`str`): Key for encrypting stored credentials (currently unused)
     """
     # TODO: Enforce https
 
-    def __init__(self, storage_key, dev_mode=False):
+    def __init__(self, storage_key: str, dev_mode=False):
         """
         Creates a new Identity Owner
 
@@ -25,69 +30,6 @@ class IdentityOwner:
         self.credentials: dict[str, Credential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
-    
-    def store_credential(self, cred: Credential):
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to store a serialised credential in some manner.
-        
-        ### Parameters
-        - cred(`Credential`): A `Credential`
-        
-        IMPORTANT: Do not store unsecured credentials in a production environment.
-        Use `self.serialise_and_encrypt` to convert the `Credential` to
-        something that can be stored.
-        """
-        return
-
-    def load_from_serial(dump: str | bytes | bytearray):
-        """
-        # NOT YET IMPLEMENTED IN FULL
-        TODO: Implement decryption in accordance with implementation in `serialise_and_encrypt`
-        
-        Static method that loads a credential from encrypted & serialised string
-        
-        ### Parameters
-        - dump(`str` | `bytes` | `bytearray`): the serialised credential
-
-        ### Returns
-        - `Credential`: A Credential object
-        """
-        return Credential.model_validate(loads(b64decode(dump)))
-
-    def load_credential_from_storage(self, cred_id: str) -> Credential:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to load a specific credential from storage.
-        Use `self.load_from` to convert the stored credential to a `Credential` object.
-        
-        ### Parameters
-        - cred_id(`str`): an identifier for the credential
-        
-        ### Returns
-        - `Credential`: The requested credential, if it exists.
-        """
-        return None
-
-    def load_all_credentials_from_storage(self) -> list[Credential]:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to retrieve all credentials. Overwrite this method 
-        to retrieve all credentials.
-        
-        ### Returns
-        - `list[Credential]`: A list of Credential objects.
-        """
-        return []
-    
-    def get_pending_credentials(self) -> list[Credential]:
-        """
-        Retrieves all pending credentials. 
-        
-        ### Returns
-        - `list[Credential]`: A list of Credential objects with status `"PENDING"`.
-        """
-        return [cred for cred in self.credentials.values() if cred.status == "PENDING"]
 
     def serialise_and_encrypt(cred: Credential):
         """
@@ -102,6 +44,30 @@ class IdentityOwner:
         - `bytes`: A base64 encoded Credential
         """
         return b64encode(cred.model_dump_json())
+    
+    def load_from_serial(dump: str | bytes | bytearray) -> Credential:
+        """
+        # NOT YET IMPLEMENTED IN FULL
+        TODO: Implement decryption in accordance with implementation in `serialise_and_encrypt`
+        
+        Static method that loads a credential from encrypted & serialised string
+        
+        ### Parameters
+        - dump(`str` | `bytes` | `bytearray`): the serialised credential
+
+        ### Returns
+        - `Credential`: A Credential object
+        """
+        return Credential.model_validate(loads(b64decode(dump)))
+    
+    def get_pending_credentials(self) -> list[Credential]:
+        """
+        Retrieves all pending credentials. 
+        
+        ### Returns
+        - `list[Credential]`: A list of Credential objects with status `"PENDING"`.
+        """
+        return [cred for cred in self.credentials.values() if cred.status == "PENDING"]
     
     async def poll_credential_staus(self, cred_id: str):
         """
@@ -182,9 +148,9 @@ class IdentityOwner:
             
             return options[cred_type]
 
-    def apply_for_credential(self, issuer_url: str, cred_type: str, request_body: dict):
+    def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict):
         with Session() as s:
-            response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=request_body)
+            response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
                 raise f"Error: {response.status_code} Response - {response.reason} {response.json()}"
             body: dict = response.json()
@@ -194,5 +160,48 @@ class IdentityOwner:
             req_url = f"{issuer_url}/status?token={body['link']}"
 
             credential = Credential(id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url)
+            self.credentials[id] = credential
             self.store_credential(credential)
 
+    ###
+    ### User-defined functions, designed to be overwritten
+    ###
+
+    def store_credential(self, cred: Credential):
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to store a serialised credential in some manner.
+        
+        ### Parameters
+        - cred(`Credential`): A `Credential`
+        
+        IMPORTANT: Do not store unsecured credentials in a production environment.
+        Use `self.serialise_and_encrypt` to convert the `Credential` to
+        something that can be stored.
+        """
+        return
+
+    def load_credential_from_storage(self, cred_id: str) -> Credential:
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to load a specific credential from storage.
+        Use `self.load_from` to convert the stored credential to a `Credential` object.
+        
+        ### Parameters
+        - cred_id(`str`): an identifier for the credential
+        
+        ### Returns
+        - `Credential`: The requested credential, if it exists.
+        """
+        return None
+
+    def load_all_credentials_from_storage(self) -> list[Credential]:
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to retrieve all credentials. Overwrite this method 
+        to retrieve all credentials.
+        
+        ### Returns
+        - `list[Credential]`: A list of Credential objects.
+        """
+        return []
