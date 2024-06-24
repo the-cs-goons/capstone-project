@@ -76,7 +76,7 @@ class ServiceProvider:
             if issuer_certificate is None:
                 return False
 
-            # Verify the certificate's signature
+            # Verify the certificate's signature using the isser's public key
             issuer_certificate.public_key().verify(
                 credential.signature,
                 credential.tbs_certificate_bytes,
@@ -96,7 +96,6 @@ class ServiceProvider:
             print(f"Verification failed: {e}")
             return False
 
-    # @router.post("/update-ca-bundle")
     async def try_verify_certificate(self, credential):
         nonce = credential.nonce
         timestamp = credential.timestamp
@@ -106,7 +105,6 @@ class ServiceProvider:
             )
         return {"status": "Certificate verified successfully"}
 
-    # @router.post("/verify-certificate")
     async def try_update_ca_bundle(self, url):
         try:
             self.update_ca_bundle(url)
