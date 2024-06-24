@@ -22,10 +22,9 @@ class DefaultIssuer(CredentialIssuer):
         return
 
     @override
-    def get_status(self, ticket: int) -> tuple[Any, str]:
-        # In a real world case the application's information should NOT be returned
-        # This is purely for demonstration purposes
-        return [self.statuses[ticket], None]
+    def get_status(self, ticket: int) -> tuple[Any, str, dict[str, Any]]:
+        cred_type, information = self.statuses[ticket]
+        return ["Approved", cred_type, information]
     
     def process_requests(self):
         pass
