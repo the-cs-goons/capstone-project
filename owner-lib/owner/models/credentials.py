@@ -1,22 +1,18 @@
 from datetime import datetime
-from enum import Enum
+from base64 import b64decode, b64encode
 
 from pydantic import BaseModel
 from requests import Session
 
-class CredentialResponseState(Enum):
-    Pending = 0
-    Accepted = 1
-    Rejected = 2
-
 class Credential(BaseModel):
-    issuer_url: str
-    sd_jwt: str | None
-    status: CredentialResponseState
+    issuer_url: str # Not super useful to have now, but will be necessary for key bound SD-JWTs later if retrieving JWKs
+    type: str
+    token: str | None = None
+    status = "Pending" 
     request_url: str
-    status_message: str
-    issuer_name: str
-    received_at: datetime
+    status_message: str | None = None
+    issuer_name: str | None = None
+    received_at: datetime | None = None
 
     attributes: dict[str: object]
 
@@ -33,7 +29,17 @@ class Credential(BaseModel):
             if not response.ok:
                 raise response.error
             # TODO: Logic for updating state according to how Mal's structured things
-            self.state = response
+            self.state = response.json()
 
     async def retrieve_credential(self):
         pass
+
+    def serialise_and_encrypt(self, key: str):
+        """
+        Converts the Credential object into some string value that can be stored and encrypts it
+
+        TODO: Implement encryption
+        """
+        return b64encode(self.model_dump_json())
+
+
