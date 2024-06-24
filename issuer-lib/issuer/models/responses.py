@@ -16,3 +16,4 @@ class RequestResponse(BaseModel):
 class UpdateResponse(BaseModel):
     ticket: int
     status: Any
+    credential: str | None

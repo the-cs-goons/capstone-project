@@ -75,8 +75,10 @@ class CredentialIssuer:
         - token(`str`): Maps to a ticket number through the `mapping` attribute."""
         ticket = self.mapping[token]
 
-        status = self.get_status(ticket)
-        return UpdateResponse(ticket=ticket, status=status)
+        status, credential = self.get_status(ticket)
+        if credential is not None:
+            self.mapping.pop(token)
+        return UpdateResponse(ticket=ticket, status=status, credential=credential)
 
     def check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
@@ -140,7 +142,7 @@ class CredentialIssuer:
           credential being requested."""
         return
 
-    def get_status(self, _ticket: int) -> Any:
+    def get_status(self, _ticket: int) -> tuple[Any, str]:
         """## !!! This function must be `@override`n !!!
 
         Function to process requests for credential application status updates.
@@ -153,4 +155,4 @@ class CredentialIssuer:
         
         IMPORTANT: The return value can be read by anyone with the link to specified
         ticket, and must not have any sensitive information contained."""
-        return "Pending"
+        return ["Pending", None]

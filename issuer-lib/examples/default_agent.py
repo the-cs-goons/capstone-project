@@ -22,10 +22,13 @@ class DefaultIssuer(CredentialIssuer):
         return
 
     @override
-    def get_status(self, ticket: int) -> Any:
+    def get_status(self, ticket: int) -> tuple[Any, str]:
         # In a real world case the application's information should NOT be returned
         # This is purely for demonstration purposes
-        return self.statuses[ticket]
+        return [self.statuses[ticket], None]
+    
+    def process_requests(self):
+        pass
 
 
 credentials = {
