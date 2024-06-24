@@ -1,6 +1,13 @@
 import pytest
-from service import ServiceProvider
 from fastapi import FastAPI, HTTPException
+from service import ServiceProvider
+from service.models.presentation_definition import (
+    Constraint,
+    Field,
+    InputDescriptor,
+    PresentationDefinition,
+)
+
 
 @pytest.mark.asyncio
 async def test_server_exists():
@@ -11,16 +18,15 @@ async def test_server_exists():
 @pytest.mark.asyncio
 async def test_basic_presentation_request():
     sp = ServiceProvider()
-    sp.create_presentation_request(
-        'test_empty',
-        'tester',
-        sp.create_presentation_definition(
-            id='test1',
-            input_descriptors=[]
-        )
+
+    pd = PresentationDefinition(
+        id='test1',
+        input_descriptors=[]
     )
 
-    response = await sp.get_presentation_request('test_empty')
+    sp.add_presentation_definition('test_empty', pd)
+
+    response = await sp.get_presentation_request('test_empty', 'tester')
     assert response.client_id == 'tester'
     assert response.presentation_definition.id == 'test1'
     assert response.presentation_definition.input_descriptors == []
@@ -28,100 +34,101 @@ async def test_basic_presentation_request():
 @pytest.mark.asyncio
 async def test_multiple_presentation_requests():
     sp = ServiceProvider()
-    sp.create_presentation_request(
-        'test_1',
-        'tester1',
-        sp.create_presentation_definition(
-            id='test1',
-            input_descriptors=[]
-        )
+
+    pd1= PresentationDefinition(
+        id='test1',
+        input_descriptors=[]
     )
 
-    response = await sp.get_presentation_request('test_1')
-    assert response.client_id == 'tester1'
-    assert response.presentation_definition.id == 'test1'
+    request_type1 = 'test_1'
+    sp.add_presentation_definition(request_type1, pd1)
 
-    sp.create_presentation_request(
-        'test_2',
-        'tester2',
-        sp.create_presentation_definition(
-            id='test2',
-            input_descriptors=[]
-        )
+    response0 = await sp.get_presentation_request('test_1', 'tester1')
+    assert response0.client_id == 'tester1'
+    assert response0.presentation_definition.id == 'test1'
+
+
+    pd2 = PresentationDefinition(
+        id='test2',
+        input_descriptors=[]
     )
 
-    response = await sp.get_presentation_request('test_1')
-    assert response.client_id == 'tester1'
-    assert response.presentation_definition.id == 'test1'
+    request_type2 = 'test_2'
+    sp.add_presentation_definition(request_type2, pd2)
 
-    response = await sp.get_presentation_request('test_2')
-    assert response.client_id == 'tester2'
-    assert response.presentation_definition.id == 'test2'
+    response1 = await sp.get_presentation_request(request_type1, 'tester1')
+    assert response1.client_id == 'tester1'
+    assert response1.presentation_definition.id == 'test1'
+
+    response2 = await sp.get_presentation_request(request_type2, 'tester2')
+    assert response2.client_id == 'tester2'
+    assert response2.presentation_definition.id == 'test2'
 
 @pytest.mark.asyncio
 async def test_presentation_request_limit_disclosure():
     sp = ServiceProvider()
 
-    sp = ServiceProvider()
-    sp.create_presentation_request(
-        type='test_limit_disclosure',
-        client_id='tester provider',
-        presentation_definition=sp.create_presentation_definition(
-            id='test_limit_disclosure_1',
-            input_descriptors=[
-                sp.create_input_descriptor(
-                id='limit_disclosure_test',
-                constraints=sp.create_constraint([
-                    sp.create_field(['$.credentialSubject.active'])],
-                    limit_disclosure='required'))
-            ],
-            name='required_limit_disclosure'
-        )
+    pd = PresentationDefinition(
+        id='test_limit_disclosure_1',
+        input_descriptors=[
+            InputDescriptor(
+            id='limit_disclosure_test',
+            constraints=Constraint([
+                Field(['$.credentialSubject.active'])],
+                limit_disclosure='required'))
+        ],
+        name='required_limit_disclosure'
     )
-    response = await sp.get_presentation_request('test_limit_disclosure')
 
-    assert response.presentation_definition.input_descriptors[0].constraints.limit_disclosure == 'required'
+    sp.add_presentation_definition('test_limit_disclosure', pd)
+
+    response = await sp.get_presentation_request('test_limit_disclosure', 'ld_tester')
+
+    presentation_definition = response.presentation_definition
+    response_constraint = presentation_definition.input_descriptors[0].constraints
+    assert response_constraint.limit_disclosure == 'required'
 
 @pytest.mark.asyncio
 async def test_presentation_request_two_fields_optional():
     sp = ServiceProvider()
-    dob_field = sp.create_field(
-        path=['$.credentialSubject.birthDate', 
-            '$.credentialSubject.dob', 
-            '$.credentialSubject.dateOfBirth'],
-        name='date of birth check',
-        id='dob')
-    
-    given_name_field = sp.create_field(
-        path=['$.credentialSubject.givenName'],
-        name='given name request',
-        id='given_name',
-        optional=True)
-    
-    constraint = sp.create_constraint(
-        fields=[dob_field, given_name_field])
-    
-    input_descriptor = sp.create_input_descriptor(
-        id='name_age_presentation_definition',
-        name='name_age_presentation_definition',
-        constraints=constraint,
-        purpose='To be able to address the customer by name, and verify their age')
-    
-    pd = sp.create_presentation_definition(
+
+    pd = PresentationDefinition(
         id='name_age_presentation_1',
         name='Age and Name request',
         purpose='To be able to address the customer by name, and verify their age',
-        input_descriptors=[input_descriptor])
+        input_descriptors=[InputDescriptor(
+            id='name_age_presentation_definition',
+            name='name_age_presentation_definition',
+            constraints=Constraint(
+                fields=[
+                    Field(
+                        path=['$.credentialSubject.birthDate',
+                            '$.credentialSubject.dob',
+                            '$.credentialSubject.dateOfBirth'],
+                        name='date of birth check',
+                        id='dob'
+                    ),
+                    Field(
+                        path=['$.credentialSubject.givenName'],
+                        name='given name request',
+                        id='given_name',
+                        optional=True
+                    )]
+            ),
+            purpose='To be able to address the customer by name, and verify their age'
+            )
+        ])
 
-    sp.create_presentation_request('age_verification', 'BarBarBar', pd)
+    sp.add_presentation_definition('age_verification', pd)
 
-    response = await sp.get_presentation_request('age_verification')
+    response = await sp.get_presentation_request('age_verification', 'BarBarBar')
     assert(response.client_id == 'BarBarBar')
-    assert(response.presentation_definition.input_descriptors[0].constraints.fields[0].name == 'date of birth check')
-    assert(response.presentation_definition.input_descriptors[0].constraints.fields[0].id == 'dob')
-    assert(response.presentation_definition.input_descriptors[0].constraints.fields[1].name == 'given name request')
-    assert(response.presentation_definition.input_descriptors[0].constraints.fields[1].id == 'given_name')
-    assert(response.presentation_definition.input_descriptors[0].constraints.fields[1].optional)
+    input_descriptor = response.presentation_definition.input_descriptors[0]
+    assert(input_descriptor.constraints.fields[0].name == 'date of birth check')
+    assert(input_descriptor.constraints.fields[0].id == 'dob')
+    assert(input_descriptor.constraints.fields[1].name == 'given name request')
+    assert(input_descriptor.constraints.fields[1].id == 'given_name')
+    assert(input_descriptor.constraints.fields[1].optional)
 
 
 @pytest.mark.asyncio
@@ -129,4 +136,6 @@ async def test_presetation_request_not_found():
     service_provider = ServiceProvider()
 
     with pytest.raises(HTTPException):
-        await service_provider.get_presentation_request('age_verification')
+        await service_provider.get_presentation_request(
+            'non_existent',
+            'example_client_id')
