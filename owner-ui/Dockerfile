@@ -8,7 +8,9 @@
 
 ARG NODE_VERSION=20.14.0
 
-FROM node:${NODE_VERSION}-alpine
+################################################################################
+# Use node image for base image for all stages.
+FROM node:${NODE_VERSION}-alpine AS base
 
 # Use production node environment by default.
 ENV NODE_ENV production
@@ -16,23 +18,59 @@ ENV NODE_ENV production
 # TODO: figure out /usr/src vs /usr/src/app
 WORKDIR /usr/src
 
+################################################################################
+# Create a stage for installing production dependecies.
+FROM base AS deps
+
 # Download dependencies as a separate step to take advantage of Docker's caching.
 # Leverage a cache mount to /root/.yarn to speed up subsequent builds.
-# Leverage a bind mounts to package.json and yarn.lock to avoid having to copy them into
+# Leverage bind mounts to package.json and yarn.lock to avoid having to copy them
 # into this layer.
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=yarn.lock,target=yarn.lock \
+    --mount=type=cache,target=/root/.yarn \
+    corepack enable && yarn workspaces focus --all --production
+
+################################################################################
+# Create a stage for building the application.
+FROM deps AS build
+
+# Download additional development dependencies before building, as some projects require
+# "devDependencies" to be installed to build. If you don't need this, remove this step.
 RUN --mount=type=bind,source=package.json,target=package.json \
     --mount=type=bind,source=yarn.lock,target=yarn.lock \
     --mount=type=cache,target=/root/.yarn \
     corepack enable && yarn install --immutable --immutable-cache
 
-# Run the application as a non-root user.
-USER node
-
 # Copy the rest of the source files into the image.
 COPY . .
+# Run the build script.
+RUN yarn run build
+
+################################################################################
+# Create a new stage to run the application with minimal runtime dependencies
+# where the necessary files are copied from the build stage.
+FROM base AS final
+
+# Use production node environment by default.
+ENV NODE_ENV production
+
+# Run the application as a non-root user.
+#USER node
+
+# Copy package.json so that package manager commands can be used.
+COPY package.json .
+
+# Copy the production dependencies from the deps stage and also
+# the built application from the build stage into the image.
+COPY --from=deps /usr/src/.pnp.cjs /usr/src/.pnp.loader.mjs ./
+COPY --from=deps /usr/src/.yarn ./.yarn
+COPY --from=build /usr/src/build ./build
+
+RUN corepack enable
 
 # Expose the port that the application listens on.
 EXPOSE ${CS3900_OWNER_UI_PORT}
 
 # Run the application.
-CMD yarn run dev
+CMD yarn start
