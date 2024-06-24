@@ -13,7 +13,9 @@ class IdentityOwner:
     def save_credentials_to_storage(self):
         return NotImplementedError
 
-    def refresh_credential(self, cred: Credential):
-        pass
+    def poll_credential_staus(self, cred: Credential):
+        cred.poll_status()
+        if cred.status == "Accepted":
+            cred.retrieve_credential()
 
 
