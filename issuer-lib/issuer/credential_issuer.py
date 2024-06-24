@@ -23,7 +23,7 @@ class CredentialIssuer:
         self.mapping = {}
 
     async def get_credential_options(self) -> OptionsResponse:
-        """Retrieves available credentials that can be issues, 
+        """Retrieves available credentials that can be issued, 
         along with required fields and types."""
         return OptionsResponse(options=self.credentials)
 
