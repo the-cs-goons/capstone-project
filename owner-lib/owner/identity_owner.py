@@ -2,7 +2,7 @@ from models.credentials import Credential
 from requests import Session, Response
 
 class IdentityOwner:
-    credentials: list[Credential]
+    credentials: dict[str, Credential]
     dev_mode: False # HTTPS not enforced if running in development context
     # TODO: Enforce https
 
@@ -36,7 +36,9 @@ class IdentityOwner:
                 raise f"Error: {response.status_code} Response - {response.reason} {response.json()}"
             
             body: dict = response.json()
+            id = body["link"] # TODO: make this something else
             req_url = f"{issuer_url}/status?token={body["link"]}"
-            credential = Credential(issuer_url=issuer_url, type=cred_type, request_url=req_url)
-            self.credentials.append(credential)
-            
+
+            credential = Credential(id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url)
+            self.credentials[id] = credential
+
