@@ -1,5 +1,6 @@
 import os
 import time
+from typing import Literal, Optional
 
 import requests
 from cryptography import x509
@@ -8,17 +9,52 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
 
-from .models.hello_world import HelloWorldResponse
+from .models.presentation_definition import PresentationDefinition
+from .models.presentation_request_response import PresentationRequestResponse
 
 
 class ServiceProvider:
-    def __init__(self, ca_bundle, ca_path):
+    def __init__(
+            self,
+            ca_bundle,
+            ca_path,
+            presentation_definitions: dict[str, PresentationRequestResponse] = {}
+            ):
         """
         initialise the service provider with a list of CA bundle
         """
+        self.presentation_definitions = presentation_definitions
         self.ca_bundle = ca_bundle
         self.ca_path = ca_path
         self.used_nonces = {}
+
+    def get_server(self) -> FastAPI:
+        router = FastAPI()
+        router.get('/request/{request_type}')(self.get_presentation_request)
+        router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
+        router.post("/update-ca-bundle/{url}")(self.try_update_ca_bundle)
+        return router
+
+    def add_presentation_definition(
+            self,
+            request_type: str,
+            presentation_definition: PresentationDefinition
+            ) -> None:
+
+        self.presentation_definitions[request_type] = presentation_definition
+
+    async def get_presentation_request(
+            self,
+            request_type: str,
+            client_id: str
+            ) -> PresentationRequestResponse:
+
+        if request_type not in self.presentation_definitions:
+            raise HTTPException(status_code=404, detail='Request type not found')
+
+        return PresentationRequestResponse(
+            client_id,
+            self.presentation_definitions[request_type])
 
     def load_ca_bundle(self, path):
         """
@@ -50,9 +86,6 @@ class ServiceProvider:
             self.ca_bundle = self.load_ca_bundle(self.ca_bundle_path)
         else:
             print("Failed to download CA bundle")
-
-    async def hello_world(self) -> HelloWorldResponse:
-        return HelloWorldResponse(hello="Hello", world="World")
 
     def verify_certificate(self, credential, nonce, timestamp):
         """
@@ -111,10 +144,3 @@ class ServiceProvider:
             return {"status": "CA bundle updated successfully"}
         except Exception as e:
             return {"error": str(e)}
-
-    def get_server(self) -> FastAPI:
-        router = FastAPI()
-        router.get("/")(self.hello_world)
-        router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
-        router.post("/update-ca-bundle/{url}")(self.try_update_ca_bundle)
-        return router
