@@ -76,7 +76,7 @@ class ServiceProvider:
             if issuer_certificate is None:
                 return False
 
-            # Verify the certificate's signature
+            # Verify the certificate's signature using the isser's public key
             issuer_certificate.public_key().verify(
                 credential.signature,
                 credential.tbs_certificate_bytes,
@@ -96,7 +96,24 @@ class ServiceProvider:
             print(f"Verification failed: {e}")
             return False
 
-    # @router.post("/update-ca-bundle")
+    def get_issuer_details(self, issuer_subject):
+        issuer_certificate = next(
+            (ca for ca in self.ca_bundle if
+                    ca.subject.rfc4514_string() == issuer_subject
+            ), None
+        )
+        if issuer_certificate:
+            issuer_details = {
+                "subject": issuer_certificate.subject.rfc4514_string(),
+                "issuer": issuer_certificate.issuer.rfc4514_string(),
+                "valid_from": issuer_certificate.not_valid_before.isoformat(),
+                "valid_to": issuer_certificate.not_valid_after.isoformat(),
+                # Can add more details here
+            }
+            return issuer_details
+        else:
+            return {"error": "Issuer not found"}
+
     async def try_verify_certificate(self, credential):
         nonce = credential.nonce
         timestamp = credential.timestamp
@@ -106,7 +123,6 @@ class ServiceProvider:
             )
         return {"status": "Certificate verified successfully"}
 
-    # @router.post("/verify-certificate")
     async def try_update_ca_bundle(self, url):
         try:
             self.update_ca_bundle(url)
@@ -114,9 +130,16 @@ class ServiceProvider:
         except Exception as e:
             return {"error": str(e)}
 
+    async def try_get_issuer_details(self, issuer_subject):
+        details = self.get_issuer_details(issuer_subject)
+        if "error" in details:
+            raise HTTPException(status_code=404, detail=details["error"])
+        return details
+
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.get("/")(self.hello_world)
         router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
         router.post("/update-ca-bundle/{url}")(self.try_update_ca_bundle)
+        router.get("/get_issuer_detail/{issuer_subject}")(self.get_issuer_details)
         return router
