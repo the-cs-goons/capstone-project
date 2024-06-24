@@ -140,3 +140,15 @@ async def test_invalid_information():
 
     with pytest.raises(HTTPException):
         await credential_issuer.recieve_credential_request("default")
+
+
+@pytest.mark.asyncio
+async def test_nonexistent_key():
+    with pytest.raises(FileNotFoundError):
+        CredentialIssuer(MOCK_INFORMATION, "not/a/key.pem")
+
+@pytest.mark.asyncio
+async def test_invalid_key():
+    with pytest.raises(ValueError):
+        CredentialIssuer(MOCK_INFORMATION, 
+                         "issuer-lib/tests/test_invalid_private_key.pem")

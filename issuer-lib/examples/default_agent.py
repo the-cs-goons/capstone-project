@@ -1,6 +1,6 @@
 from typing import Any, override
 
-from issuer import CredentialIssuer
+from issuer import CredentialIssuer, StatusResponse
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -25,7 +25,7 @@ class DefaultIssuer(CredentialIssuer):
         return
 
     @override
-    def get_status(self, ticket: int) -> tuple[Any, str, dict[str, Any]]:
+    def get_status(self, ticket: int) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
         return ["ACCEPTED", cred_type, information]
 
