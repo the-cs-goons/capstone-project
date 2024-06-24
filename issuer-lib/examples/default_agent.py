@@ -5,15 +5,18 @@ from issuer import CredentialIssuer
 
 class DefaultIssuer(CredentialIssuer):
     """Example implementation of the `CredentialIssuer` base class.
-    
+
     ### Added Attributes
     - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
       of active credential requests."""
+
     statuses: dict[int, (str, dict)]
 
     @override
-    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]]):
-        super().__init__(credentials)
+    def __init__(
+        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+    ):
+        super().__init__(credentials, private_key_path)
         self.statuses = {}
 
     @override
@@ -24,8 +27,8 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_status(self, ticket: int) -> tuple[Any, str, dict[str, Any]]:
         cred_type, information = self.statuses[ticket]
-        return ["Approved", cred_type, information]
-    
+        return ["ACCEPTED", cred_type, information]
+
     def process_requests(self):
         pass
 
@@ -57,5 +60,5 @@ credentials = {
     },
 }
 
-credential_issuer = DefaultIssuer(credentials)
+credential_issuer = DefaultIssuer(credentials, "/usr/src/examples/example_private.pem")
 credential_issuer_server = credential_issuer.get_server()

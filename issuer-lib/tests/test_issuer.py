@@ -23,16 +23,22 @@ MOCK_INFORMATION = {
     },
 }
 
+
 @pytest.mark.asyncio
 async def test_credential_options():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     response = await credential_issuer.get_credential_options()
     assert response.options == MOCK_INFORMATION
 
+
 @pytest.mark.asyncio
 async def test_request_credential():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     info_1 = {
         "string": "string",
@@ -63,7 +69,9 @@ async def test_request_credential():
 
 @pytest.mark.asyncio
 async def test_check_credential_status():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     info = {
         "string": "string",
@@ -75,12 +83,14 @@ async def test_check_credential_status():
 
     response = await credential_issuer.credential_status(response.link)
     assert response.ticket == 1
-    assert response.status == "Pending"
+    assert response.status == "PENDING"
 
 
 @pytest.mark.asyncio
 async def test_invalid_credentials():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     info = {"name": "Name Lastname"}
     with pytest.raises(HTTPException):
@@ -89,7 +99,9 @@ async def test_invalid_credentials():
 
 @pytest.mark.asyncio
 async def test_invalid_information():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     invalid_info_1 = {
         "string": "string",

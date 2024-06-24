@@ -1,9 +1,11 @@
+import json
+from base64 import b64encode
+from hashlib import sha256
 from typing import Any
 from uuid import uuid4
 
-import json
-from hashlib import sha256
-
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
 
 from .models.responses import OptionsResponse, RequestResponse, UpdateResponse
@@ -18,15 +20,23 @@ class CredentialIssuer:
       with required fields and types
     - ticket(`int`): Internal tracking of current ticket number
     - mapping(`dict[str, int]`): Mapping of links to tickets
+    - private_key: Private key used to sign credentials
     """
 
-    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]]):
+    def __init__(
+        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+    ):
         self.credentials = credentials
         self.ticket = 0
         self.mapping = {}
+        with open(private_key_path, "rb") as key_file:
+            self.private_key = serialization.load_pem_private_key(
+                key_file.read(),
+                password=None,
+            )
 
     async def get_credential_options(self) -> OptionsResponse:
-        """Retrieves available credentials that can be issued, 
+        """Retrieves available credentials that can be issued,
         along with required fields and types."""
         return OptionsResponse(options=self.credentials)
 
@@ -36,33 +46,36 @@ class CredentialIssuer:
         """Receives a request for credentials.
 
         ### Parameters
-        - cred_type(`str`): Type of credential being requested. 
+        - cred_type(`str`): Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
-        - information(`dict`): Request body, containing information for the 
+        - information(`dict`): Request body, containing information for the
           credential being requested.
 
         ### `POST`-ing requests
         Requests must:
-        - Come from an endpoint corresponding to a valid credential type; 
+        - Come from an endpoint corresponding to a valid credential type;
           e.g. `/request/drivers_license`
-        - Contain fields in the request body matching those of the credential 
+        - Contain fields in the request body matching those of the credential
           being applied for
         - Contain the correct data types in said fields.
-        
+
         A `HTTPException` will be thrown if any of these are not met.
 
-        Valid credential formats and required fields can be accessed through 
+        Valid credential formats and required fields can be accessed through
         `get_credential_options()`.
         """
         if cred_type not in self.credentials:
-            raise HTTPException(status_code=404, 
-                                detail=f"Credential type {cred_type} is not supported")
+            raise HTTPException(
+                status_code=404, detail=f"Credential type {cred_type} is not supported"
+            )
 
         try:
             self.check_input_typing(cred_type, information)
         except Exception as e:
-            raise HTTPException(status_code=400, 
-                                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}") # noqa E501
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",
+            )  # noqa E501
 
         self.ticket += 1
         link = str(uuid4())
@@ -73,7 +86,7 @@ class CredentialIssuer:
 
     async def credential_status(self, token: str) -> UpdateResponse:
         """Returns the current status of an active credential request.
-        
+
         ### Parameters
         - token(`str`): Maps to a ticket number through the `mapping` attribute."""
         ticket = self.mapping[token]
@@ -89,7 +102,7 @@ class CredentialIssuer:
         Raises `TypeError` if types do not match."""
         if information is None:
             raise TypeError("No request body provided")
-        
+
         for field_name, field_info in self.credentials[cred_type].items():
             if field_name in information:
                 value = information[field_name]
@@ -128,14 +141,34 @@ class CredentialIssuer:
         for field_name, field_value in information.items():
             json_rep = json.dumps({field_name: field_value})
             disclosures.append(json_rep)
-            hashed = sha256(bytes(json_rep, encoding='utf8')).hexdigest()
+            hashed = sha256(bytes(json_rep, encoding="utf8")).hexdigest()
             items.append(hashed)
 
-        credential = {
-            "_fields": items,
-            "_type": cred_type
-        }
-        return json.dumps(credential)
+        credential = bytes(json.dumps({"_fields": items, "_type": cred_type}), "utf8")
+
+        signature = self.private_key.sign(
+            credential,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        public_key = self.private_key.public_key()
+        public_key.verify(
+            signature,
+            credential,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        cred_string = b64encode(credential) + b"." + b64encode(signature)
+        for i in disclosures:
+            cred_string += b"~" + b64encode(bytes(json.dumps(i), "utf-8"))
+
+        return cred_string.decode("utf-8")
 
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
@@ -152,12 +185,12 @@ class CredentialIssuer:
         """## !!! This function must be `@override`n !!!
 
         Function to accept and process requests.
-        
+
         ### Parameters
         - ticket(`int`): Ticket number of the request. This is generated by the class.
-        - cred_type(`str`):  Type of credential being requested. 
+        - cred_type(`str`):  Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
-        - information(`dict`): Request body, containing information for the 
+        - information(`dict`): Request body, containing information for the
           credential being requested."""
         return
 
@@ -166,16 +199,16 @@ class CredentialIssuer:
 
         Function to process requests for credential application status updates, as
         well as returning credentials for successful applications.
-        
+
         ### Parameters
         - ticket(`int`): Ticket number of the request. This is generated by the class.
-        
+
         ### Returns
         - `Any`: A string representing the status of the application.
         - `str`: The type of credential that was requested.
         - `dict`: Fields to be used in the new credential, once approved. Set as
           `None` otherwise.
-        
-        IMPORTANT: The `Any` return value can be read by anyone with the link to specified
-        ticket, and must not have any sensitive information contained."""
-        return ["Pending", None]
+
+        IMPORTANT: The `Any` return value can be read by anyone with the link to
+        specified ticket, and must not have any sensitive information contained."""
+        return ["PENDING", None, None]
