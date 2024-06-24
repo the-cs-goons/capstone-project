@@ -5,7 +5,13 @@ import {
   Scripts,
   ScrollRestoration,
 } from "@remix-run/react";
+import { CssBaseline } from "@mui/material";
 import "./tailwind.css";
+
+import '@fontsource/roboto/300.css';
+import '@fontsource/roboto/400.css';
+import '@fontsource/roboto/500.css';
+import '@fontsource/roboto/700.css';
 
 export function Layout({ children }) {
   return (
@@ -26,5 +32,8 @@ export function Layout({ children }) {
 }
 
 export default function App() {
-  return <Outlet />;
+  return <>
+    <CssBaseline />
+    <Outlet />
+  </>;
 }

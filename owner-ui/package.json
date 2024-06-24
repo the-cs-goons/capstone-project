@@ -10,6 +10,10 @@
     "start": "cross-env NODE_ENV=production node ./server.js"
   },
   "dependencies": {
+    "@emotion/react": "^11.11.4",
+    "@emotion/styled": "^11.11.5",
+    "@fontsource/roboto": "^5.0.13",
+    "@mui/material": "6.0.0-alpha.11",
     "@remix-run/express": "^2.9.2",
     "@remix-run/node": "^2.9.2",
     "@remix-run/react": "^2.9.2",
