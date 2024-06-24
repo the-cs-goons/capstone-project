@@ -2,12 +2,7 @@ from typing import Literal, Optional
 
 from fastapi import FastAPI, HTTPException
 
-from .models.presentation_definition import (
-    Constraint,
-    Field,
-    InputDescriptor,
-    PresentationDefinition,
-)
+from .models.presentation_definition import PresentationDefinition
 from .models.presentation_request_response import PresentationRequestResponse
 
 

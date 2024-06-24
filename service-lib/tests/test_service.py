@@ -4,6 +4,7 @@ from service import ServiceProvider
 from service.models.presentation_definition import (
     Constraint,
     Field,
+    Filter,
     InputDescriptor,
     PresentationDefinition,
 )
@@ -132,10 +133,40 @@ async def test_presentation_request_two_fields_optional():
 
 
 @pytest.mark.asyncio
-async def test_presetation_request_not_found():
+async def test_presentation_request_not_found():
     service_provider = ServiceProvider()
 
     with pytest.raises(HTTPException):
         await service_provider.get_presentation_request(
             'non_existent',
             'example_client_id')
+
+@pytest.mark.asyncio
+async def test_presentation_request_filter():
+    sp = ServiceProvider()
+
+    pd = PresentationDefinition(
+        id='test_filter',
+        input_descriptors=[
+            InputDescriptor(
+            id='credit_card_test',
+            constraints=Constraint([
+                Field(
+                    path=['$.type'],
+                    filter=Filter(
+                        type='string',
+                        pattern='creditCard'
+                    )
+                    )
+                ]
+            ))
+        ],
+        name='required_limit_disclosure'
+    )
+
+    sp.add_presentation_definition('hasCreditCard', pd)
+
+    response = await sp.get_presentation_request('hasCreditCard', 'some_bank')
+    constraints = response.presentation_definition.input_descriptors[0].constraints
+    assert constraints.fields[0].filter.type == 'string'
+    assert constraints.fields[0].filter.pattern == 'creditCard'

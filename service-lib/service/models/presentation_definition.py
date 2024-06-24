@@ -9,8 +9,9 @@ class Filter(BaseModelJson):
     Filters must specify a "type" or "format" that the field must adhere to.
     They can further specify what value they need
     e.g. date.today - dateofbirth > 18 years'''
-    type: Literal['string', 'number', 'integer', 'boolean', 'array', 'object'] = None
-    format: Literal['date', 'date-time', 'email', 'uri'] = None
+    type: Optional[
+        Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None
+    format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None
 
     # String filters
     min_length: Optional[int] = None
