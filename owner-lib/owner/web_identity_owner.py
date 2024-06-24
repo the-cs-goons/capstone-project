@@ -1,9 +1,12 @@
 from typing import Any, override
+
+from fastapi import FastAPI, HTTPException
+from requests import Response, Session
+
 from . import IdentityOwner
 from .models.credentials import Credential
 from .models.responses import SchemaResponse
-from fastapi import FastAPI, HTTPException
-from requests import Session, Response
+
 
 class WebIdentityOwner(IdentityOwner):
 
@@ -28,7 +31,9 @@ class WebIdentityOwner(IdentityOwner):
     
     @router.get("/request/{cred_type}")
     @override
-    async def get_credential_request_schema(self, cred_type: str, issuer_url: str) -> SchemaResponse:
+    async def get_credential_request_schema(self, 
+                                            cred_type: str, 
+                                            issuer_url: str) -> SchemaResponse:
         """
         Retrieves the required information needed to submit a request for some ID type
         from an issuer.
@@ -46,7 +51,7 @@ class WebIdentityOwner(IdentityOwner):
             body: dict = response.json()
             if "options" not in body.keys():
                 raise HTTPException(status_code=500, 
-                                detail=f"Issuer API Error: Incorrect API response")
+                                detail="Issuer API Error: Incorrect API response")
             
             options: dict = body["options"]
             if type not in options.keys():

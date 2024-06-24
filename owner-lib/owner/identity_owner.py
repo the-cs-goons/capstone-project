@@ -1,16 +1,21 @@
-from base64 import b64encode, b64decode
+from base64 import b64decode, b64encode
 from json import loads
 from uuid import uuid4
+
+from requests import Response, Session
+
 from .models import Credential
-from requests import Session, Response
+
 
 class IdentityOwner:
     """
     Base Identity Owner class
 
     ### Attributes
-    - credentials(`dict[str, Credential]`): A dictionary of credentials, mapped by their IDs
-    - dev_mode(`bool`): Flag for running in development environment (currently unused)
+    - credentials(`dict[str, Credential]`): A dictionary of credentials, mapped by 
+    their IDs
+    - dev_mode(`bool`): Flag for running in development environment (currently 
+    unused)
     - storage_key(`str`): Key for encrypting stored credentials (currently unused)
     """
     # TODO: Enforce https
@@ -31,11 +36,12 @@ class IdentityOwner:
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
 
-    def serialise_and_encrypt(cred: Credential):
+    def serialise_and_encrypt(self, cred: Credential):
         """
         # NOT YET IMPLEMENTED IN FULL
         TODO: Implement encryption for safe storage using key attr
-        Converts the Credential object into some string value that can be stored and encrypts it
+        Converts the Credential object into some string value that can be stored 
+        and encrypts it
         
         ### Parameters
         - cred(`Credential`): Credential to serialise and encrypt
@@ -43,12 +49,13 @@ class IdentityOwner:
         ### Returns
         - `bytes`: A base64 encoded Credential
         """
-        return b64encode(cred.model_dump_json())
+        return b64encode(cred.model_dump_json().encode())
     
-    def load_from_serial(dump: str | bytes | bytearray) -> Credential:
+    def load_from_serial(self, dump: str | bytes | bytearray) -> Credential:
         """
         # NOT YET IMPLEMENTED IN FULL
-        TODO: Implement decryption in accordance with implementation in `serialise_and_encrypt`
+        TODO: Implement decryption in accordance with implementation in 
+        `serialise_and_encrypt`
         
         Static method that loads a credential from encrypted & serialised string
         
@@ -152,14 +159,17 @@ class IdentityOwner:
         with Session() as s:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
-                raise f"Error: {response.status_code} Response - {response.reason} {response.json()}"
+                raise f"Error: {response.status_code} - {response.json()["detail"]}"
             body: dict = response.json()
 
             # For internal use by the ID owner library/agent
             id = uuid4().hex
             req_url = f"{issuer_url}/status?token={body['link']}"
 
-            credential = Credential(id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url)
+            credential = Credential(id=id, 
+                                    issuer_url=issuer_url, 
+                                    type=cred_type, 
+                                    request_url=req_url)
             self.credentials[id] = credential
             self.store_credential(credential)
 

@@ -1,9 +1,10 @@
 
-import pytest
 from datetime import datetime
-from owner import IdentityOwner, Credential
 
-@pytest
+import pytest
+from owner import Credential, IdentityOwner
+
+
 def test_serialise_and_load_credentials():
     credential = Credential(id="example", 
                              issuer_url="https://example.com", 
@@ -13,7 +14,7 @@ def test_serialise_and_load_credentials():
                              status="PENDING",
                              status_message=None,
                              issuer_name="Example Issuer",
-                             received_at=datetime()
+                             received_at=datetime.now()
                              )
     
     id_owner = IdentityOwner("example")
