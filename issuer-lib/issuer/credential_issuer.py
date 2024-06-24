@@ -74,8 +74,8 @@ class CredentialIssuer:
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",
-            )  # noqa E501
+                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa E501
+            )
 
         self.ticket += 1
         link = str(uuid4())
@@ -135,41 +135,6 @@ class CredentialIssuer:
                 raise TypeError(f"{field_name} not required by {cred_type}")
         return
 
-    def create_credential(self, cred_type: str, information: dict) -> str:
-        items = []
-        disclosures = []
-        for field_name, field_value in information.items():
-            json_rep = json.dumps({field_name: field_value})
-            disclosures.append(json_rep)
-            hashed = sha256(bytes(json_rep, encoding="utf8")).hexdigest()
-            items.append(hashed)
-
-        credential = bytes(json.dumps({"_fields": items, "_type": cred_type}), "utf8")
-
-        signature = self.private_key.sign(
-            credential,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
-
-        public_key = self.private_key.public_key()
-        public_key.verify(
-            signature,
-            credential,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
-
-        cred_string = b64encode(credential) + b"." + b64encode(signature)
-        for i in disclosures:
-            cred_string += b"~" + b64encode(bytes(json.dumps(i), "utf-8"))
-
-        return cred_string.decode("utf-8")
-
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
         router = FastAPI()
@@ -212,3 +177,43 @@ class CredentialIssuer:
         IMPORTANT: The `Any` return value can be read by anyone with the link to
         specified ticket, and must not have any sensitive information contained."""
         return ["PENDING", None, None]
+
+    def create_credential(self, cred_type: str, information: dict) -> str:
+        """Function to generate credentials after being accepted.
+
+        Overriding this function is *optional* - default implementation will be
+        SD-JWT-VC, however a temporary mimicing algorithm is used in place for the
+        time being.
+
+        ### Parameters
+        - cred_type(`str`):  Type of credential being requested.
+          This parameter is taken from the endpoint that was visited.
+        - information(`dict`): Contains information for the credential being
+          constructed.
+
+        ### Returns
+        - `str`: A string containing the new issued credential.
+        """
+        items = []
+        disclosures = []
+        for field_name, field_value in information.items():
+            json_rep = json.dumps({field_name: field_value})
+            disclosures.append(json_rep)
+            hashed = sha256(bytes(json_rep, encoding="utf8")).hexdigest()
+            items.append(hashed)
+
+        credential = bytes(json.dumps({"_fields": items, "_type": cred_type}), "utf8")
+
+        signature = self.private_key.sign(
+            credential,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256(),
+        )
+
+        cred_string = b64encode(credential) + b"." + b64encode(signature)
+        for i in disclosures:
+            cred_string += b"~" + b64encode(bytes(json.dumps(i), "utf-8"))
+
+        return cred_string.decode("utf-8")

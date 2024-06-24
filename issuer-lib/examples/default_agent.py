@@ -29,9 +29,6 @@ class DefaultIssuer(CredentialIssuer):
         cred_type, information = self.statuses[ticket]
         return ["ACCEPTED", cred_type, information]
 
-    def process_requests(self):
-        pass
-
 
 credentials = {
     "id": {
