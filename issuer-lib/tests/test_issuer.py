@@ -23,23 +23,20 @@ MOCK_INFORMATION = {
     },
 }
 
-
-@pytest.mark.asyncio
-async def test_credential_options():
-    credential_issuer = CredentialIssuer(
+@pytest.fixture
+def credential_issuer():
+    return CredentialIssuer(
         MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
     )
 
+@pytest.mark.asyncio
+async def test_credential_options(credential_issuer):
     response = await credential_issuer.get_credential_options()
     assert response.options == MOCK_INFORMATION
 
 
 @pytest.mark.asyncio
-async def test_request_credential():
-    credential_issuer = CredentialIssuer(
-        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
-    )
-
+async def test_request_credential(credential_issuer):
     info_1 = {
         "string": "string",
         "number": 0,
@@ -68,11 +65,7 @@ async def test_request_credential():
 
 
 @pytest.mark.asyncio
-async def test_check_credential_status():
-    credential_issuer = CredentialIssuer(
-        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
-    )
-
+async def test_check_credential_status(credential_issuer):
     info = {
         "string": "string",
         "number": 0,
@@ -98,11 +91,7 @@ async def test_invalid_credentials():
 
 
 @pytest.mark.asyncio
-async def test_invalid_information():
-    credential_issuer = CredentialIssuer(
-        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
-    )
-
+async def test_invalid_information(credential_issuer):
     invalid_info_1 = {
         "string": "string",
         "not_a_field": False,

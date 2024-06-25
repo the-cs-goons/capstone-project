@@ -27,7 +27,8 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_status(self, ticket: int) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
-        return StatusResponse(status="ACCEPTED", cred_type=cred_type, information=information)
+        return StatusResponse(status="ACCEPTED", cred_type=cred_type, 
+                              information=information)
 
 
 credentials = {
@@ -57,5 +58,6 @@ credentials = {
     },
 }
 
-credential_issuer = DefaultIssuer(credentials, "/usr/src/examples/example_private_key.pem")
+credential_issuer = DefaultIssuer(credentials, 
+                                  "/usr/src/examples/example_private_key.pem")
 credential_issuer_server = credential_issuer.get_server()
