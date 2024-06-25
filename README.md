@@ -20,7 +20,7 @@ Running these tests also generates an HTML coverage report in the `htmlcov/` fol
 
 #### Testing the React frontend
 
-From the `owner-ui` directory, run `yarn test`. You may need to run `yarn install` first to install the frontend's dependencies if you haven't already.
+From the `owner-ui` directory, run `yarn test`. You may need to run `corepack enable` then `yarn install` first to install the frontend's dependencies if you haven't already.
 
 ### Serving agents
 
