@@ -1,6 +1,7 @@
 from owner import IdentityOwner
 from owner.models.verifiable_credential import VerifiableCredential
 
+
 class DefaultHolder(IdentityOwner):
     def __init__(self):
         super().__init__()

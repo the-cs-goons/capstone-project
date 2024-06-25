@@ -1,13 +1,19 @@
-from fastapi import FastAPI, HTTPException, Form
-from fastapi.responses import HTMLResponse
-from fastapi.encoders import jsonable_encoder
-from jsonpath_ng import JSONPath, parse
-import json
-import httpx
-import os
 import html
+import json
+import os
 
-from .models.verifiable_credential import VerifiableCredential, ParsedField, VerifiablePresentation
+import httpx
+from fastapi import FastAPI, Form, HTTPException
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import HTMLResponse
+from jsonpath_ng import JSONPath, parse
+
+from .models.verifiable_credential import (
+    ParsedField,
+    VerifiableCredential,
+    VerifiablePresentation,
+)
+
 
 class IdentityOwner:
     def __init__(self):
@@ -25,7 +31,7 @@ class IdentityOwner:
 
     async def get_authorization_request(
             self, 
-            url: str = f"http://service-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request?request_type=example"
+            url: str = f"http://service-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request?request_type=example" # noqa E501
             ): # -> HTMLResponse:
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
@@ -41,7 +47,8 @@ class IdentityOwner:
             ) -> list[ParsedField]:
         parsed_fields = []
 
-        input_descriptors = json.loads(response.content)["presentation_definition"]["input_descriptors"]
+        input_descriptors = json.loads(
+            response.content)["presentation_definition"]["input_descriptors"]
         fields = []
 
         for input_descriptor in input_descriptors:
@@ -86,16 +93,17 @@ class IdentityOwner:
             else:
                 optional = ""
 
-            field_entries_html += f'<input class="field-checkbox" type="checkbox" value="{html.escape(field.model_dump_json())}">{field.name}{optional}<br>'
+            field_entries_html += f'<input class="field-checkbox" type="checkbox" value="{html.escape(field.model_dump_json())}">{field.name}{optional}<br>' # noqa E501
 
-        html_ready_fields = [field.model_dump() for field in parsed_fields]
-        all_fields_html = f'<input type="hidden" name="parsed_fields" value=\'{json.dumps(field.model_dump())}\'>'
-        selected_fields_html = '<input type="hidden" id="selected_fields" name="selection">'
+        all_fields_html = f'''<input type="hidden" name="parsed_fields" value=\'{
+            json.dumps(field.model_dump())}\'>'''
+        selected_fields_html = '<input type="hidden" id="selected_fields" name="selection">' # noqa E501
 
         html_content = f"""
         <html>
             <h3>Select fields to share</h3>
-            <form id="selection_form" action="/authorize" method="post" onsubmit="prepareSelection()">
+            <form id="selection_form" action="/authorize" 
+                method="post" onsubmit="prepareSelection()"> 
                 {field_entries_html}
                 {all_fields_html}
                 {selected_fields_html}
@@ -110,7 +118,8 @@ class IdentityOwner:
                             selected.push(checkboxes[i].value);
                         }}
                     }}
-                    document.getElementById('selected_fields').value = JSON.stringify(selected);
+                    document.getElementById('selected_fields').value 
+                        = JSON.stringify(selected);
                 }}
             </script>
         </html>"""
@@ -126,7 +135,8 @@ class IdentityOwner:
         # jsonpath_ng from the "path" property in a field
 
         # for credential in self.credentials:
-        #     cred_dict = credential.model_dump(serialize_as_any=True, exclude_none=True)
+        #     cred_dict = credential.model_dump(serialize_as_any=True, 
+        #                   exclude_none=True)
         #     matches = path_exp.find(cred_dict)
 
         selection_list = json.loads(html.unescape(selection))

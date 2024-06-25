@@ -1,12 +1,13 @@
 
 from service import ServiceProvider
 from service.models.presentation_definition import (
-    PresentationDefinition,
-    InputDescriptor,
-    Field,
     Constraint,
-    Filter
+    Field,
+    Filter,
+    InputDescriptor,
+    PresentationDefinition,
 )
+
 
 class DefaultServiceProvider(ServiceProvider):
     def __init__(self):
