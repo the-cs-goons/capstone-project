@@ -233,14 +233,15 @@ async def test_verify_certificate_valid(service_provider):
     sp, cert_pem = service_provider
     nonce = "unique_nonce"
     timestamp = time.time()
+    did = None
+    did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
+
+    for ext in x509.load_pem_x509_certificate(cert_pem).extensions:
+        if isinstance(ext.oid, ObjectIdentifier) and ext.oid == did_oid:
+            did = ext.value.value
 
     assert sp.verify_certificate(
         cert_pem=cert_pem,
         nonce=nonce,
         timestamp=timestamp
-    )
-    assert (
-        sp.get_issuer_detail(
-            x509.load_pem_x509_certificate(cert_pem)
-        ).serial_number == x509.load_pem_x509_certificate(cert_pem).serial_number
-    )
+    ) == did
