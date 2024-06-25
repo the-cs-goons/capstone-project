@@ -1,19 +1,22 @@
 from typing import Any, override
 
-from issuer import CredentialIssuer
+from issuer import CredentialIssuer, StatusResponse
 
 
 class DefaultIssuer(CredentialIssuer):
     """Example implementation of the `CredentialIssuer` base class.
-    
+
     ### Added Attributes
     - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
       of active credential requests."""
+
     statuses: dict[int, (str, dict)]
 
     @override
-    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]]):
-        super().__init__(credentials)
+    def __init__(
+        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+    ):
+        super().__init__(credentials, private_key_path)
         self.statuses = {}
 
     @override
@@ -22,10 +25,10 @@ class DefaultIssuer(CredentialIssuer):
         return
 
     @override
-    def get_status(self, ticket: int) -> Any:
-        # In a real world case the application's information should NOT be returned
-        # This is purely for demonstration purposes
-        return self.statuses[ticket]
+    def get_status(self, ticket: int) -> StatusResponse:
+        cred_type, information = self.statuses[ticket]
+        return StatusResponse(status="ACCEPTED", cred_type=cred_type, 
+                              information=information)
 
 
 credentials = {
@@ -55,5 +58,6 @@ credentials = {
     },
 }
 
-credential_issuer = DefaultIssuer(credentials)
+credential_issuer = DefaultIssuer(credentials, 
+                                  "/usr/src/examples/example_private_key.pem")
 credential_issuer_server = credential_issuer.get_server()
