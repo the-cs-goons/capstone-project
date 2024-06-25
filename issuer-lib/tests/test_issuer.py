@@ -23,17 +23,20 @@ MOCK_INFORMATION = {
     },
 }
 
-@pytest.mark.asyncio
-async def test_credential_options():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+@pytest.fixture
+def credential_issuer():
+    return CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
+@pytest.mark.asyncio
+async def test_credential_options(credential_issuer):
     response = await credential_issuer.get_credential_options()
     assert response.options == MOCK_INFORMATION
 
-@pytest.mark.asyncio
-async def test_request_credential():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
 
+@pytest.mark.asyncio
+async def test_request_credential(credential_issuer):
     info_1 = {
         "string": "string",
         "number": 0,
@@ -62,9 +65,7 @@ async def test_request_credential():
 
 
 @pytest.mark.asyncio
-async def test_check_credential_status():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
-
+async def test_check_credential_status(credential_issuer):
     info = {
         "string": "string",
         "number": 0,
@@ -75,12 +76,14 @@ async def test_check_credential_status():
 
     response = await credential_issuer.credential_status(response.link)
     assert response.ticket == 1
-    assert response.status == "Pending"
+    assert response.status == "PENDING"
 
 
 @pytest.mark.asyncio
 async def test_invalid_credentials():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "issuer-lib/tests/test_private_key.pem"
+    )
 
     info = {"name": "Name Lastname"}
     with pytest.raises(HTTPException):
@@ -88,9 +91,7 @@ async def test_invalid_credentials():
 
 
 @pytest.mark.asyncio
-async def test_invalid_information():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION)
-
+async def test_invalid_information(credential_issuer):
     invalid_info_1 = {
         "string": "string",
         "not_a_field": False,
@@ -128,3 +129,15 @@ async def test_invalid_information():
 
     with pytest.raises(HTTPException):
         await credential_issuer.recieve_credential_request("default")
+
+
+@pytest.mark.asyncio
+async def test_nonexistent_key():
+    with pytest.raises(FileNotFoundError):
+        CredentialIssuer(MOCK_INFORMATION, "not/a/key.pem")
+
+@pytest.mark.asyncio
+async def test_invalid_key():
+    with pytest.raises(ValueError):
+        CredentialIssuer(MOCK_INFORMATION, 
+                         "issuer-lib/tests/test_invalid_private_key.pem")
