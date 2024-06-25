@@ -19,7 +19,10 @@ class DefaultServiceProvider(ServiceProvider):
                 id='limit_disclosure_test',
                 constraints=Constraint(
                     fields=[
-                        Field(['$.credentialSubject.dob', '$.dob', '$.dateOfBirth', '$.credentialSubject.dateOfBirth'])
+                        Field(['$.credentialSubject.dob', 
+                               '$.dob', 
+                               '$.dateOfBirth', 
+                               '$.credentialSubject.dateOfBirth'])
                     ],
                     limit_disclosure='required'))
             ]

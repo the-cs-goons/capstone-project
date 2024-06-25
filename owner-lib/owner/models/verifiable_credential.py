@@ -8,7 +8,7 @@ class VerifiableCredential(BaseModel):
     type: list[str]
     credentialSubject: dict[str, dict | str]
     issuer: str | dict[str, dict | str]
-    context: list[str] = Field(serialization_alias='@context')
+    context: list[str] #= Field(serialization_alias='@context')
     id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
@@ -19,8 +19,8 @@ class VerifiableCredential(BaseModel):
     def __init__(
             self,
             type: list[str],
-            credentialSubject: dict[str, any] | list[dict[str, any]],
-            issuer: str | dict[str, any],
+            credentialSubject: dict, #dict[str, dict | str],
+            issuer: str | dict[str, dict | str],
             context: list[str],
             id: Optional[str] = None,
             name: Optional[str] = None,
@@ -61,3 +61,10 @@ class VerifiablePresentation(BaseModel):
             id = id,
             holder = holder
         )
+
+class ParsedField(BaseModel):
+    name: str
+    condition: str
+    paths: list[str]
+    optional: bool
+    original_field: str

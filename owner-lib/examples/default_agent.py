@@ -7,7 +7,7 @@ class DefaultHolder(IdentityOwner):
         self.credentials.append(
             VerifiableCredential(
                 context = ["https://www.w3.org/ns/credentials/v2"],
-                type = ['verifiableCredential', 'nswDriverLicense'],
+                type = ["verifiableCredential", "nswDriverLicense"],
                 issuer = "the-issuers-did",
                 credentialSubject = {
                     "id" : "the-holders-did",
