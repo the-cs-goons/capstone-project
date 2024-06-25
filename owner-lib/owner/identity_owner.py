@@ -38,7 +38,7 @@ class IdentityOwner:
     def __parse_authorization_request(
             self, 
             response: httpx.Response
-            ): # -> list[ParsedField]:
+            ) -> list[ParsedField]:
         parsed_fields = []
 
         input_descriptors = json.loads(response.content)["presentation_definition"]["input_descriptors"]
@@ -82,25 +82,38 @@ class IdentityOwner:
         field_entries_html = ""
         for field in parsed_fields:
             if field.optional:
-                optional = " Optional"
+                optional = " (optional)"
             else:
                 optional = ""
 
-            field_entries_html += f'<input type="checkbox" name="selection" value="{html.escape(field.model_dump_json())}">{field.name}{optional}<br>'
+            field_entries_html += f'<input class="field-checkbox" type="checkbox" value="{html.escape(field.model_dump_json())}">{field.name}{optional}<br>'
 
         html_ready_fields = [field.model_dump() for field in parsed_fields]
-        all_fields_html = f'<input type="hidden" name="parsed_fields" value="{html.escape(json.dumps(html_ready_fields))}">'
+        all_fields_html = f'<input type="hidden" name="parsed_fields" value=\'{json.dumps(field.model_dump())}\'>'
+        selected_fields_html = '<input type="hidden" id="selected_fields" name="selection">'
 
         html_content = f"""
         <html>
             <h3>Select fields to share</h3>
-            <form action="/authorize" method="post">
+            <form id="selection_form" action="/authorize" method="post" onsubmit="prepareSelection()">
                 {field_entries_html}
                 {all_fields_html}
+                {selected_fields_html}
                 <input type="submit" value="Submit">
             </form>
-        </html>
-        """
+            <script>
+                function prepareSelection() {{
+                    var checkboxes = document.getElementsByClassName('field-checkbox');
+                    var selected = [];
+                    for (var i = 0; i < checkboxes.length; i++) {{
+                        if (checkboxes[i].checked) {{
+                            selected.push(checkboxes[i].value);
+                        }}
+                    }}
+                    document.getElementById('selected_fields').value = JSON.stringify(selected);
+                }}
+            </script>
+        </html>"""
         return HTMLResponse(content=html_content)
 
     def __create_presentation(
@@ -116,5 +129,8 @@ class IdentityOwner:
         #     cred_dict = credential.model_dump(serialize_as_any=True, exclude_none=True)
         #     matches = path_exp.find(cred_dict)
 
-        return {"selection": json.loads(selection), 
+        selection_list = json.loads(html.unescape(selection))
+        selection = [json.loads(x) for x in selection_list]
+
+        return {"selection": selection, #[json.loads(x) for x in selection], 
                 "parsed_fields": json.loads(parsed_fields)}
