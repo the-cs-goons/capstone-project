@@ -20,10 +20,10 @@ Running these tests also generates an HTML coverage report in the `htmlcov/` fol
 
 #### Testing the React frontend
 
-From the `owner-ui` directory, run `npm test`. You may need to run `npm install` first to install the frontend's dependencies if you haven't already.
+From the `owner-ui` directory, run `yarn test`. You may need to run `yarn install` first to install the frontend's dependencies if you haven't already.
 
 ### Serving agents
 
-To start all the agents and network them together, run `docker-compose up --build`.
+To start all the agents and network them together, run `docker compose up --build`.
 
 While `docker-compose` is running, it is setup to automatically reload the server with any changes you make to the source code, so you don't have to restart `docker-compose` while you're developing code.
