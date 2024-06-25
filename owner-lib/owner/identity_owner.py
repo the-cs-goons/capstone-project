@@ -3,9 +3,11 @@ import asyncio
 import httpx
 import os
 
+from .models.verifiable_credential import VerifiableCredential
+
 class IdentityOwner:
     def __init__(self):
-        # self.credentials: dict[str, VerifiableCredential] = {}
+        self.credentials: dict[str, VerifiableCredential] = {}
         pass
 
     def get_server(self) -> FastAPI:

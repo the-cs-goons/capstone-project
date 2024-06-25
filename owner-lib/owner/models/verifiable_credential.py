@@ -5,15 +5,15 @@ from typing import Optional, Literal
 
 class VerifiableCredential(BaseModel):
 
-    context: list[str] = Field(alias='@context')
     type: list[str]
-    credentialSubject: dict[str, any] | list[dict[str, any]]
-    issuer: str | dict[str, any] # has to contain a URL or DID or JWK identifying the issuer
+    credentialSubject: dict[str, dict | str]
+    issuer: str | dict[str, dict | str]
+    context: list[str] = Field(alias='@context')
     id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None
-    validFrom: Optional[str] = None # must be a date-time-stamp
-    validUntil: Optional[str] = None # can be found https://www.w3.org/TR/xmlschema11-2/#dateTime
+    validFrom: Optional[str] = None
+    validUntil: Optional[str] = None
     credentialStatus: Optional[str] = None
 
     def __init__(
@@ -21,7 +21,7 @@ class VerifiableCredential(BaseModel):
             type: list[str],
             credentialSubject: dict[str, any] | list[dict[str, any]],
             issuer: str | dict[str, any],
-            context: list[str] = Field(alias='@context'),
+            context: list[str],
             id: Optional[str] = None,
             name: Optional[str] = None,
             description: Optional[str] = None,
@@ -44,14 +44,14 @@ class VerifiableCredential(BaseModel):
 
 class VerifiablePresentation(BaseModel):
     type: list[str] | str
-    verifiableCredential: Optional[list[dict[str, any]]] = None
+    verifiableCredential: Optional[list[dict[str, str | dict]]] = None
     id: Optional[str] = None
     holder: Optional[str] = None
 
     def __init__(
             self,
             type: list[str] | str,
-            verifiableCredential: Optional[list[dict[str, any]]] = None,
+            verifiableCredential: Optional[list[dict[str, dict | str]]] = None,
             id: Optional[str] = None,
             holder: Optional[str] = None
             ):
