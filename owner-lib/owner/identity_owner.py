@@ -1,5 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+import asyncio
 import httpx
+import os
 
 class IdentityOwner:
     def __init__(self):
@@ -10,7 +12,7 @@ class IdentityOwner:
         router = FastAPI()
         router.get("/")(self.hello)
         router.get('/yomama')(self.f)
-        router.get("/pr")(self.temp_get_thingo)
+        router.get("/pr")(self.get_presentation_request)
         return router
 
     async def hello(self):
@@ -19,7 +21,17 @@ class IdentityOwner:
     async def f(self):
         return {"message": "YO MAMA FAT"}
 
-    async def temp_get_thingo(self, url):
-        client = httpx.AsyncClient()
-        response = await client.get(url)
-        return {'url': url}
+    async def get_presentation_request(
+            self,
+            url: str = f"http://service-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request?request_type=example"
+            ):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.get(url)
+                response.raise_for_status()  # Raises an exception if the request was unsuccessful
+                data = response.json()
+            return data
+        except httpx.HTTPStatusError as exc:
+            raise HTTPException(status_code=exc.response.status_code, detail=str(exc))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
