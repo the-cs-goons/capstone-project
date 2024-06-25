@@ -1,4 +1,4 @@
-from typing import Any, override
+from typing import override
 
 from fastapi import FastAPI, HTTPException
 from requests import Response, Session
@@ -10,12 +10,9 @@ from .models.responses import SchemaResponse
 
 class WebIdentityOwner(IdentityOwner):
 
-    router = FastAPI()
-
     def __init__(self, storage_key, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
 
-    @router.get("/credential/{cred_id}")
     def get_credential(self, cred_id) -> Credential:
         """
         Gets a credential by ID, if one exists
@@ -31,7 +28,6 @@ class WebIdentityOwner(IdentityOwner):
                                 detail=f"Credential with ID {cred_id} not found.")
         return self.credentials[id]
     
-    @router.get("/credentials")
     def get_credentials(self) -> list[Credential]:
         """
         Gets all credentials
@@ -41,7 +37,6 @@ class WebIdentityOwner(IdentityOwner):
         """
         return self.credentials.values()
     
-    @router.get("/request/{cred_type}")
     @override
     async def get_credential_request_schema(self, 
                                             cred_type: str, 
@@ -75,8 +70,7 @@ class WebIdentityOwner(IdentityOwner):
             
             return SchemaResponse(request_schema=options[cred_type])
         
-    @router.post("/request/{type}")
-    async def request_credential(self, cred_type: str, issuer_url: str, info: dict):
+    async def request_credential(self, cred_type: str, issuer_url: str, info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
@@ -84,9 +78,48 @@ class WebIdentityOwner(IdentityOwner):
         - issuer_url(`str`): The issuer URL
         - cred_type(`str`): The type of the credential schema request being asked for
         - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+
+        ### Returns
+        - `Credential`: The new (pending) credential, if requested successfully
         """
         #TODO: Implement error handling
-        self.apply_for_credential(cred_type, issuer_url, info)
+        return self.apply_for_credential(cred_type, issuer_url, info)
+
+    async def refresh_credential(self, cred_id) -> Credential:
+        """
+        Refreshes a specified credential and returns it
+
+        ### Parameters
+        - cred_id(`str`): The internal ID of the credential to refresh 
+        
+        ### Returns
+        - `Credential`: The updated credential, if it exists
+        """
+        if cred_id not in self.credentials.keys():
+            raise HTTPException(status_code=400, 
+                                detail=f"Credential with ID {cred_id} not found.")
+        
+        await self.poll_credential_status(cred_id)
+        return self.credentials[cred_id]
+    
+    async def refresh_all_pending_credentials(self):
+        """
+        Refreshes all PENDING credentials
+        
+        ### Returns
+        - `list[Credential]`: A list of all saved credentials
+        """
+        await self.poll_all_pending_credentials()
+        return self.credentials.values()
 
     def get_server(self) -> FastAPI:
-        return self.router
+        router = FastAPI()
+
+        router.get("/credential/{cred_id}")(self.get_credential)
+        router.get("/credentials")(self.get_credentials)
+        router.get("/request/{cred_type}")(self.get_credential_request_schema)
+        router.post("/request/{type}")(self.apply_for_credential)
+        router.get("/refresh/{cred_id}")(self.refresh_credential)
+        router.get("/refresh/all")(self.refresh_all_pending_credentials)
+
+        return router

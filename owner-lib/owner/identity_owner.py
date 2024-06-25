@@ -157,7 +157,7 @@ class IdentityOwner:
             
             return options[cred_type]
 
-    def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict):
+    def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
@@ -165,23 +165,29 @@ class IdentityOwner:
         - issuer_url(`str`): The issuer URL
         - cred_type(`str`): The type of the credential schema request being asked for
         - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+
+        ### Returns
+        - `Credential`: The new (pending) credential, if requested successfully
         """
+        body: dict
         with Session() as s:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
                 raise f"Error: {response.status_code} - {response.json()["detail"]}"
-            body: dict = response.json()
+            body = response.json()
 
-            # For internal use by the ID owner library/agent
-            id = uuid4().hex
-            req_url = f"{issuer_url}/status?token={body['link']}"
+        # For internal use by the ID owner library/agent
+        id = uuid4().hex
+        req_url = f"{issuer_url}/status?token={body['link']}"
 
-            credential = Credential(id=id, 
-                                    issuer_url=issuer_url, 
-                                    type=cred_type, 
-                                    request_url=req_url)
-            self.credentials[id] = credential
-            self.store_credential(credential)
+        credential = Credential(id=id, 
+                                issuer_url=issuer_url, 
+                                type=cred_type, 
+                                request_url=req_url)
+        self.credentials[id] = credential
+        self.store_credential(credential)
+        return self.credentials[id]
+
 
     ###
     ### User-defined functions, designed to be overwritten
