@@ -70,14 +70,18 @@ class WebIdentityOwner(IdentityOwner):
             
             return SchemaResponse(request_schema=options[cred_type])
         
-    async def request_credential(self, cred_type: str, issuer_url: str, info: dict) -> Credential:
+    async def request_credential(self, 
+                                 cred_type: str, 
+                                 issuer_url: str, 
+                                 info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
         ### Parameters
         - issuer_url(`str`): The issuer URL
         - cred_type(`str`): The type of the credential schema request being asked for
-        - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+        - info(`dict`): The body of the request to forward on to the issuer, sent as 
+        JSON
 
         ### Returns
         - `Credential`: The new (pending) credential, if requested successfully

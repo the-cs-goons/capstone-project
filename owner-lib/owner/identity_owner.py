@@ -157,14 +157,18 @@ class IdentityOwner:
             
             return options[cred_type]
 
-    def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict) -> Credential:
+    def apply_for_credential(self, 
+                             issuer_url: str, 
+                             cred_type: str, 
+                             info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
         ### Parameters
         - issuer_url(`str`): The issuer URL
         - cred_type(`str`): The type of the credential schema request being asked for
-        - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+        - info(`dict`): The body of the request to forward on to the issuer, sent as 
+        JSON
 
         ### Returns
         - `Credential`: The new (pending) credential, if requested successfully
