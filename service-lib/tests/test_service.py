@@ -12,7 +12,7 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from cryptography.x509 import Certificate
-from cryptography.x509.oid import NameOID
+from cryptography.x509.oid import NameOID, ObjectIdentifier
 from fastapi import FastAPI, HTTPException
 from service import ServiceProvider
 from service.models.presentation import Presentation
@@ -215,22 +215,29 @@ async def test_basic_presentation(service_provider):
     cred_string += b"~" + b64encode(bytes(json.dumps({"name": "Abc"}), "utf-8"))
     p = Presentation(credential_tokens=[cred_string.decode("utf-8")])
 
-    response = await sp.start_presentation('hasCreditCard', p)
-    print(response)
+    # response = await sp.start_presentation('hasCreditCard', p)
+    # print(response)
 
 @pytest.mark.asyncio
 async def test_verify_certificate_valid(service_provider):
     sp, cert_pem, _ = service_provider
     nonce = "unique_nonce"
     timestamp = time.time()
+    did = None
+    did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
+
+    for ext in x509.load_pem_x509_certificate(cert_pem).extensions:
+        if isinstance(ext.oid, ObjectIdentifier) and ext.oid == did_oid:
+            did = ext.value.value
 
     assert sp.verify_certificate(
         cert_pem=cert_pem,
         nonce=nonce,
         timestamp=timestamp
-    )
+    ) == did
 
 def create_dummy_certificate(private_key, public_key):
+    did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
     subject = issuer = x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
         x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"California"),
@@ -252,6 +259,12 @@ def create_dummy_certificate(private_key, public_key):
         datetime.datetime.now(datetime.timezone.utc) + timedelta(days=1)
     ).add_extension(
         x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+        critical=False,
+    ).add_extension(
+        x509.UnrecognizedExtension(
+            did_oid,
+            b"My DID: did:example:123456789abcdefghi"
+        ),
         critical=False,
     ).sign(private_key=private_key, algorithm=hashes.SHA256())
 
