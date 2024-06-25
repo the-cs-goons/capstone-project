@@ -66,6 +66,7 @@ COPY package.json .
 COPY --from=deps /usr/src/.pnp.cjs /usr/src/.pnp.loader.mjs ./
 COPY --from=deps /usr/src/.yarn ./.yarn
 COPY --from=build /usr/src/build ./build
+COPY . .
 
 RUN corepack enable
 
