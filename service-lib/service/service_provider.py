@@ -1,26 +1,63 @@
+import datetime
 import os
 import time
+from typing import Literal, Optional
 
 import requests
 from cryptography import x509
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from fastapi import FastAPI, HTTPException
 
-from .models.hello_world import HelloWorldResponse
+from .models.presentation_definition import PresentationDefinition
+from .models.presentation_request_response import PresentationRequestResponse
 
 
 class ServiceProvider:
-    def __init__(self, ca_bundle, ca_path):
+    def __init__(
+            self,
+            ca_bundle,
+            ca_path: str,
+            presentation_definitions: dict[str, PresentationRequestResponse] = {}
+            ):
         """
         initialise the service provider with a list of CA bundle
         """
+        self.presentation_definitions = presentation_definitions
         self.ca_bundle = ca_bundle
         self.ca_path = ca_path
-        self.used_nonces = {}
+        self.used_nonces = set()
 
-    def load_ca_bundle(self, path):
+    def get_server(self) -> FastAPI:
+        router = FastAPI()
+        router.get('/request/{request_type}')(self.get_presentation_request)
+        router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
+        return router
+
+    def add_presentation_definition(
+            self,
+            request_type: str,
+            presentation_definition: PresentationDefinition
+            ) -> None:
+
+        self.presentation_definitions[request_type] = presentation_definition
+
+    async def get_presentation_request(
+            self,
+            request_type: str,
+            client_id: str
+            ) -> PresentationRequestResponse:
+
+        if request_type not in self.presentation_definitions:
+            raise HTTPException(status_code=404, detail='Request type not found')
+
+        return PresentationRequestResponse(
+            client_id,
+            self.presentation_definitions[request_type])
+
+    def load_ca_bundle(self, path: str):
         """
         This method loads the CA bundle from a local file
         """
@@ -32,114 +69,65 @@ class ServiceProvider:
                     if cert:
                         cert += b'-----END CERTIFICATE-----\n'
                         ca_certs.append(x509.load_pem_x509_certificate(
-                            cert, default_backend()
+                            cert
                         ))
-        except FileNotFoundError:
-            print("CA bundle file not found.")
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"CA bundle file not found: {e}")
         return ca_certs
 
-    def update_ca_bundle(self, url):
-        """
-        This method updates the CA bundle from a URL
-        """
-        response = requests.get(url, verify=True)
-        if response.status_code == 200:
-            with open(self.ca_bundle_path, 'wb') as f:
-                f.write(response.content)
-            # Reload the ca_bundle attribute with the new data
-            self.ca_bundle = self.load_ca_bundle(self.ca_bundle_path)
-        else:
-            print("Failed to download CA bundle")
-
-    async def hello_world(self) -> HelloWorldResponse:
-        return HelloWorldResponse(hello="Hello", world="World")
-
-    def verify_certificate(self, credential, nonce, timestamp):
+    def verify_certificate(self, cert_pem: bytes, nonce: str, timestamp: float):
         """
         Verify the @credential take from owner
         """
-        current_time = time.time()
+        current_time = datetime.datetime.now(datetime.timezone.utc)
+        timestamp_datetime = datetime.datetime.fromtimestamp(
+                                timestamp, datetime.timezone.utc)
         # Check if the nonce has been used or expired
-        if nonce in self.used_nonces or current_time - timestamp > 300:
+        if (nonce in self.used_nonces or
+            (current_time - timestamp_datetime).total_seconds() > 300):
+            print("nonce")
             return False
 
+        certificate = x509.load_pem_x509_certificate(cert_pem)
         ca_bundle = self.ca_bundle
-        try:
-            # Attempt to find the issuer in the provided CA bundle
-            issuer_certificate = None
-            for ca in ca_bundle:
-                if credential.issuer == ca.subject:
-                    issuer_certificate = ca
-                    break
+        # Check each CA cert to see if it can validate the certificate
+        for ca_cert in ca_bundle:
+            # print(ca_cert.tbs_certificate_bytes)
+            try:
+                ca_cert.public_key().verify(
+                    certificate.signature,
+                    certificate.tbs_certificate_bytes,
+                    padding.PKCS1v15(),
+                    hashes.SHA256()
+                )
+                # return True
+                not_valid_before = certificate.not_valid_before.replace(
+                                        tzinfo=datetime.timezone.utc)
+                not_valid_after = certificate.not_valid_after.replace(
+                                        tzinfo=datetime.timezone.utc)
+                # Check the validity period of the certificate
+                if not_valid_before <= current_time <= not_valid_after:
+                    self.used_nonces.add(nonce)     # Mark nonce as used
+                    return True
+                else:
+                    print("expired")
+                    return False
+            except InvalidSignature:
+                print("Signature is invalid.")
+                continue
+            except Exception as e:
+                print(f"the erroris : {e}")
+                continue    # Try next CA
+        print("Failed to find certificate")
+        return False    # No CA certificates matched
 
-            # No valid issuer found
-            if issuer_certificate is None:
-                return False
-
-            # Verify the certificate's signature using the isser's public key
-            issuer_certificate.public_key().verify(
-                credential.signature,
-                credential.tbs_certificate_bytes,
-                padding.PKCS1v15(),
-                credential.signature_hash_algorithm
-            )
-
-            # If the issuer is a root CA, no need to go further
-            if (issuer_certificate in ca_bundle
-                    and issuer_certificate.subject == issuer_certificate.issuer):
-                self.used_nonces[nonce] = True  # Mark nonce as used
-                return True
-            else:
-                # Continue verification up the chain
-                return self.verify_certificate(issuer_certificate)
-        except Exception as e:
-            print(f"Verification failed: {e}")
-            return False
-
-    def get_issuer_details(self, issuer_subject):
-        issuer_certificate = next(
-            (ca for ca in self.ca_bundle if
-                    ca.subject.rfc4514_string() == issuer_subject
-            ), None
-        )
-        if issuer_certificate:
-            issuer_details = {
-                "subject": issuer_certificate.subject.rfc4514_string(),
-                "issuer": issuer_certificate.issuer.rfc4514_string(),
-                "valid_from": issuer_certificate.not_valid_before.isoformat(),
-                "valid_to": issuer_certificate.not_valid_after.isoformat(),
-                # Can add more details here
-            }
-            return issuer_details
-        else:
-            return {"error": "Issuer not found"}
-
-    async def try_verify_certificate(self, credential):
-        nonce = credential.nonce
-        timestamp = credential.timestamp
-        if not self.verify_certificate(credential, nonce, timestamp):
+    async def try_verify_certificate(
+        self,
+        certificate: bytes,
+        nonce: str,
+        timestamp: float):
+        if not self.verify_certificate(certificate, nonce, timestamp):
             raise HTTPException(
                 status_code=400, detail="Certificate verification failed"
             )
         return {"status": "Certificate verified successfully"}
-
-    async def try_update_ca_bundle(self, url):
-        try:
-            self.update_ca_bundle(url)
-            return {"status": "CA bundle updated successfully"}
-        except Exception as e:
-            return {"error": str(e)}
-
-    async def try_get_issuer_details(self, issuer_subject):
-        details = self.get_issuer_details(issuer_subject)
-        if "error" in details:
-            raise HTTPException(status_code=404, detail=details["error"])
-        return details
-
-    def get_server(self) -> FastAPI:
-        router = FastAPI()
-        router.get("/")(self.hello_world)
-        router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
-        router.post("/update-ca-bundle/{url}")(self.try_update_ca_bundle)
-        router.get("/get_issuer_detail/{issuer_subject}")(self.get_issuer_details)
-        return router
