@@ -7,8 +7,8 @@
 
 .vite
 
-!.yarn/cache
-#.pnp.*
+#!.yarn/cache
+.pnp.*
 
 build/
 node_modules/
