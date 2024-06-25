@@ -101,11 +101,13 @@ class CredentialIssuer:
         - token(`str`): Maps to a ticket number through the `mapping` attribute."""
         ticket = self.mapping[token]
 
-        status, cred_type, credential = self.get_status(ticket)
-        if credential is not None:
+        status = self.get_status(ticket)
+        credential = None
+        if status.information is not None:
             self.mapping.pop(token)
-            credential = self.create_credential(cred_type, credential)
-        return UpdateResponse(ticket=ticket, status=status, credential=credential)
+            credential = self.create_credential(status.cred_type, status.information)
+        return UpdateResponse(ticket=ticket, status=status.status, 
+                              credential=credential)
 
     def check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
@@ -187,7 +189,7 @@ class CredentialIssuer:
 
         IMPORTANT: The `Any` return value can be read by anyone with the link to
         specified ticket, and must not have any sensitive information contained."""
-        return ["PENDING", None, None]
+        return StatusResponse(status="PENDING", cred_type=None, information=None)
 
     def create_credential(self, cred_type: str, information: dict) -> str:
         """Function to generate credentials after being accepted.

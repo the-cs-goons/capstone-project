@@ -21,5 +21,5 @@ class UpdateResponse(BaseModel):
 
 class StatusResponse(BaseModel):
     status: Any
-    cred_type: str
-    information: dict[str, Any]
+    cred_type: str | None
+    information: dict[str, Any] | None
