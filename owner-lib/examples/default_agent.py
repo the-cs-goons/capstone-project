@@ -8,7 +8,8 @@ MOCK_STORE = {
         "issuer_url": "https://example.com",
         "type": "Passport",
         "request_url": "https://example.com/status?token=example1",
-        "token": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",
+        "token":
+            "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",
         "status":"ACCEPTED",
         "status_message":None,
         "issuer_name":"Example Issuer",
