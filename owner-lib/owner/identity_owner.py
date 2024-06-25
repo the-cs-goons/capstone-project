@@ -76,7 +76,7 @@ class IdentityOwner:
         """
         return [cred for cred in self.credentials.values() if cred.status == "PENDING"]
     
-    async def poll_credential_staus(self, cred_id: str):
+    async def poll_credential_status(self, cred_id: str):
         """
         Polls for a pending credential
 
@@ -115,7 +115,7 @@ class IdentityOwner:
         updated = []
         for cred in self.get_pending_credentials():
             if cred.status == "Pending":
-                await self.poll_credential_staus(cred.id)
+                await self.poll_credential_status(cred.id)
                 updated.append(cred.id)
 
     def add_credential_from_url(self, url: str):
