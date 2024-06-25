@@ -18,7 +18,8 @@ class ServiceProvider:
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
-        router.get('/request', response_model_exclude_none=True)(self.get_presentation_request)
+        router.get('/request', response_model_exclude_none=True,
+                   response_model=PresentationRequestResponse)(self.get_presentation_request)
         router.get('/definitions')(self.get_definitions)
         return router
 
