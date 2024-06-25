@@ -8,7 +8,7 @@ class VerifiableCredential(BaseModel):
     type: list[str]
     credentialSubject: dict[str, dict | str]
     issuer: str | dict[str, dict | str]
-    context: list[str] = Field(alias='@context')
+    context: list[str] = Field(serialization_alias='@context')
     id: Optional[str] = None
     name: Optional[str] = None
     description: Optional[str] = None

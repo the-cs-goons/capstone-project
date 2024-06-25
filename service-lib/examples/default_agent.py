@@ -17,8 +17,10 @@ class DefaultServiceProvider(ServiceProvider):
             input_descriptors=[
                 InputDescriptor(
                 id='limit_disclosure_test',
-                constraints=Constraint([
-                    Field(['$.credentialSubject.dob', '$.dob', '$dateOfBirth', '$.credentialSubject.dateOfBirth'])],
+                constraints=Constraint(
+                    fields=[
+                        Field(['$.credentialSubject.dob', '$.dob', '$.dateOfBirth', '$.credentialSubject.dateOfBirth'])
+                    ],
                     limit_disclosure='required'))
             ]
         )
