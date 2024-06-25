@@ -19,6 +19,12 @@ class WebIdentityOwner(IdentityOwner):
     def get_credential(self, cred_id) -> Credential:
         """
         Gets a credential by ID, if one exists
+
+        ### Parameters
+        - cred_id(`str`): The ID of the credential, as kept by the owner
+
+        ### Returns
+        - `Credential`: The requested credential, if it exists
         """
         if cred_id not in self.credentials.keys():
             raise HTTPException(status_code=400, 
@@ -27,6 +33,12 @@ class WebIdentityOwner(IdentityOwner):
     
     @router.get("/credentials")
     def get_credentials(self) -> list[Credential]:
+        """
+        Gets all credentials
+
+        ### Returns
+        - `list[Credential]`: A list of credentials
+        """
         return self.credentials.values()
     
     @router.get("/request/{cred_type}")
@@ -41,6 +53,9 @@ class WebIdentityOwner(IdentityOwner):
         ### Parameters
         - issuer_url(`str`): The issuer URL, as a URL Parameter
         - cred_type(`str`): The type of the credential schema request being asked for
+
+        ### Returns
+        - `SchemaResponse`: A list of credentials
         """
         with Session() as s:
             response: Response = await s.get(f"{issuer_url}/credentials")
@@ -56,12 +71,21 @@ class WebIdentityOwner(IdentityOwner):
             options: dict = body["options"]
             if type not in options.keys():
                 raise HTTPException(status_code=400, 
-                                detail=f"Error: Credential type {type} not found")
+                                detail=f"Error: Credential type {cred_type} not found")
             
-            return SchemaResponse(request_schema=options[type])
+            return SchemaResponse(request_schema=options[cred_type])
         
     @router.post("/request/{type}")
     async def request_credential(self, cred_type: str, issuer_url: str, info: dict):
+        """
+        Sends request for a new credential directly, then stores it
+
+        ### Parameters
+        - issuer_url(`str`): The issuer URL
+        - cred_type(`str`): The type of the credential schema request being asked for
+        - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+        """
+        #TODO: Implement error handling
         self.apply_for_credential(cred_type, issuer_url, info)
 
     def get_server(self) -> FastAPI:

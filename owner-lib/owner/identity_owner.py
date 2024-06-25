@@ -118,6 +118,8 @@ class IdentityOwner:
                 await self.poll_credential_status(cred.id)
                 updated.append(cred.id)
 
+        return updated
+
     def add_credential_from_url(self, url: str):
         """
         Adds a credential to the Identity Owner from a request URL
@@ -156,6 +158,14 @@ class IdentityOwner:
             return options[cred_type]
 
     def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict):
+        """
+        Sends request for a new credential directly, then stores it
+
+        ### Parameters
+        - issuer_url(`str`): The issuer URL
+        - cred_type(`str`): The type of the credential schema request being asked for
+        - info(`dict`): The body of the request to forward on to the issuer, sent as JSON
+        """
         with Session() as s:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
