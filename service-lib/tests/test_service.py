@@ -1,4 +1,6 @@
+from base64 import b64encode
 import datetime
+import json
 import time
 from datetime import timedelta
 from unittest.mock import MagicMock
@@ -13,6 +15,7 @@ from cryptography.x509 import Certificate
 from cryptography.x509.oid import NameOID
 from fastapi import FastAPI, HTTPException
 from service import ServiceProvider
+from service.models.presentation import Presentation
 from service.models.presentation_definition import (
     Constraint,
     Field,
@@ -183,6 +186,50 @@ async def test_presentation_request_filter():
     assert constraints.fields[0].filter.type == 'string'
     assert constraints.fields[0].filter.pattern == 'creditCard'
 
+@pytest.mark.asyncio
+async def test_basic_presentation(service_provider):
+    sp, cert_pem, private_key = service_provider
+
+    pd = PresentationDefinition(
+        id='test_start',
+        input_descriptors=[
+            InputDescriptor(
+                id='name',
+                constraints=Constraint([
+                    Field(path=['$.type'])
+                ])
+            )
+        ],
+    )
+    sp.add_presentation_definition("name_presentation", pd)
+
+    credential = bytes(json.dumps({"_fields": {"name": "Abc"}, "_type": "my_licence"}), "utf8")
+    signature = private_key.sign(
+        credential,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256(),
+    )
+    cred_string = b64encode(credential) + b"." + b64encode(signature)
+    cred_string += b"~" + b64encode(bytes(json.dumps({"name": "Abc"}), "utf-8"))
+    p = Presentation(credential_tokens=[cred_string.decode("utf-8")])
+
+    response = await sp.start_presentation('hasCreditCard', p)
+    print(response)
+
+@pytest.mark.asyncio
+async def test_verify_certificate_valid(service_provider):
+    sp, cert_pem, _ = service_provider
+    nonce = "unique_nonce"
+    timestamp = time.time()
+
+    assert sp.verify_certificate(
+        cert_pem=cert_pem,
+        nonce=nonce,
+        timestamp=timestamp
+    )
+
 def create_dummy_certificate(private_key, public_key):
     subject = issuer = x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
@@ -219,16 +266,4 @@ def service_provider():
 
     ca_bundle = [dummy_cert]
     sp = ServiceProvider(ca_bundle=ca_bundle, ca_path="dummy_path")
-    return sp, cert_pem
-
-@pytest.mark.asyncio
-async def test_verify_certificate_valid(service_provider):
-    sp, cert_pem = service_provider
-    nonce = "unique_nonce"
-    timestamp = time.time()
-
-    assert sp.verify_certificate(
-        cert_pem=cert_pem,
-        nonce=nonce,
-        timestamp=timestamp
-    )
+    return sp, cert_pem, private_key

@@ -1,9 +1,9 @@
 from typing import Literal, Optional
 
-from .base_model_json import BaseModelJson
+from pydantic import BaseModel
 
 
-class Filter(BaseModelJson):
+class Filter(BaseModel):
     '''Filters allows providers to further restrict the field they are
     asking for to avoid excessively invading the credential-owner's privacy
     Filters must specify a "type" or "format" that the field must adhere to.
@@ -27,30 +27,31 @@ class Filter(BaseModelJson):
     exclusiveMaximum: Optional[bool] = None
 
     def __init__(
-            self,
-            type: Optional[Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None, # noqa E501
-            format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None,
-            min_length: Optional[int] = None,
-            max_length: Optional[int] = None,
-            pattern: Optional[str] = None,
-            minimum: Optional[int] = None,
-            exclusiveMinimum: Optional[bool] = None,
-            maximum: Optional[int] = None,
-            exclusiveMaximum: Optional[bool] = None
-            ):
+        self,
+        type: Optional[Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None, # noqa E501
+        format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None,
+        min_length: Optional[int] = None,
+        max_length: Optional[int] = None,
+        pattern: Optional[str] = None,
+        minimum: Optional[int] = None,
+        exclusiveMinimum: Optional[bool] = None,
+        maximum: Optional[int] = None,
+        exclusiveMaximum: Optional[bool] = None
+    ):
         super().__init__(
-                type = type,
-                format = format,
-                min_length = min_length,
-                max_length = max_length,
-                pattern = pattern,
-                minimum = minimum,
-                exclusiveMinimum = exclusiveMinimum,
-                maximum = maximum,
-                exclusiveMaximum = exclusiveMaximum)
+            type = type,
+            format = format,
+            min_length = min_length,
+            max_length = max_length,
+            pattern = pattern,
+            minimum = minimum,
+            exclusiveMinimum = exclusiveMinimum,
+            maximum = maximum,
+            exclusiveMaximum = exclusiveMaximum
+        )
 
 
-class Field(BaseModelJson):
+class Field(BaseModel):
     '''Each Field MUST contain a "path" property.\n
     Each Field MAY contain "id", "purpose", "name", "filter",
     and "optional" properties'''
@@ -61,41 +62,40 @@ class Field(BaseModelJson):
     optional: Optional[bool] = False
 
     def __init__(
-                self,
-                path: list[str],
-                id: Optional[str] = None,
-                name: Optional[str] = None,
-                filter: Optional[Filter] = None,
-                optional: Optional[bool] = False
-                ):
-
+            self,
+            path: list[str],
+            id: Optional[str] = None,
+            name: Optional[str] = None,
+            filter: Optional[Filter] = None,
+            optional: Optional[bool] = False
+    ):
         super().__init__(
             path = path,
             id = id,
             name = name,
             filter = filter,
-            optional = optional)
+            optional = optional
+        )
 
 
-
-class Constraint(BaseModelJson):
+class Constraint(BaseModel):
     '''Each Constraint MAY have a "fields" property,
     and a "limit_disclosure" property'''
     fields: Optional[list[Field]] = None
     limit_disclosure: Optional[Literal['required', 'preferred']] = None
 
     def __init__(
-                self,
-                fields: Optional[list[Field]] = None,
-                limit_disclosure: Optional[Literal['required', 'preferred']] = None
-                ):
-
+        self,
+        fields: Optional[list[Field]] = None,
+        limit_disclosure: Optional[Literal['required', 'preferred']] = None
+    ):
         super().__init__(
             fields = fields,
-            limit_disclosure = limit_disclosure)
+            limit_disclosure = limit_disclosure
+        )
 
 
-class InputDescriptor(BaseModelJson):
+class InputDescriptor(BaseModel):
     '''Each input_descriptor MUST contain an "id" and a "constraints" property.\n
     Each input_descriptor MAY contain "name", "purpose", and "format" properties'''
 
@@ -106,21 +106,22 @@ class InputDescriptor(BaseModelJson):
     format: Optional[str] = None
 
     def __init__(
-                self,
-                id: str,
-                constraints: Constraint,
-                name: Optional[str] = None,
-                purpose: Optional[str] = None,
-                format: Optional[str] = None
-                ):
-
+        self,
+        id: str,
+        constraints: Constraint,
+        name: Optional[str] = None,
+        purpose: Optional[str] = None,
+        format: Optional[str] = None
+    ):
         super().__init__(id = id,
             constraints = constraints,
             name = name,
             purpose = purpose,
-            format = format)
+            format = format
+        )
 
-class PresentationDefinition(BaseModelJson):
+
+class PresentationDefinition(BaseModel):
     '''presentation_definitions MUST have an "id", and an "input_descriptors"
     property.\n presentation_definitions MAY have "name", "purpose", and
     "format" properties.'''
@@ -131,15 +132,15 @@ class PresentationDefinition(BaseModelJson):
     purpose: Optional[str] = None
 
     def __init__(
-                self,
-                id: str,
-                input_descriptors: list[InputDescriptor],
-                name: Optional[str] = None,
-                purpose: Optional[str] = None
-                ):
-
+        self,
+        id: str,
+        input_descriptors: list[InputDescriptor],
+        name: Optional[str] = None,
+        purpose: Optional[str] = None
+    ):
         super().__init__(
             id = id,
             input_descriptors = input_descriptors,
             name = name,
-            purpose = purpose)
+            purpose = purpose
+        )

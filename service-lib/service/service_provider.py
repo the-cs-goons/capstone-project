@@ -1,4 +1,6 @@
+import base64
 import datetime
+import json
 import os
 import time
 from typing import Literal, Optional
@@ -11,17 +13,18 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from fastapi import FastAPI, HTTPException
 
-from .models.presentation_definition import PresentationDefinition
+from .models.presentation import Presentation
+from .models.presentation_definition import Constraint, PresentationDefinition
 from .models.presentation_request_response import PresentationRequestResponse
 
 
 class ServiceProvider:
     def __init__(
-            self,
-            ca_bundle,
-            ca_path: str,
-            presentation_definitions: dict[str, PresentationRequestResponse] = {}
-            ):
+        self,
+        ca_bundle,
+        ca_path: str,
+        presentation_definitions: dict[str, PresentationDefinition] = {}
+    ):
         """
         initialise the service provider with a list of CA bundle
         """
@@ -34,28 +37,59 @@ class ServiceProvider:
         router = FastAPI()
         router.get('/request/{request_type}')(self.get_presentation_request)
         router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
+        router.post("/present/{request_type}")(self.start_presentation)
         return router
 
     def add_presentation_definition(
-            self,
-            request_type: str,
-            presentation_definition: PresentationDefinition
-            ) -> None:
-
+        self,
+        request_type: str,
+        presentation_definition: PresentationDefinition
+    ) -> None:
         self.presentation_definitions[request_type] = presentation_definition
 
     async def get_presentation_request(
-            self,
-            request_type: str,
-            client_id: str
-            ) -> PresentationRequestResponse:
-
+        self,
+        request_type: str,
+        client_id: str
+    ) -> PresentationRequestResponse:
         if request_type not in self.presentation_definitions:
             raise HTTPException(status_code=404, detail='Request type not found')
 
         return PresentationRequestResponse(
             client_id,
-            self.presentation_definitions[request_type])
+            self.presentation_definitions[request_type]
+        )
+
+    async def start_presentation(
+        self,
+        request_type: str,
+        presentation: Presentation,
+    ):
+        if request_type not in self.presentation_definitions:
+            raise HTTPException(status_code=404, detail='Request type not found')
+
+        for credential_token in presentation.credential_tokens:
+            credential, _rest = credential_token.split(".")
+            signature, *fields = _rest.split("~")
+            self.verify_certificate(credential, signature, time.time())
+
+        presentation_definition = self.presentation_definitions[request_type]
+        for input_descriptor in presentation_definition.input_descriptors:
+            self.check_against_constraint(input_descriptor.constraints, fields)
+
+        return {"status": "Presentation verified successfully"}
+
+    async def try_verify_certificate(
+        self,
+        certificate: bytes,
+        nonce: str,
+        timestamp: float
+    ):
+        if not self.verify_certificate(certificate, nonce, timestamp):
+            raise HTTPException(
+                status_code=400, detail="Certificate verification failed"
+            )
+        return {"status": "Certificate verified successfully"}
 
     def load_ca_bundle(self, path: str):
         """
@@ -83,8 +117,10 @@ class ServiceProvider:
         timestamp_datetime = datetime.datetime.fromtimestamp(
                                 timestamp, datetime.timezone.utc)
         # Check if the nonce has been used or expired
-        if (nonce in self.used_nonces or
-            (current_time - timestamp_datetime).total_seconds() > 300):
+        if (
+            nonce in self.used_nonces or
+            (current_time - timestamp_datetime).total_seconds() > 300
+        ):
             print("nonce")
             return False
 
@@ -121,13 +157,16 @@ class ServiceProvider:
         print("Failed to find certificate")
         return False    # No CA certificates matched
 
-    async def try_verify_certificate(
-        self,
-        certificate: bytes,
-        nonce: str,
-        timestamp: float):
-        if not self.verify_certificate(certificate, nonce, timestamp):
-            raise HTTPException(
-                status_code=400, detail="Certificate verification failed"
-            )
-        return {"status": "Certificate verified successfully"}
+    def check_against_constraint(self, constraint: Constraint, fields: list[str]):
+        decoded_fields = {}
+        for field in fields:
+            for k, v in json.loads(base64.b64decode(field)).items():
+                decoded_fields[f"$.{k}"] = v
+
+        # TODO enforce field.filter
+        for constraint_field in constraint.fields:
+            if constraint_field not in decoded_fields:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Field {constraint_field} not found in presentation"
+                )
