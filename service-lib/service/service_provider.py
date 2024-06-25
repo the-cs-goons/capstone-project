@@ -80,10 +80,13 @@ class ServiceProvider:
         Verify the @credential take from owner
         """
         current_time = datetime.datetime.now(datetime.timezone.utc)
+        timestamp_datetime = datetime.datetime.fromtimestamp(
+                                timestamp, datetime.timezone.utc)
         # Check if the nonce has been used or expired
-        # if nonce in self.used_nonces or current_time - timestamp > 300:
-        #     print("nonce")
-        #     return False
+        if (nonce in self.used_nonces or
+            (current_time - timestamp_datetime).total_seconds() > 300):
+            print("nonce")
+            return False
 
         certificate = x509.load_pem_x509_certificate(cert_pem)
         ca_bundle = self.ca_bundle
@@ -118,10 +121,12 @@ class ServiceProvider:
         print("Failed to find certificate")
         return False    # No CA certificates matched
 
-    async def try_verify_certificate(self, credential):
-        nonce = credential.nonce
-        timestamp = credential.timestamp
-        if not self.verify_certificate(credential, nonce, timestamp):
+    async def try_verify_certificate(
+        self,
+        certificate: bytes,
+        nonce: str,
+        timestamp: float):
+        if not self.verify_certificate(certificate, nonce, timestamp):
             raise HTTPException(
                 status_code=400, detail="Certificate verification failed"
             )
