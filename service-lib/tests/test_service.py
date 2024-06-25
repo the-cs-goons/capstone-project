@@ -239,5 +239,8 @@ async def test_verify_certificate_valid(service_provider):
         nonce=nonce,
         timestamp=timestamp
     )
-    assert (sp.get_issuer_detail().serial_number ==
-        x509.load_pem_x509_certificate(cert_pem).serial_number)
+    assert (
+        sp.get_issuer_detail(
+            x509.load_pem_x509_certificate(cert_pem)
+        ).serial_number == x509.load_pem_x509_certificate(cert_pem).serial_number
+    )

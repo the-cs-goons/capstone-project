@@ -31,7 +31,6 @@ class ServiceProvider:
         self.ca_bundle = ca_bundle
         self.ca_path = ca_path
         self.used_nonces = set()
-        self.current_issuer = None
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -111,8 +110,8 @@ class ServiceProvider:
                 # Check the validity period of the certificate
                 if not_valid_before <= current_time <= not_valid_after:
                     self.used_nonces.add(nonce)     # Mark nonce as used
-                    # Store the current issuer into local storage
-                    self.current_issuer = ca_cert
+                    # Print the issuer's details
+                    self.get_issuer_detail(ca_cert)
                     return True
                 else:
                     print("expired")
@@ -126,33 +125,29 @@ class ServiceProvider:
         print("Failed to find certificate")
         return False    # No CA certificates matched
 
-    def get_issuer_detail(self):
+    def get_issuer_detail(self, issuer):
         """
         Print details of the current issuer
         Return the issuer object contains all the information for future modification
         """
         print("issuer detail")
-        print(self.current_issuer.public_bytes(serialization.Encoding.PEM).decode())
-        current_issuer_cert_pem = self.current_issuer.public_bytes(
-                                    serialization.Encoding.PEM)
-        current_issuer_cert = x509.load_pem_x509_certificate(current_issuer_cert_pem)
         print("Issuer:")
-        for name in current_issuer_cert.issuer:
+        for name in issuer.issuer:
             print(f"{name.oid._name}: {name.value}")
 
         print("\nSubject:")
-        for name in current_issuer_cert.subject:
+        for name in issuer.subject:
             print(f"{name.oid._name}: {name.value}")
 
         print("\nSerial Number:")
-        print(current_issuer_cert.serial_number)
+        print(issuer.serial_number)
 
         print("\nValidity:")
-        print("Not Before:", current_issuer_cert.not_valid_before)
-        print("Not After:", current_issuer_cert.not_valid_after)
+        print("Not Before:", issuer.not_valid_before)
+        print("Not After:", issuer.not_valid_after)
 
         print("\nExtensions:")
-        for ext in current_issuer_cert.extensions:
+        for ext in issuer.extensions:
             if isinstance(ext.value, x509.SubjectAlternativeName):
                 print("Subject Alternative Name:",
                     ext.value.get_values_for_type(x509.DNSName))
@@ -162,7 +157,7 @@ class ServiceProvider:
                 print(f"{ext.oid.dotted_string}: {ext.value}")
         # Add custom issuer detail print
 
-        return current_issuer_cert
+        return issuer
 
 
     async def try_verify_certificate(
