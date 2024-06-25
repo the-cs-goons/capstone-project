@@ -10,7 +10,7 @@ export const meta = () => {
 };
 
 export const loader = async () => {
-  const resp = await fetch(`http://localhost:8081/credentials`, { method: "GET" });
+  const resp = await fetch(`http://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`, { method: "GET" });
   const data = await resp.json();
   return json(data);
 };
@@ -35,7 +35,7 @@ export default function Index() {
               >
                 <Card>
                   <Typography variant="h4">{credential.type}</Typography>
-                  
+
                   {credential.token
                     ? Object.entries(JSON.parse(atob(credential.token))).map(([key, value]) => {
                       return <Typography variant="body1" key={key}>{value}</Typography>;
