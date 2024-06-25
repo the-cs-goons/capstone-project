@@ -31,7 +31,7 @@ class WebIdentityOwner(IdentityOwner):
         if cred_id not in self.credentials.keys():
             raise HTTPException(status_code=400, 
                                 detail=f"Credential with ID {cred_id} not found.")
-        return self.credentials[id]
+        return self.credentials[cred_id]
     
     def get_credentials(self) -> list[Credential]:
         """
