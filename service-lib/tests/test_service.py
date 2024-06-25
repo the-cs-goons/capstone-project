@@ -1,6 +1,6 @@
 import datetime
 import time
-from datetime import datetime, timedelta
+from datetime import timedelta
 from unittest.mock import MagicMock
 
 import pytest
@@ -200,13 +200,13 @@ def create_dummy_certificate(private_key, public_key):
     ).serial_number(
         x509.random_serial_number()
     ).not_valid_before(
-        datetime.now() - timedelta(days=1)
+        datetime.datetime.now(datetime.timezone.utc)
     ).not_valid_after(
-        datetime.now() + timedelta(days=1)
+        datetime.datetime.now(datetime.timezone.utc) + timedelta(days=1)
     ).add_extension(
-        x509.SubjectAlternativeName([x509.DNSName(u"example.com")]),
+        x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
         critical=False,
-    ).sign(private_key, hashes.SHA256())
+    ).sign(private_key=private_key, algorithm=hashes.SHA256())
 
     return cert
 

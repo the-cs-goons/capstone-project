@@ -1,14 +1,15 @@
+import datetime
 import os
 import time
 from typing import Literal, Optional
 
 import requests
 from cryptography import x509
-from cryptography.hazmat.primitives import hashes
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
 from fastapi import FastAPI, HTTPException
-from cryptography.exceptions import InvalidSignature
 
 from .models.presentation_definition import PresentationDefinition
 from .models.presentation_request_response import PresentationRequestResponse
@@ -78,11 +79,11 @@ class ServiceProvider:
         """
         Verify the @credential take from owner
         """
-        current_time = time.time()
+        current_time = datetime.datetime.now(datetime.timezone.utc)
         # Check if the nonce has been used or expired
-        if nonce in self.used_nonces or current_time - timestamp > 300:
-            print("nonce")
-            return False
+        # if nonce in self.used_nonces or current_time - timestamp > 300:
+        #     print("nonce")
+        #     return False
 
         certificate = x509.load_pem_x509_certificate(cert_pem)
         ca_bundle = self.ca_bundle
@@ -93,17 +94,16 @@ class ServiceProvider:
                 ca_cert.public_key().verify(
                     certificate.signature,
                     certificate.tbs_certificate_bytes,
-                    padding.PSS(
-                        mgf=padding.MGF1(hashes.SHA256()),
-                        salt_length=padding.PSS.MAX_LENGTH
-                    ),
+                    padding.PKCS1v15(),
                     hashes.SHA256()
                 )
-                print("valid")
-
+                # return True
+                not_valid_before = certificate.not_valid_before.replace(
+                                        tzinfo=datetime.timezone.utc)
+                not_valid_after = certificate.not_valid_after.replace(
+                                        tzinfo=datetime.timezone.utc)
                 # Check the validity period of the certificate
-                if (certificate.not_valid_before <= current_time and
-                    current_time <= certificate.not_valid_after):
+                if not_valid_before <= current_time <= not_valid_after:
                     self.used_nonces.add(nonce)     # Mark nonce as used
                     return True
                 else:
