@@ -38,7 +38,6 @@ class ServiceProvider:
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.get('/request/{request_type}')(self.get_presentation_request)
-        router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
         router.post("/present/{request_type}")(self.start_presentation)
         return router
 
@@ -73,25 +72,18 @@ class ServiceProvider:
         for credential_token in presentation.credential_tokens:
             credential, _rest = credential_token.split(".")
             signature, *fields = _rest.split("~")
-            self.verify_certificate(credential, signature, time.time())
+            self.verify_certificate(
+                cert_payload=bytes(credential, "utf-8"),
+                cert_signature=bytes(signature, "utf-8"),
+                nonce=credential, # TODO better nonce
+                timestamp=time.time()
+            )
 
         presentation_definition = self.presentation_definitions[request_type]
         for input_descriptor in presentation_definition.input_descriptors:
             self.check_against_constraint(input_descriptor.constraints, fields)
 
         return {"status": "Presentation verified successfully"}
-
-    async def try_verify_certificate(
-        self,
-        certificate: bytes,
-        nonce: str,
-        timestamp: float
-    ):
-        if not self.verify_certificate(certificate, nonce, timestamp):
-            raise HTTPException(
-                status_code=400, detail="Certificate verification failed"
-            )
-        return {"status": "Certificate verified successfully"}
 
     def load_ca_bundle(self, path: str):
         """
@@ -113,7 +105,8 @@ class ServiceProvider:
 
     def verify_certificate(
         self,
-        cert_pem: bytes,
+        cert_payload: bytes,
+        cert_signature: bytes,
         nonce: str,
         timestamp: float) -> bytes:
         """
@@ -127,30 +120,20 @@ class ServiceProvider:
             (current_time - timestamp_datetime).total_seconds() > 300):
             raise Exception("Certificate is being replayed")
 
-        certificate = x509.load_pem_x509_certificate(cert_pem)
         ca_bundle = self.ca_bundle
         # Check each CA cert to see if it can validate the certificate
         for ca_cert in ca_bundle:
             # print(ca_cert.tbs_certificate_bytes)
             try:
                 ca_cert.public_key().verify(
-                    certificate.signature,
-                    certificate.tbs_certificate_bytes,
+                    cert_signature,
+                    cert_payload,
                     padding.PKCS1v15(),
                     hashes.SHA256()
                 )
-                # return True
-                not_valid_before = certificate.not_valid_before.replace(
-                                        tzinfo=datetime.timezone.utc)
-                not_valid_after = certificate.not_valid_after.replace(
-                                        tzinfo=datetime.timezone.utc)
-                # Check the validity period of the certificate
-                if not_valid_before <= current_time <= not_valid_after:
-                    self.used_nonces.add(nonce)     # Mark nonce as used
-                    # Print the issuer's details and return issuer's DID
-                    return self.get_issuer_detail(ca_cert)
-                else:
-                    raise Exception("Certificate expired")
+                self.used_nonces.add(nonce)     # Mark nonce as used
+                # Print the issuer's details and return issuer's DID
+                return self.get_issuer_detail(ca_cert)
             except InvalidSignature:
                 print("Signature is invalid.")
                 continue

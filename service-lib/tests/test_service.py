@@ -188,7 +188,7 @@ async def test_presentation_request_filter():
 
 @pytest.mark.asyncio
 async def test_basic_presentation(service_provider):
-    sp, cert_pem, private_key = service_provider
+    sp, _, private_key = service_provider
 
     pd = PresentationDefinition(
         id='test_start',
@@ -215,8 +215,8 @@ async def test_basic_presentation(service_provider):
     cred_string += b"~" + b64encode(bytes(json.dumps({"name": "Abc"}), "utf-8"))
     p = Presentation(credential_tokens=[cred_string.decode("utf-8")])
 
-    # response = await sp.start_presentation('hasCreditCard', p)
-    # print(response)
+    response = await sp.start_presentation("name_presentation", p)
+    print(response)
 
 @pytest.mark.asyncio
 async def test_verify_certificate_valid(service_provider):
@@ -226,12 +226,14 @@ async def test_verify_certificate_valid(service_provider):
     did = None
     did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
 
-    for ext in x509.load_pem_x509_certificate(cert_pem).extensions:
+    certificate = x509.load_pem_x509_certificate(cert_pem)
+    for ext in certificate.extensions:
         if isinstance(ext.oid, ObjectIdentifier) and ext.oid == did_oid:
             did = ext.value.value
 
     assert sp.verify_certificate(
-        cert_pem=cert_pem,
+        certificate.tbs_certificate_bytes,
+        certificate.signature,
         nonce=nonce,
         timestamp=timestamp
     ) == did
