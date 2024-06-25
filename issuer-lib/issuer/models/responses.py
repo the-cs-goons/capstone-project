@@ -16,3 +16,10 @@ class RequestResponse(BaseModel):
 class UpdateResponse(BaseModel):
     ticket: int
     status: Any
+    credential: str | None
+
+
+class StatusResponse(BaseModel):
+    status: Any
+    cred_type: str | None
+    information: dict[str, Any] | None

@@ -1,4 +1,16 @@
+import datetime
+import time
+from datetime import timedelta
+from unittest.mock import MagicMock
+
 import pytest
+from cryptography import x509
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import hashes, serialization
+from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509 import Certificate
+from cryptography.x509.oid import NameOID
 from fastapi import FastAPI, HTTPException
 from service import ServiceProvider
 from service.models.presentation_definition import (
@@ -12,13 +24,13 @@ from service.models.presentation_definition import (
 
 @pytest.mark.asyncio
 async def test_server_exists():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
     sp_server = sp.get_server()
     assert type(sp_server) == FastAPI
 
 @pytest.mark.asyncio
 async def test_basic_presentation_request():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
 
     pd = PresentationDefinition(
         id='test1',
@@ -34,7 +46,7 @@ async def test_basic_presentation_request():
 
 @pytest.mark.asyncio
 async def test_multiple_presentation_requests():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
 
     pd1= PresentationDefinition(
         id='test1',
@@ -67,7 +79,7 @@ async def test_multiple_presentation_requests():
 
 @pytest.mark.asyncio
 async def test_presentation_request_limit_disclosure():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
 
     pd = PresentationDefinition(
         id='test_limit_disclosure_1',
@@ -91,7 +103,7 @@ async def test_presentation_request_limit_disclosure():
 
 @pytest.mark.asyncio
 async def test_presentation_request_two_fields_optional():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
 
     pd = PresentationDefinition(
         id='name_age_presentation_1',
@@ -134,7 +146,7 @@ async def test_presentation_request_two_fields_optional():
 
 @pytest.mark.asyncio
 async def test_presentation_request_not_found():
-    service_provider = ServiceProvider()
+    service_provider = ServiceProvider("test_bundle", "test_path")
 
     with pytest.raises(HTTPException):
         await service_provider.get_presentation_request(
@@ -143,7 +155,7 @@ async def test_presentation_request_not_found():
 
 @pytest.mark.asyncio
 async def test_presentation_request_filter():
-    sp = ServiceProvider()
+    sp = ServiceProvider("test_bundle", "test_path")
 
     pd = PresentationDefinition(
         id='test_filter',
@@ -170,3 +182,53 @@ async def test_presentation_request_filter():
     constraints = response.presentation_definition.input_descriptors[0].constraints
     assert constraints.fields[0].filter.type == 'string'
     assert constraints.fields[0].filter.pattern == 'creditCard'
+
+def create_dummy_certificate(private_key, public_key):
+    subject = issuer = x509.Name([
+        x509.NameAttribute(NameOID.COUNTRY_NAME, u"US"),
+        x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"California"),
+        x509.NameAttribute(NameOID.LOCALITY_NAME, u"San Diego"),
+        x509.NameAttribute(NameOID.ORGANIZATION_NAME, u"My Org"),
+        x509.NameAttribute(NameOID.COMMON_NAME, u"example.com"),
+    ])
+    cert = x509.CertificateBuilder().subject_name(
+        subject
+    ).issuer_name(
+        issuer
+    ).public_key(
+        public_key
+    ).serial_number(
+        x509.random_serial_number()
+    ).not_valid_before(
+        datetime.datetime.now(datetime.timezone.utc)
+    ).not_valid_after(
+        datetime.datetime.now(datetime.timezone.utc) + timedelta(days=1)
+    ).add_extension(
+        x509.SubjectAlternativeName([x509.DNSName(u"localhost")]),
+        critical=False,
+    ).sign(private_key=private_key, algorithm=hashes.SHA256())
+
+    return cert
+
+@pytest.fixture
+def service_provider():
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    public_key = private_key.public_key()
+    dummy_cert = create_dummy_certificate(private_key, public_key)
+    cert_pem = dummy_cert.public_bytes(serialization.Encoding.PEM)
+
+    ca_bundle = [dummy_cert]
+    sp = ServiceProvider(ca_bundle=ca_bundle, ca_path="dummy_path")
+    return sp, cert_pem
+
+@pytest.mark.asyncio
+async def test_verify_certificate_valid(service_provider):
+    sp, cert_pem = service_provider
+    nonce = "unique_nonce"
+    timestamp = time.time()
+
+    assert sp.verify_certificate(
+        cert_pem=cert_pem,
+        nonce=nonce,
+        timestamp=timestamp
+    )
