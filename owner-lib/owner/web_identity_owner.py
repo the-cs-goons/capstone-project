@@ -3,9 +3,9 @@ from typing import override
 from fastapi import FastAPI, HTTPException
 from requests import Response, Session
 
-from . import IdentityOwner
-from .models.credentials import Credential
-from .models.responses import SchemaResponse
+from identity_owner import IdentityOwner
+from models.credentials import Credential
+from models.responses import SchemaResponse
 
 
 class WebIdentityOwner(IdentityOwner):

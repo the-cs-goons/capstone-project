@@ -4,7 +4,8 @@ from uuid import uuid4
 
 from requests import Response, Session
 
-from .models import Credential
+from models import Credential
+from models.exceptions import BadIssuerRequestException, CredentialIssuerException, CredentialNotFoundException
 
 
 class IdentityOwner:
@@ -88,21 +89,27 @@ class IdentityOwner:
         - validate body comes in expected format
         """
 
+        if cred_id not in self.credentials.keys():
+            raise CredentialNotFoundException(
+                f"Credential with ID {cred_id} not found."
+                )
         credential = self.credentials[cred_id]
         
         # Closes session afterwards
         with Session() as s:
             response: Response = await s.get(credential.request_url)
             if not response.ok:
-                raise response.reason
+                raise CredentialIssuerException(response.reason)
             # TODO: Logic for updating state according to how Mal's structured things
             body: dict = response.json()
-            self.status = body["status"]
+            credential.status = body["status"]
 
-            if self.status == "ACCEPTED":
-                self.token = body["credential"]
-            elif self.status == "REJECTED":
-                self.status_message = body["detail"]
+            if credential.status == "ACCEPTED":
+                credential.token = body["credential"]
+            elif credential.status == "REJECTED":
+                credential.status_message = body["detail"]
+
+            return credential
 
     async def poll_all_pending_credentials(self) -> list[str]:
         """
@@ -145,15 +152,17 @@ class IdentityOwner:
         with Session() as s:
             response: Response = await s.get(f"{issuer_url}/credentials")
             if not response.ok:
-                raise f"Error: {response.status_code} Response - {response.reason}"
+                raise BadIssuerRequestException(response.reason)
             
             body: dict = response.json()
             if "options" not in body.keys():
-                raise "Error: Incorrect API Response"
+                raise CredentialIssuerException("Bad response from issuer")
             
             options: dict = body["options"]
             if type not in options.keys():
-                raise f"Error: Credential type {cred_type} not found."
+                raise BadIssuerRequestException(
+                    f"Credential type {cred_type} not found."
+                    )
             
             return options[cred_type]
 
@@ -177,13 +186,21 @@ class IdentityOwner:
         with Session() as s:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
-                raise f"Error: {response.status_code} - {response.json()["detail"]}"
+                # raise f"Error: {response.status_code} - {response.json()["detail"]}"
+                if response.status_code < 500:
+                    if "detail" in response.json().keys():
+                        raise BadIssuerRequestException(response.json()["detail"])
+                    elif response.status_code == 404:
+                        raise BadIssuerRequestException("Issuer URL not found")
+                    raise BadIssuerRequestException(response.reason)
+                raise CredentialIssuerException(response.reason)
             body = response.json()
 
         # For internal use by the ID owner library/agent
         id = uuid4().hex
+        #TODO: Verify
         req_url = f"{issuer_url}/status?token={body['link']}"
-
+        
         credential = Credential(id=id, 
                                 issuer_url=issuer_url, 
                                 type=cred_type, 
