@@ -1,12 +1,8 @@
-class BaseIdentityOwnerException(BaseException):
+class BaseIdentityOwnerException(Exception):
     """
     Base exception type
     """
-    def __init__(self, message: str) -> None:
-        self.message = message
-
-    def __str__(self) -> str:
-        return f"{type(self).__name__}: {self.message}"
+    pass
 
 class IdentityOwnerException(BaseIdentityOwnerException):
     """
@@ -24,6 +20,19 @@ class BadIssuerRequestException(IdentityOwnerException):
     """
     Exception type for when ID Owner makes a bad request
     """
+    pass
+
+class IssuerTypeNotFoundException(BadIssuerRequestException):
+    """
+    Exception type for when ID Owner makes a bad request
+    """
+    pass
+
+class IssuerURLNotFoundException(BadIssuerRequestException):
+    """
+    Exception type for when ID Owner makes a bad request
+    """
+    pass
 
 class CredentialIssuerException(BaseIdentityOwnerException):
     """

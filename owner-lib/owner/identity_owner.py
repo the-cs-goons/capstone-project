@@ -4,8 +4,14 @@ from uuid import uuid4
 
 from requests import Response, Session
 
-from models import Credential
-from models.exceptions import BadIssuerRequestException, CredentialIssuerException, CredentialNotFoundException
+from .models import Credential
+from .models.exceptions import (
+    BadIssuerRequestException,
+    CredentialIssuerException,
+    CredentialNotFoundException,
+    IssuerTypeNotFoundException,
+    IssuerURLNotFoundException,
+)
 
 
 class IdentityOwner:
@@ -90,16 +96,14 @@ class IdentityOwner:
         """
 
         if cred_id not in self.credentials.keys():
-            raise CredentialNotFoundException(
-                f"Credential with ID {cred_id} not found."
-                )
+            raise CredentialNotFoundException
         credential = self.credentials[cred_id]
         
         # Closes session afterwards
         with Session() as s:
             response: Response = await s.get(credential.request_url)
             if not response.ok:
-                raise CredentialIssuerException(response.reason)
+                raise CredentialIssuerException
             # TODO: Logic for updating state according to how Mal's structured things
             body: dict = response.json()
             credential.status = body["status"]
@@ -152,17 +156,15 @@ class IdentityOwner:
         with Session() as s:
             response: Response = await s.get(f"{issuer_url}/credentials")
             if not response.ok:
-                raise BadIssuerRequestException(response.reason)
+                raise IssuerURLNotFoundException
             
             body: dict = response.json()
             if "options" not in body.keys():
-                raise CredentialIssuerException("Bad response from issuer")
+                raise CredentialIssuerException
             
             options: dict = body["options"]
             if type not in options.keys():
-                raise BadIssuerRequestException(
-                    f"Credential type {cred_type} not found."
-                    )
+                raise IssuerTypeNotFoundException
             
             return options[cred_type]
 
@@ -186,14 +188,13 @@ class IdentityOwner:
         with Session() as s:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
-                # raise f"Error: {response.status_code} - {response.json()["detail"]}"
                 if response.status_code < 500:
                     if "detail" in response.json().keys():
-                        raise BadIssuerRequestException(response.json()["detail"])
+                        raise IssuerTypeNotFoundException
                     elif response.status_code == 404:
-                        raise BadIssuerRequestException("Issuer URL not found")
-                    raise BadIssuerRequestException(response.reason)
-                raise CredentialIssuerException(response.reason)
+                        raise IssuerURLNotFoundException
+                    raise BadIssuerRequestException
+                raise CredentialIssuerException
             body = response.json()
 
         # For internal use by the ID owner library/agent
