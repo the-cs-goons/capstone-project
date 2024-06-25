@@ -24,13 +24,13 @@ class BadIssuerRequestException(IdentityOwnerException):
 
 class IssuerTypeNotFoundException(BadIssuerRequestException):
     """
-    Exception type for when ID Owner makes a bad request
+    Exception type for when ID Owner requests an invalid credential type
     """
     pass
 
 class IssuerURLNotFoundException(BadIssuerRequestException):
     """
-    Exception type for when ID Owner makes a bad request
+    Exception type for when given issuer url doesn't appear to exist
     """
     pass
 
