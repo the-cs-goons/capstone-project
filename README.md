@@ -4,7 +4,7 @@
 
 This project requires you have **Python 3.12** and **Node.js 20** installed.
 
-If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env`  (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
+If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env` (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
 
 ### Running tests
 
@@ -20,7 +20,7 @@ Running these tests also generates an HTML coverage report in the `htmlcov/` fol
 
 #### Testing the React frontend
 
-From the `owner-ui` directory, run `yarn test`. You may need to run `corepack enable` then `yarn install` first to install the frontend's dependencies if you haven't already.
+From the `owner-ui` directory, run `npm test`. You may need to run `npm install` first to install the frontend's dependencies if you haven't already.
 
 ### Serving agents
 
