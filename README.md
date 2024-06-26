@@ -4,7 +4,7 @@
 
 This project requires you have **Python 3.12** and **Node.js 20** installed.
 
-If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env`  (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
+If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env` (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
 
 ### Running tests
 
@@ -24,6 +24,6 @@ From the `owner-ui` directory, run `npm test`. You may need to run `npm install`
 
 ### Serving agents
 
-To start all the agents and network them together, run `docker-compose up --build`.
+To start all the agents and network them together, run `docker compose up --build`.
 
 While `docker-compose` is running, it is setup to automatically reload the server with any changes you make to the source code, so you don't have to restart `docker-compose` while you're developing code.
