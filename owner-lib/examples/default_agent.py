@@ -1,7 +1,6 @@
 from owner import IdentityOwner
 from owner.models.verifiable_credential import VerifiableCredential
 
-
 MOCK_STORE = {
     "example1": {
         "id": "example1",
