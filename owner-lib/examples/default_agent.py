@@ -6,9 +6,10 @@ MOCK_STORE = {
     "example1": {
         "id": "example1",
         "issuer_url": "https://example.com",
-        "type": "Example",
+        "type": "Passport",
         "request_url": "https://example.com/status?token=example1",
-        "token": "qwertyuiop",
+        "token":
+            "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",
         "status":"ACCEPTED",
         "status_message":None,
         "issuer_name":"Example Issuer",
@@ -17,7 +18,7 @@ MOCK_STORE = {
     "example2": {
         "id": "example2",
         "issuer_url": "https://example.com",
-        "type": "Example",
+        "type": "Driver's Licence",
         "request_url": "https://example.com/status?token=example2",
         "token": None,
         "status":"PENDING",

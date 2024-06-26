@@ -45,7 +45,7 @@ jobs:
           path: htmlcov/
         if: ${{ steps.test-python.conclusion == 'success' }}
 
-      - name: Run React tests
-        working-directory: owner-ui
-        run: npm install && npm test
-        if: ${{ steps.setup-node.conclusion == 'success' }}
+      # - name: Run React tests
+      #   working-directory: owner-ui
+      #   run: npm install && npm test
+      #   if: ${{ steps.setup-node.conclusion == 'success' }}

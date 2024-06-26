@@ -4,5 +4,6 @@ __pycache__
 .coverage
 htmlcov
 .env
+.vscode/
 .venv
 venv
