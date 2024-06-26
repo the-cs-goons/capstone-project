@@ -7,8 +7,10 @@ import requests
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.x509 import Certificate
+from cryptography.x509.oid import NameOID, ObjectIdentifier
 from fastapi import FastAPI, HTTPException
 
 from .models.presentation_definition import PresentationDefinition
@@ -75,7 +77,11 @@ class ServiceProvider:
             raise FileNotFoundError(f"CA bundle file not found: {e}")
         return ca_certs
 
-    def verify_certificate(self, cert_pem: bytes, nonce: str, timestamp: float):
+    def verify_certificate(
+        self,
+        cert_pem: bytes,
+        nonce: str,
+        timestamp: float) -> bytes:
         """
         Verify the @credential take from owner
         """
@@ -85,8 +91,7 @@ class ServiceProvider:
         # Check if the nonce has been used or expired
         if (nonce in self.used_nonces or
             (current_time - timestamp_datetime).total_seconds() > 300):
-            print("nonce")
-            return False
+            raise Exception("Certificate is being replayed")
 
         certificate = x509.load_pem_x509_certificate(cert_pem)
         ca_bundle = self.ca_bundle
@@ -108,18 +113,54 @@ class ServiceProvider:
                 # Check the validity period of the certificate
                 if not_valid_before <= current_time <= not_valid_after:
                     self.used_nonces.add(nonce)     # Mark nonce as used
-                    return True
+                    # Print the issuer's details and return issuer's DID
+                    return self.get_issuer_detail(ca_cert)
                 else:
-                    print("expired")
-                    return False
+                    raise Exception("Certificate expired")
             except InvalidSignature:
                 print("Signature is invalid.")
                 continue
             except Exception as e:
                 print(f"the erroris : {e}")
                 continue    # Try next CA
-        print("Failed to find certificate")
-        return False    # No CA certificates matched
+        raise Exception("Failed to find certificate")     # No CA certificates matched
+
+    def get_issuer_detail(self, issuer: Certificate) -> bytes:
+        """
+        Print details of the current issuer
+        Return the issuer object contains all the information for future modification
+        """
+        did = None
+        print("issuer detail")
+        print("Issuer:")
+        for name in issuer.issuer:
+            print(f"{name.oid._name}: {name.value}")
+
+        print("\nSubject:")
+        for name in issuer.subject:
+            print(f"{name.oid._name}: {name.value}")
+
+        print("\nSerial Number:")
+        print(issuer.serial_number)
+
+        print("\nValidity:")
+        print("Not Before:", issuer.not_valid_before)
+        print("Not After:", issuer.not_valid_after)
+
+        print("\nExtensions:")
+        for ext in issuer.extensions:
+            if isinstance(ext.value, x509.SubjectAlternativeName):
+                print("Subject Alternative Name:",
+                    ext.value.get_values_for_type(x509.DNSName))
+            elif isinstance(ext.oid, ObjectIdentifier):
+                did = ext.value.value
+                print("Custom DID Extension:", ext.value)
+            else:
+                print(f"{ext.oid.dotted_string}: {ext.value}")
+        # Add custom issuer detail print
+
+        return did
+
 
     async def try_verify_certificate(
         self,
