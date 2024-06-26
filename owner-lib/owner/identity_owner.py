@@ -30,19 +30,19 @@ class IdentityOwner:
         return {"Wallet home page"}
 
     async def get_authorization_request(
-            self, 
+            self,
             url: str = f"http://service-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request?request_type=example" # noqa E501
             ): # -> HTMLResponse:
         async with httpx.AsyncClient() as client:
             response = await client.get(url)
-            
+
             parsed_fields = self.__parse_authorization_request(response)
 
         return self.__present_selection_form(parsed_fields)
-        
+
 
     def __parse_authorization_request(
-            self, 
+            self,
             response: httpx.Response
             ) -> list[ParsedField]:
         parsed_fields = []
@@ -61,7 +61,7 @@ class IdentityOwner:
                 name = field["name"]
             elif "id" in field and field["id"] is not None:
                 name = field["id"]
-            
+
             optional = False
             if "optional" in field and field["optional"] is not None:
                 optional = field["optional"]
@@ -73,8 +73,8 @@ class IdentityOwner:
             paths = field["path"]
             parsed_fields.append(
                 ParsedField(
-                    name = name, 
-                    condition = json.dumps(condition), 
+                    name = name,
+                    condition = json.dumps(condition),
                     paths = paths,
                     optional = optional,
                     original_field = json.dumps(field)))
@@ -82,10 +82,10 @@ class IdentityOwner:
         return parsed_fields
 
     def __present_selection_form(
-            self, 
+            self,
             parsed_fields: list[ParsedField]
             ) -> HTMLResponse:
-        
+
         field_entries_html = ""
         for field in parsed_fields:
             if field.optional:
@@ -95,15 +95,16 @@ class IdentityOwner:
 
             field_entries_html += f'<input class="field-checkbox" type="checkbox" value="{html.escape(field.model_dump_json())}">{field.name}{optional}<br>' # noqa E501
 
-        all_fields_html = f'''<input type="hidden" name="parsed_fields" value=\'{
-            json.dumps(field.model_dump())}\'>'''
+        html_ready_fields = [field.model_dump() for field in parsed_fields]
+        all_fields_html = f'<input type="hidden" name="parsed_fields" value="{
+            html.escape(json.dumps(html_ready_fields))}">'
         selected_fields_html = '<input type="hidden" id="selected_fields" name="selection">' # noqa E501
 
         html_content = f"""
         <html>
             <h3>Select fields to share</h3>
-            <form id="selection_form" action="/authorize" 
-                method="post" onsubmit="prepareSelection()"> 
+            <form id="selection_form" action="/authorize"
+                method="post" onsubmit="prepareSelection()">
                 {field_entries_html}
                 {all_fields_html}
                 {selected_fields_html}
@@ -118,7 +119,7 @@ class IdentityOwner:
                             selected.push(checkboxes[i].value);
                         }}
                     }}
-                    document.getElementById('selected_fields').value 
+                    document.getElementById('selected_fields').value
                         = JSON.stringify(selected);
                 }}
             </script>
@@ -126,21 +127,21 @@ class IdentityOwner:
         return HTMLResponse(content=html_content)
 
     def __create_presentation(
-            self, 
-            selection: str = Form(...), 
+            self,
+            selection: str = Form(...),
             parsed_fields: str = Form(...)): # -> VerifiablePresentation:
-        
+
         # TODO: Implement presentation creation.
-        # The below follows the path expression made using 
+        # The below follows the path expression made using
         # jsonpath_ng from the "path" property in a field
 
         # for credential in self.credentials:
-        #     cred_dict = credential.model_dump(serialize_as_any=True, 
+        #     cred_dict = credential.model_dump(serialize_as_any=True,
         #                   exclude_none=True)
         #     matches = path_exp.find(cred_dict)
 
         selection_list = json.loads(html.unescape(selection))
         selection = [json.loads(x) for x in selection_list]
 
-        return {"selection": selection, #[json.loads(x) for x in selection], 
+        return {"selection": selection, #[json.loads(x) for x in selection],
                 "parsed_fields": json.loads(parsed_fields)}
