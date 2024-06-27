@@ -101,7 +101,7 @@ class IdentityOwner:
         
         # Closes session afterwards
         with Session() as s:
-            response: Response = await s.get(credential.request_url)
+            response: Response = s.get(credential.request_url)
             if not response.ok:
                 raise CredentialIssuerException
             # TODO: Logic for updating state according to how Mal's structured things
@@ -144,7 +144,7 @@ class IdentityOwner:
         self.credentials[id] = credential
         self.store_credential(credential)
         
-    async def get_credential_request_schema(self, issuer_url: str, cred_type: str):
+    async def get_credential_request_schema(self, cred_type: str, issuer_url: str):
         """
         Retrieves the required information needed to submit a request for some ID type
         from an issuer.
@@ -154,7 +154,7 @@ class IdentityOwner:
         - cred_type(`str`): The type of the credential schema request being asked for
         """
         with Session() as s:
-            response: Response = await s.get(f"{issuer_url}/credentials")
+            response: Response = s.get(f"{issuer_url}/credentials")
             if not response.ok:
                 raise IssuerURLNotFoundException
             
@@ -163,14 +163,14 @@ class IdentityOwner:
                 raise CredentialIssuerException
             
             options: dict = body["options"]
-            if type not in options.keys():
+            if cred_type not in options.keys():
                 raise IssuerTypeNotFoundException
             
             return options[cred_type]
 
     def apply_for_credential(self, 
+                             cred_type: str,
                              issuer_url: str, 
-                             cred_type: str, 
                              info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
@@ -189,7 +189,7 @@ class IdentityOwner:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
                 if response.status_code < 500:
-                    if "detail" in response.json().keys():
+                    if "detail" not in response.json().keys():
                         raise IssuerTypeNotFoundException
                     elif response.status_code == 404:
                         raise IssuerURLNotFoundException

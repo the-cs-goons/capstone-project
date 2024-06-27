@@ -58,7 +58,8 @@ class WebIdentityOwner(IdentityOwner):
         - `SchemaResponse`: A list of credentials
         """
         try:
-            req_schema = super().get_credential_request_schema(cred_type, issuer_url)
+            req_schema = await super().get_credential_request_schema(cred_type, 
+                                                                     issuer_url)
             return SchemaResponse(request_schema=req_schema)
         except IssuerTypeNotFoundException:
             raise HTTPException(status_code=400, 
@@ -69,14 +70,14 @@ class WebIdentityOwner(IdentityOwner):
         except CredentialIssuerException:
             raise HTTPException(status_code=500, 
                                 detail="Issuer API Error")
-        except Exception:
+        except Exception as e:
             raise HTTPException(status_code=500, 
-                                detail="Error")
+                                detail=f"{e}")
     
     @override
     async def apply_for_credential(self, 
+                                issuer_url: str,
                                  cred_type: str, 
-                                 issuer_url: str, 
                                  info: dict) -> Credential:
         """
         Sends request for a new credential directly, then stores it
@@ -104,9 +105,9 @@ class WebIdentityOwner(IdentityOwner):
         except CredentialIssuerException:
             raise HTTPException(status_code=500, 
                                 detail="Issuer API Error")
-        except Exception:
+        except Exception as e:
             raise HTTPException(status_code=500, 
-                                detail="Error")
+                                detail=f"Error: {e}")
 
     async def refresh_credential(self, cred_id) -> Credential:
         """
