@@ -1,6 +1,7 @@
 from typing import Any, override
 
 from issuer import CredentialIssuer, StatusResponse
+import datetime
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -11,6 +12,7 @@ class DefaultIssuer(CredentialIssuer):
       of active credential requests."""
 
     statuses: dict[int, (str, dict)]
+    time: datetime
 
     @override
     def __init__(
@@ -22,11 +24,18 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_request(self, ticket: int, cred_type: str, information: dict):
         self.statuses[ticket] = (cred_type, information)
+        self.time = datetime.datetime.now()
         return
 
     @override
     def get_status(self, ticket: int) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
+
+        curr_time = datetime.datetime.now()
+        if curr_time - self.time < datetime.timedelta(0, 40, 0):
+            return StatusResponse(status="PENDING", cred_type=None, 
+                              information=None)
+        
         return StatusResponse(status="ACCEPTED", cred_type=cred_type, 
                               information=information)
 
