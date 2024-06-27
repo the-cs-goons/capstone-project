@@ -58,7 +58,8 @@ class WebIdentityOwner(IdentityOwner):
         - `SchemaResponse`: A list of credentials
         """
         try:
-            req_schema = await super().get_credential_request_schema(cred_type, issuer_url)
+            req_schema = await super().get_credential_request_schema(cred_type, 
+                                                                     issuer_url)
             return SchemaResponse(request_schema=req_schema)
         except IssuerTypeNotFoundException:
             raise HTTPException(status_code=400, 
