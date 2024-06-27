@@ -1,7 +1,7 @@
+import datetime
 from typing import Any, override
 
 from issuer import CredentialIssuer, StatusResponse
-import datetime
 
 
 class DefaultIssuer(CredentialIssuer):
