@@ -4,7 +4,9 @@ WORKDIR /usr/src
 
 # install python dependencies
 COPY requirements.txt .
+COPY --from=common requirements.txt ./common.txt
 RUN pip install -r requirements.txt
+RUN pip install -r common.txt
 
 # remove build dependencies
 RUN pip uninstall -y pip
