@@ -37,7 +37,7 @@ services:
 
   issuer-lib:
     build:
-      context: issuer-lib
+      context: ssi-libs/issuer-lib
       dockerfile: Dockerfile
     ports:
     - $CS3900_ISSUER_AGENT_PORT:$CS3900_ISSUER_AGENT_PORT
