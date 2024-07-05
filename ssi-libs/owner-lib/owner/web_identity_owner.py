@@ -11,7 +11,8 @@ from .models.exceptions import (
     IssuerURLNotFoundException,
 )
 from .models.responses import SchemaResponse
-from ...common.lib import hello_world
+# from ...common.lib import hello_world
+from common import hello_world
 
 
 class WebIdentityOwner(IdentityOwner):

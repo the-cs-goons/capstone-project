@@ -10,7 +10,6 @@ RUN pip install -r requirements.txt
 RUN pip uninstall -y pip
 
 # copy application code over
-COPY owner owner
-COPY examples examples
+COPY examples owner/examples
 
-ENTRYPOINT uvicorn examples.default_agent:identity_owner_server --host "0.0.0.0" --port "$CS3900_OWNER_AGENT_PORT" --log-level "debug" --reload
+ENTRYPOINT uvicorn owner.examples.default_agent:identity_owner_server --host "0.0.0.0" --port "$CS3900_OWNER_AGENT_PORT" --log-level "debug" --reload

@@ -27,7 +27,11 @@ services:
     volumes:
     - type: bind
       source: ssi-libs/owner-lib/owner
-      target: /usr/src/owner
+      target: /usr/src/owner/owner
+      read_only: true
+    - type: bind
+      source: ssi-libs/common/lib
+      target: /usr/src/common
       read_only: true
     env_file:
     - path: example.env
