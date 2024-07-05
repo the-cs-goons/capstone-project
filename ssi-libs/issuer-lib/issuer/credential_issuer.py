@@ -7,6 +7,7 @@ from uuid import uuid4
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
+from common import hello_world
 
 from .models.responses import (
     OptionsResponse,
@@ -153,6 +154,7 @@ class CredentialIssuer:
         router.get("/credentials/")(self.get_credential_options)
         router.post("/request/{cred_type}")(self.recieve_credential_request)
         router.get("/status/")(self.credential_status)
+        router.get("/hello")(hello_world)
         return router
 
     ###

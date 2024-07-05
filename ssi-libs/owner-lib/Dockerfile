@@ -12,6 +12,6 @@ RUN pip install -r common.txt
 RUN pip uninstall -y pip
 
 # copy application code over
-COPY examples owner/examples
+COPY examples examples
 
-ENTRYPOINT uvicorn owner.examples.default_agent:identity_owner_server --host "0.0.0.0" --port "$CS3900_OWNER_AGENT_PORT" --log-level "debug" --reload
+ENTRYPOINT uvicorn examples.default_agent:identity_owner_server --host "0.0.0.0" --port "$CS3900_OWNER_AGENT_PORT" --log-level "debug" --reload

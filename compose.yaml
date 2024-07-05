@@ -29,7 +29,7 @@ services:
     volumes:
     - type: bind
       source: ssi-libs/owner-lib/owner
-      target: /usr/src/owner/owner
+      target: /usr/src/owner
       read_only: true
     - type: bind
       source: ssi-libs/common/lib
