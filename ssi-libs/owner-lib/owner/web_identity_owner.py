@@ -1,5 +1,7 @@
 from typing import override
 
+# from ...common.lib import hello_world
+from common import hello_world
 from fastapi import FastAPI, HTTPException
 
 from . import IdentityOwner
@@ -11,8 +13,6 @@ from .models.exceptions import (
     IssuerURLNotFoundException,
 )
 from .models.responses import SchemaResponse
-# from ...common.lib import hello_world
-from common import hello_world
 
 
 class WebIdentityOwner(IdentityOwner):

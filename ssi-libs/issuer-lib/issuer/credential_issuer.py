@@ -4,10 +4,10 @@ from hashlib import sha256
 from typing import Any
 from uuid import uuid4
 
+from common import hello_world
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
-from common import hello_world
 
 from .models.responses import (
     OptionsResponse,
