@@ -122,8 +122,8 @@ class WebIdentityOwner(IdentityOwner):
         if cred_id not in self.credentials.keys():
             raise HTTPException(status_code=400, 
                                 detail=f"Credential with ID {cred_id} not found.")
-        
-        await self.poll_credential_status(cred_id)
+        if self.credentials[cred_id].status == "PENDING":
+            await self.poll_credential_status(cred_id)
         return self.credentials[cred_id]
     
     async def refresh_all_pending_credentials(self):
@@ -144,6 +144,6 @@ class WebIdentityOwner(IdentityOwner):
         router.get("/request/{cred_type}")(self.get_credential_request_schema)
         router.post("/request/{cred_type}")(self.apply_for_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh/all")(self.refresh_all_pending_credentials)
+        router.get("/refresh-all")(self.refresh_all_pending_credentials)
 
         return router
