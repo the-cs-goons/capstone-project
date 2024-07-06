@@ -52,6 +52,7 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
+        router.get("/hello")(hello_world)
         return router
 
 identity_owner = DefaultWebIdentityOwner("", mock_data=MOCK_STORE)

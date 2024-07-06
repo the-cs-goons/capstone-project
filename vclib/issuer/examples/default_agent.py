@@ -5,6 +5,7 @@ from fastapi import FastAPI
 
 
 from vclib.issuer import CredentialIssuer, StatusResponse
+from vclib.common import hello_world
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -45,6 +46,7 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
+        router.get("/hello")(hello_world)
         return router
 
 

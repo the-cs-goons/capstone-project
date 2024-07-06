@@ -2,15 +2,16 @@ FROM python:3.12-slim-bookworm
 
 WORKDIR /usr/src
 
+# copy init files
+COPY --from=root __init__.py ./vclib/__init__.py
+COPY --from=root common/__init__.py ./vclib/common/__init__.py
+COPY __init__.py ./vclib/issuer/__init__.py
+
 # install python dependencies
 COPY requirements.txt .
 COPY --from=root common/requirements.txt ./common.txt
 RUN pip install -r requirements.txt
 RUN pip install -r common.txt
-
-# copy init files
-COPY __init__.py ./vclib/issuer/__init__.py
-COPY --from=root __init__.py ./vclib/__init__.py
 
 # remove build dependencies
 RUN pip uninstall -y pip
