@@ -1,5 +1,6 @@
 import pytest
 from fastapi import HTTPException
+
 from vclib.issuer import CredentialIssuer
 
 MOCK_INFORMATION = {

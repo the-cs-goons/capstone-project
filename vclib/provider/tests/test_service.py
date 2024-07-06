@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID, ObjectIdentifier
 from fastapi import FastAPI, HTTPException
+
 from vclib.provider import ServiceProvider
 from vclib.provider.src.models.presentation_definition import (
     Constraint,
