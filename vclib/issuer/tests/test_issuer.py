@@ -1,6 +1,6 @@
 import pytest
 from fastapi import HTTPException
-from issuer import CredentialIssuer
+from vclib.issuer import CredentialIssuer
 
 MOCK_INFORMATION = {
     "default": {
@@ -26,7 +26,7 @@ MOCK_INFORMATION = {
 @pytest.fixture
 def credential_issuer():
     return CredentialIssuer(
-        MOCK_INFORMATION, "ssi-libs/issuer-lib/tests/test_private_key.pem"
+        MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem"
     )
 
 @pytest.mark.asyncio
@@ -82,7 +82,7 @@ async def test_check_credential_status(credential_issuer):
 @pytest.mark.asyncio
 async def test_invalid_credentials():
     credential_issuer = CredentialIssuer(
-        MOCK_INFORMATION, "ssi-libs/issuer-lib/tests/test_private_key.pem"
+        MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem"
     )
 
     info = {"name": "Name Lastname"}
@@ -140,4 +140,4 @@ async def test_nonexistent_key():
 async def test_invalid_key():
     with pytest.raises(ValueError):
         CredentialIssuer(MOCK_INFORMATION, 
-                         "ssi-libs/issuer-lib/tests/test_invalid_private_key.pem")
+                         "vclib/issuer/tests/test_invalid_private_key.pem")
