@@ -1,7 +1,5 @@
 from typing import override
 
-# from ...common.lib import hello_world
-from common import hello_world
 from fastapi import FastAPI, HTTPException
 
 from . import IdentityOwner
@@ -147,6 +145,5 @@ class WebIdentityOwner(IdentityOwner):
         router.post("/request/{cred_type}")(self.apply_for_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh/all")(self.refresh_all_pending_credentials)
-        router.get("/hello")(hello_world)
 
         return router

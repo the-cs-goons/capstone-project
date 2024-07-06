@@ -1,6 +1,6 @@
 from typing import override
 
-from owner import Credential, WebIdentityOwner
+from vclib.owner import Credential, WebIdentityOwner
 
 MOCK_STORE = {
     "example1": {

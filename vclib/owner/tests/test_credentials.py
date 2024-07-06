@@ -1,8 +1,7 @@
 
 from datetime import datetime
 
-import pytest
-from owner import Credential, IdentityOwner
+from vclib.owner import Credential, IdentityOwner
 
 
 def test_serialise_and_load_credentials():

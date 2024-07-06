@@ -1,5 +1,5 @@
 import pytest
-from examples.default_agent import DefaultWebIdentityOwner
+from vclib.owner.examples.default_agent import DefaultWebIdentityOwner
 from fastapi import HTTPException
 
 MOCK_STORE = {
