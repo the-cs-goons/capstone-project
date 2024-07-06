@@ -1,7 +1,10 @@
 import datetime
 from typing import Any, override
 
-from src import CredentialIssuer, StatusResponse
+from fastapi import FastAPI
+
+
+from vclib.issuer import CredentialIssuer, StatusResponse
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -38,6 +41,11 @@ class DefaultIssuer(CredentialIssuer):
         
         return StatusResponse(status="ACCEPTED", cred_type=cred_type, 
                               information=information)
+    
+    @override
+    def get_server(self) -> FastAPI:
+        router = super().get_server()
+        return router
 
 
 credentials = {

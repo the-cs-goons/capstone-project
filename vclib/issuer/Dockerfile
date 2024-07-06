@@ -4,9 +4,13 @@ WORKDIR /usr/src
 
 # install python dependencies
 COPY requirements.txt .
-COPY --from=common requirements.txt ./common.txt
+COPY --from=root common/requirements.txt ./common.txt
 RUN pip install -r requirements.txt
 RUN pip install -r common.txt
+
+# copy init files
+COPY __init__.py ./vclib/issuer/__init__.py
+COPY --from=root __init__.py ./vclib/__init__.py
 
 # remove build dependencies
 RUN pip uninstall -y pip

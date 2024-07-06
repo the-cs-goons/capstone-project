@@ -1,6 +1,9 @@
 from typing import override
 
+from fastapi import FastAPI
+
 from vclib.owner import Credential, WebIdentityOwner
+from vclib.common import hello_world
 
 MOCK_STORE = {
     "example1": {
@@ -45,6 +48,11 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
     @override
     def store_credential(self, cred: Credential):
         self.MOCK_STORE[cred.id] = cred
+
+    @override
+    def get_server(self) -> FastAPI:
+        router = super().get_server()
+        return router
 
 identity_owner = DefaultWebIdentityOwner("", mock_data=MOCK_STORE)
 identity_owner_server = identity_owner.get_server()
