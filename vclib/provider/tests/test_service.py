@@ -1,19 +1,16 @@
 import datetime
 import time
 from datetime import timedelta
-from unittest.mock import MagicMock
 
 import pytest
 from cryptography import x509
-from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
-from cryptography.x509 import Certificate
+from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import NameOID, ObjectIdentifier
 from fastapi import FastAPI, HTTPException
-from service import ServiceProvider
-from service.models.presentation_definition import (
+from vclib.provider import ServiceProvider
+from vclib.provider.src.models.presentation_definition import (
     Constraint,
     Field,
     Filter,
