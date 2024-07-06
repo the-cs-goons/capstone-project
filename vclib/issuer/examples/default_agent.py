@@ -3,9 +3,8 @@ from typing import Any, override
 
 from fastapi import FastAPI
 
-
-from vclib.issuer import CredentialIssuer, StatusResponse
 from vclib.common import hello_world
+from vclib.issuer import CredentialIssuer, StatusResponse
 
 
 class DefaultIssuer(CredentialIssuer):

@@ -2,8 +2,8 @@ from typing import override
 
 from fastapi import FastAPI
 
-from vclib.owner import Credential, WebIdentityOwner
 from vclib.common import hello_world
+from vclib.owner import Credential, WebIdentityOwner
 
 MOCK_STORE = {
     "example1": {
