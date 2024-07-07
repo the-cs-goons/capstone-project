@@ -1,2 +1,3 @@
 PyJWT==2.8.0
 pyjwt[crypto]
+sd-jwt==0.10.4
