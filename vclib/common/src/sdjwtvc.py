@@ -40,4 +40,11 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     def get_disclosures(self):
         return [digest.json for digest in self.ii_disclosures]
+    
+    def verify_signature(self, pub_key: JWK) -> bool:
+        try:
+            self.sd_jwt.verify(pub_key)
+            return True
+        except Exception:
+            return False
 

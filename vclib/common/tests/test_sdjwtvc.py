@@ -26,9 +26,7 @@ def test_create_and_verify_credential(jwk):
     disclosures: list = new_credential.get_disclosures()
     assert len(disclosures) == 3
     
-    assert public_key.has_public
-    # Assert no exception gets raised
-    assert new_credential.sd_jwt.verify(public_key) is None
+    assert new_credential.verify_signature(public_key)
     
 def test_registered_jwt_claims(jwk):
     disclosable_claims = {
