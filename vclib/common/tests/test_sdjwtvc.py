@@ -3,7 +3,6 @@ from time import mktime
 
 import pytest
 from jwcrypto.jwk import JWK
-from jwcrypto.jws import JWS
 
 from vclib.common import SDJWTVCIssuer
 
