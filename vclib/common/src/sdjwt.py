@@ -5,7 +5,7 @@ from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
 
 
-class SDJWTVC(SDJWTIssuer):
+class SDJWTVCIssuer(SDJWTIssuer):
     """
     Selective Disclosure JWT for Verifiable Credentials
 

@@ -5,7 +5,7 @@ import pytest
 from jwcrypto.jwk import JWK
 from jwcrypto.jws import JWS
 
-from vclib.common import SDJWTVC
+from vclib.common import SDJWTVCIssuer
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def test_create_and_verify_credential(jwk):
         "dob": date.today().isoformat()}
     other = {"iat": mktime(datetime.now().timetuple())}
 
-    new_credential = SDJWTVC(disclosable_claims, other, jwk)
+    new_credential = SDJWTVCIssuer(disclosable_claims, other, jwk)
 
     public_key = JWK.from_json(jwk.export_public())
 
@@ -37,7 +37,7 @@ def test_registered_jwt_claims(jwk):
         "iss": date.today().isoformat()}
     other = {"iat": mktime(datetime.now().timetuple())}
     with pytest.raises(Exception):
-        SDJWTVC(disclosable_claims, other, jwk)
+        SDJWTVCIssuer(disclosable_claims, other, jwk)
 
 
 
