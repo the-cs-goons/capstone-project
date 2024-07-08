@@ -23,12 +23,35 @@ class SDJWTVCIssuer(SDJWTIssuer):
                  issuer_key: JWK, 
                  **kwargs
                  ):
+        """
+        Creates a new SDJWT from a set of disclosable/non-disclosable claims and signs 
+        it.
+
+        ### Parameters
+        - disclosable_claims(`dict`): A dict representing key/value pairs that the
+        recipient of this credential should be able to **selectively disclose**.
+        - oth_claims(`dict`): A dict representing key/value pairs that the recipient
+        of this credential should NOT be able to selectively disclose (e.g. the `exp` 
+        expiry claim.)
+        - issuer_key(`JWK`): The issuer's signing key, as a `JWK` 
+        (from the `jwcrypto` library)
+
+        ### Attributes
+        - sd_jwt(`JWS`): The signed SD JWT itself, without any disclosures.
+        - sd_jwt_issuance(`str`): The SD JWT + encoded disclosures, separated by a `~`
+        character.
+        
+        Other keyword arguments that `SDJWTIssuer` accepts can be passed down as 
+        keyword arguments.
+        """
         payload = {}
         for key, value in disclosable_claims.items():
-            # If the key of the claim is specifically of type SDJObj, 
-            # it will be included in _sd + as a digest
+            # Registered JWT claims are not disclosable
             if key in self.NONDISCLOSABLE_CLAIMS:
                 raise Exception
+            # The base class checks for disclosable claims by checking for this 
+            # wrapper class.
+            # TODO: Improve this to work over deeper dicts (supported by the base class)
             payload[SDObj(key)] = value
         for key, value in oth_claims.items():
             payload[key] = value

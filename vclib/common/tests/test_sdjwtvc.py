@@ -18,15 +18,18 @@ def test_create_and_verify_credential(jwk):
         "family_name": "Jones", 
         "dob": date.today().isoformat()}
     other = {"iat": mktime(datetime.now().timetuple())}
-
     new_credential = SDJWTVCIssuer(disclosable_claims, other, jwk)
 
-    public_key = JWK.from_json(jwk.export_public())
-
+    # Test 3 disclosures
     disclosures: list = new_credential.get_disclosures()
     assert len(disclosures) == 3
     
+    public_key = JWK.from_json(jwk.export_public())
     assert new_credential.verify_signature(public_key)
+
+    wrong_jwk = JWK(generate='EC')
+    wrong_pubkey = JWK.from_json(wrong_jwk.export_public())
+    assert not new_credential.verify_signature(wrong_pubkey)
     
 def test_registered_jwt_claims(jwk):
     disclosable_claims = {
