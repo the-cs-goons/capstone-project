@@ -40,3 +40,4 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     def get_disclosures(self):
         return [digest.json for digest in self.ii_disclosures]
+
