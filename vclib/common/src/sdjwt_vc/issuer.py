@@ -4,7 +4,11 @@ from jwcrypto.jwk import JWK
 from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
 
-from .exceptions import SDJWTVCNoHolderPublicKey, SDJWTVCRegisteredClaimsException
+from .exceptions import (
+    SDJWTVCNoHolderPublicKeyException,
+    SDJWTVCRegisteredClaimsException,
+)
+
 
 class SDJWTVCIssuer(SDJWTIssuer):
     """
@@ -46,9 +50,10 @@ class SDJWTVCIssuer(SDJWTIssuer):
         ### Attributes
         The following come from the parent class from the sd-jwt module. They're 
         documented here for clarity and ease of use.
-        - sd_jwt(`JWS`): A JSON Serialised JWS. If serialisation format is set to `json`,
-        will include disclosures under the member name `"disclosures"`. If format is
-        `compact` (default), the disclosures will not be present in this format. 
+        - sd_jwt(`JWS`): A JSON Serialised JWS. If serialisation format is set to 
+        `json`, will include disclosures under the member name `"disclosures"`. If 
+        format is `compact` (default), the disclosures will not be present in this 
+        format. 
         - serialized_sd_jwt(`str`): The SD JWT without the disclosures appended
         - sd_jwt_issuance(`str`): The SD JWT + encoded disclosures, separated by a `~`
         character.
@@ -73,7 +78,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
             payload[key] = value
 
         if self.ENFORCE_KEY_BINDING and holder_key is None:
-            raise SDJWTVCNoHolderPublicKey
+            raise SDJWTVCNoHolderPublicKeyException
          
         # TODO: specific checking for mandatory fields that SDJWTIssuer does not enforce
         # TODO: verification of any registered JWT claims

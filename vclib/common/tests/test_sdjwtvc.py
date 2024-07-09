@@ -4,7 +4,11 @@ from time import mktime
 import pytest
 from jwcrypto.jwk import JWK
 
-from vclib.common import SDJWTVCIssuer, SDJWTVCRegisteredClaimsException, SDJWTVCNoHolderPublicKey
+from vclib.common import (
+    SDJWTVCIssuer,
+    SDJWTVCNoHolderPublicKeyException,
+    SDJWTVCRegisteredClaimsException,
+)
 
 
 @pytest.fixture
@@ -47,7 +51,7 @@ def test_rno_holder_key_exception(issuer_jwk):
         "family_name": "Jones", 
         "dob": date.today().isoformat()}
     other = {"iat": mktime(datetime.now().timetuple())}
-    with pytest.raises(SDJWTVCNoHolderPublicKey):
+    with pytest.raises(SDJWTVCNoHolderPublicKeyException):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, None)
 
 

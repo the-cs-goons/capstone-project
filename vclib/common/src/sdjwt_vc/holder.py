@@ -1,8 +1,8 @@
-from sd_jwt.holder import SDJWTHolder
 from jwcrypto.jwk import JWK
+from sd_jwt.holder import SDJWTHolder
 
-from .exceptions import SDJWTVCNoHolderPublicKey
-from .issuer import SDJWTVCIssuer
+from .exceptions import SDJWTVCNewHolderVCHasKBJWTException
+
 
 class SDJWTVCHolder(SDJWTHolder):
     """
@@ -15,16 +15,58 @@ class SDJWTVCHolder(SDJWTHolder):
     TODO: Document further
     """
 
-    EXPECT_HOLDER_PUB_KEY = True
+    VERIFY_HOLDER_KEY = True
 
     def __init__(self, 
                  sd_jwt_issuance: str, 
-                 holder_key: JWK | None,
-                 serialization_format: str = "compact"):
+                 serialization_format: str = "compact",
+                 enforce_no_key_binding: bool = False):
         """
         TODO: Docs
         """
-
-        if self.EXPECT_HOLDER_PUB_KEY and holder_key is None:
-            raise SDJWTVCNoHolderPublicKey
         super().__init__(sd_jwt_issuance, serialization_format)
+        # Most of what's required is already implemented, we don't have to check 
+        # `status` because revocation is out of scope for this project.
+        # There's some missing verification we could implement but for now I'm leaving
+        # that out
+
+        # When receiving the credential from the issuer, this should be enforced
+        if enforce_no_key_binding and self._unverified_input_key_binding_jwt != '':
+            raise SDJWTVCNewHolderVCHasKBJWTException
+        
+    def serialise_issuance_compact(self) -> str:
+        """
+        Serialises the credential in a manner that can be stored, in compact format.
+        NOT for creating a verifiable presentation.
+
+        ### Returns
+        - `str`: A serialised SD-JWT-VC
+        """
+        sep = self.COMBINED_SERIALIZATION_FORMAT_SEPARATOR
+        serialised = self.serialized_sd_jwt + sep
+        serialised += sep.join(self._hash_to_disclosure.values()) + sep
+        return serialised
+    
+    def create_verifiable_presentation(self, 
+                            claims_to_disclose: list | dict, 
+                            nonce=None, 
+                            aud=None, 
+                            holder_key=None, 
+                            sign_alg=None):
+        """
+        Creates a verifiable presentation.
+
+        Uses the method of the parent class, defined separately here for now to better
+        document it.
+
+        ### Parameters
+        - claims_to_disclose(`list | dict`): Claims to be disclosed
+        - nonce(`str`)
+        """
+        return super().create_presentation(claims_to_disclose, 
+                                           nonce, 
+                                           aud, 
+                                           holder_key, 
+                                           sign_alg)
+
+
