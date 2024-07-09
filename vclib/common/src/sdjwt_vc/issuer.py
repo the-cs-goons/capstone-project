@@ -4,27 +4,15 @@ from jwcrypto.jwk import JWK
 from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
 
-class SDJWTVCRegisteredClaimsException(Exception):
-    """Exception raised when a registered JWT claim that cannot be disclosed is marked as disclosable."""
-
-    def __init__(self, claim: str):
-        super().__init__(
-            f"Registered claim '{claim}' cannot be selectively disclosed."
-        )
-
-class SDJWTVCNoHolderPublicKey(Exception):
-    """Exception raised when key binding is enforced but the holder key is `None`."""
-
-    def __init__(self):
-        super().__init__(
-            f"Holder Key cannot be `None`."
-        )
+from .exceptions import SDJWTVCNoHolderPublicKey, SDJWTVCRegisteredClaimsException
 
 class SDJWTVCIssuer(SDJWTIssuer):
     """
-    Selective Disclosure JWT for Verifiable Credentials
+    SD JWT VC class for credential issuers.
 
-    Built upon the SDJWTIssuer class from `sd_jwt`.
+    Built upon the SDJWTIssuer class from `sd_jwt`. Adds some extra things, mostly 
+    verification of things that the SD JWT specification leaves blank but the SD JWT VC
+    specification requires. Actually attempts to document the parent class.
 
     TODO: Document further
     """
