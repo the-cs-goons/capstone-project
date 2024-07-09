@@ -4,6 +4,21 @@ from jwcrypto.jwk import JWK
 from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
 
+class SDJWTVCRegisteredClaimsException(Exception):
+    """Exception raised when a registered JWT claim that cannot be disclosed is marked as disclosable."""
+
+    def __init__(self, claim: str):
+        super().__init__(
+            f"Registered claim '{claim}' cannot be selectively disclosed."
+        )
+
+class SDJWTVCNoHolderPublicKey(Exception):
+    """Exception raised when key binding is enforced but the holder key is `None`."""
+
+    def __init__(self):
+        super().__init__(
+            f"Holder Key cannot be `None`."
+        )
 
 class SDJWTVCIssuer(SDJWTIssuer):
     """
@@ -16,11 +31,13 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     SD_JWT_HEADER = "vc+sd-jwt"
     NONDISCLOSABLE_CLAIMS = ["iss", "nbf", "exp", "cnf", "vct", "status"]
+    ENFORCE_KEY_BINDING = True # For extensibility; True by default, can be disabled
 
     def __init__(self, 
                  disclosable_claims: Dict,
                  oth_claims: Dict, 
                  issuer_key: JWK, 
+                 holder_key: JWK | None,
                  **kwargs
                  ):
         """
@@ -33,33 +50,49 @@ class SDJWTVCIssuer(SDJWTIssuer):
         - oth_claims(`dict`): A dict representing key/value pairs that the recipient
         of this credential should NOT be able to selectively disclose (e.g. the `exp` 
         expiry claim.)
-        - issuer_key(`JWK`): The issuer's signing key, as a `JWK` 
-        (from the `jwcrypto` library)
+        - issuer_key(`JWK`): The issuer's signing key, as a `JWK` (see `jwcrypto.jwk`)
+        - holder_key(`JWK | Nonw`): The holder's public key, as a `JWK`, if required 
+        (see `jwcrypto.jwk`). If `ENFORCE_KEY_BINDING` is enabled (default), an error
+        will be thrown if `None` is given.
 
         ### Attributes
-        - sd_jwt(`JWS`): The signed SD JWT itself, without any disclosures.
+        The following come from the parent class from the sd-jwt module. They're 
+        documented here for clarity and ease of use.
+        - sd_jwt(`JWS`): A JSON Serialised JWS. If serialisation format is set to `json`,
+        will include disclosures under the member name `"disclosures"`. If format is
+        `compact` (default), the disclosures will not be present in this format. 
+        - serialized_sd_jwt(`str`): The SD JWT without the disclosures appended
         - sd_jwt_issuance(`str`): The SD JWT + encoded disclosures, separated by a `~`
         character.
+        - sd_jwt_payload(`dict`): A dict representing the decoded payload of the SD JWT.
+        
         
         Other keyword arguments that `SDJWTIssuer` accepts can be passed down as 
-        keyword arguments.
+        keyword arguments - such as extra header options, or a holder key for KB JWTs
         """
         payload = {}
         for key, value in disclosable_claims.items():
             # Registered JWT claims are not disclosable
             if key in self.NONDISCLOSABLE_CLAIMS:
-                raise Exception
+                raise SDJWTVCRegisteredClaimsException(key)
             # The base class checks for disclosable claims by checking for this 
             # wrapper class.
-            # TODO: Improve this to work over deeper dicts (supported by the base class)
+            # TODO: Improve this to work over arrays and objects
             payload[SDObj(key)] = value
+
+
         for key, value in oth_claims.items():
             payload[key] = value
 
+        if self.ENFORCE_KEY_BINDING and holder_key is None:
+            raise SDJWTVCNoHolderPublicKey
+         
         # TODO: specific checking for mandatory fields that SDJWTIssuer does not enforce
+        # TODO: verification of any registered JWT claims
         # TODO: put the right stuff in the header
 
-        super().__init__(payload, issuer_key, **kwargs)
+
+        super().__init__(payload, issuer_key, holder_key=holder_key, **kwargs)
 
     def get_disclosures(self):
         return [digest.json for digest in self.ii_disclosures]
@@ -70,4 +103,4 @@ class SDJWTVCIssuer(SDJWTIssuer):
             return True
         except Exception:
             return False
-
+        
