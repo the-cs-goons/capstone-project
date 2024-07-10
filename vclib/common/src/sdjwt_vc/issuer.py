@@ -30,6 +30,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
                  oth_claims: Dict, 
                  issuer_key: JWK, 
                  holder_key: JWK | None,
+                 extra_header_parameters: dict = {},
                  **kwargs
                  ):
         """
@@ -58,11 +59,13 @@ class SDJWTVCIssuer(SDJWTIssuer):
         - sd_jwt_issuance(`str`): The SD JWT + encoded disclosures, separated by a `~`
         character.
         - sd_jwt_payload(`dict`): A dict representing the decoded payload of the SD JWT.
-        
-        
+        - extra_header_parameters(`dict`): A dict with other parameters to put in the 
+        SD JWT header. For now, you can add the `kid` of the issuer key here
+
         Other keyword arguments that `SDJWTIssuer` accepts can be passed down as 
         keyword arguments - such as extra header options, or a holder key for KB JWTs
         """
+
         payload = {}
         for key, value in disclosable_claims.items():
             # Registered JWT claims are not disclosable
@@ -84,7 +87,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
         # TODO: verification of any registered JWT claims
         # TODO: put the right stuff in the headers
 
-        super().__init__(payload, issuer_key, holder_key=holder_key, **kwargs)
+        super().__init__(payload, issuer_key, holder_key=holder_key, extra_header_parameters=extra_header_parameters, **kwargs)
 
     def get_disclosures(self):
         """
