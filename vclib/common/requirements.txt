@@ -1,2 +1,2 @@
-PyJWT==2.8.0
-pyjwt[crypto]
+jwcrypto==1.5.6
+sd-jwt==0.10.4
