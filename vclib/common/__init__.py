@@ -11,3 +11,4 @@ from .src.sdjwt_vc.exceptions import (
     SDJWTVCRegisteredClaimsException,
 )
 from .src.sdjwt_vc.issuer import SDJWTVCIssuer
+from .src.sdjwt_vc.holder import SDJWTVCHolder

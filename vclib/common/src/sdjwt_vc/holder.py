@@ -1,4 +1,5 @@
-from jwcrypto.jwk import JWK
+from jwcrypto.jwk import JWK, JWKSet
+from jwcrypto.jwt import JWT
 from sd_jwt.holder import SDJWTHolder
 
 from .exceptions import SDJWTVCNewHolderVCHasKBJWTException
@@ -15,12 +16,12 @@ class SDJWTVCHolder(SDJWTHolder):
     TODO: Document further
     """
 
-    VERIFY_HOLDER_KEY = True
+    sd_jwt: JWT
 
     def __init__(self, 
-                 sd_jwt_issuance: str, 
+                 sd_jwt_issuance: str,
                  serialization_format: str = "compact",
-                 enforce_no_key_binding: bool = False):
+                 enforce_no_key_binding: bool = True):
         """
         TODO: Docs
         """
@@ -33,6 +34,10 @@ class SDJWTVCHolder(SDJWTHolder):
         # When receiving the credential from the issuer, this should be enforced
         if enforce_no_key_binding and self._unverified_input_key_binding_jwt != '':
             raise SDJWTVCNewHolderVCHasKBJWTException
+        
+        self.sd_jwt = JWT(jwt=self.serialized_sd_jwt)
+
+            
         
     def serialise_issuance_compact(self) -> str:
         """
@@ -47,26 +52,41 @@ class SDJWTVCHolder(SDJWTHolder):
         serialised += sep.join(self._hash_to_disclosure.values()) + sep
         return serialised
     
-    def create_verifiable_presentation(self, 
+    def create_keybound_presentation(self, 
                             claims_to_disclose: list | dict, 
-                            nonce=None, 
-                            aud=None, 
-                            holder_key=None, 
-                            sign_alg=None):
+                            nonce: str, 
+                            aud: str, 
+                            holder_key: JWK, 
+                            sign_alg: None | str = None):
         """
         Creates a verifiable presentation.
 
-        Uses the method of the parent class, defined separately here for now to better
-        document it.
+        Creates a presentation, but differs from `create_presentation` as implemented
+        in the parent class by enforcing the required variables to create a KB-JWT.
+        For creating presentations without enforcing KB JWTs, use `create_presentation`
 
         ### Parameters
-        - claims_to_disclose(`list | dict`): Claims to be disclosed
-        - nonce(`str`)
+        - claims_to_disclose(`list | dict`): Claims to be disclosed in the presentation
+        - nonce(`str`): The nonce value as supplied by the verifier (provider)
+        - aud(`str`): The intended audience of this presentation
+        - holder_key(`JWK`): The holder's private key, corresponding to the public key
+        given in the `cnf` claim of the SD JWT
+        - sign_alg(`str`): The signing algorithm to use, "ES256" by default.
         """
+
         return super().create_presentation(claims_to_disclose, 
                                            nonce, 
                                            aud, 
                                            holder_key, 
                                            sign_alg)
-
+    
+    def verify_signature(self, pub_key: JWK) -> bool:
+        """
+        Checks for a valid signature.
+        """
+        try:
+            self.sd_jwt.validate(pub_key)
+            return True
+        except Exception:
+            raise Exception #TODO: Clearer exception type
 

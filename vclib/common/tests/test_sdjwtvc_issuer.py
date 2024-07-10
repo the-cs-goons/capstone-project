@@ -19,7 +19,7 @@ def issuer_jwk():
 def holder_jwk():
     return JWK(generate='EC').public()
 
-def test_create_and_verify_credential(issuer_jwk, holder_jwk):
+def test_create_credential(issuer_jwk, holder_jwk):
     disclosable_claims = {
         "given_name": "Bob", 
         "family_name": "Jones", 
@@ -31,11 +31,6 @@ def test_create_and_verify_credential(issuer_jwk, holder_jwk):
     disclosures: list = new_credential.get_disclosures()
     assert len(disclosures) == 3
     
-    assert new_credential.verify_signature(issuer_jwk.public())
-
-    wrong_jwk = JWK(generate='EC')
-    assert not new_credential.verify_signature(wrong_jwk.public())
-    
 def test_registered_jwt_claims_exception(issuer_jwk, holder_jwk):
     disclosable_claims = {
         "given_name": "Bob", 
@@ -45,7 +40,7 @@ def test_registered_jwt_claims_exception(issuer_jwk, holder_jwk):
     with pytest.raises(SDJWTVCRegisteredClaimsException):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk)
 
-def test_rno_holder_key_exception(issuer_jwk):
+def test_no_holder_key_exception(issuer_jwk):
     disclosable_claims = {
         "given_name": "Bob", 
         "family_name": "Jones", 
@@ -53,6 +48,4 @@ def test_rno_holder_key_exception(issuer_jwk):
     other = {"iat": mktime(datetime.now().timetuple())}
     with pytest.raises(SDJWTVCNoHolderPublicKeyException):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, None)
-
-
 

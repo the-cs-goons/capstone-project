@@ -82,18 +82,13 @@ class SDJWTVCIssuer(SDJWTIssuer):
          
         # TODO: specific checking for mandatory fields that SDJWTIssuer does not enforce
         # TODO: verification of any registered JWT claims
-        # TODO: put the right stuff in the header
-
+        # TODO: put the right stuff in the headers
 
         super().__init__(payload, issuer_key, holder_key=holder_key, **kwargs)
 
     def get_disclosures(self):
+        """
+        TODO: Make this easier
+        """
         return [digest.json for digest in self.ii_disclosures]
-    
-    def verify_signature(self, pub_key: JWK) -> bool:
-        try:
-            self.sd_jwt.verify(pub_key)
-            return True
-        except Exception:
-            return False
         
