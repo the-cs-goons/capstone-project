@@ -1,4 +1,5 @@
 from typing import Callable, Dict
+
 from sd_jwt.verifier import SDJWTVerifier
 
 

@@ -87,7 +87,12 @@ class SDJWTVCIssuer(SDJWTIssuer):
         # TODO: verification of any registered JWT claims
         # TODO: put the right stuff in the headers
 
-        super().__init__(payload, issuer_key, holder_key=holder_key, extra_header_parameters=extra_header_parameters, **kwargs)
+        super().__init__(
+            payload, 
+            issuer_key, 
+            holder_key=holder_key, 
+            extra_header_parameters=extra_header_parameters, 
+            **kwargs)
 
     def get_disclosures(self):
         """
