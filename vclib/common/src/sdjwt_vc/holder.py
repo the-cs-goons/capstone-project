@@ -16,7 +16,7 @@ class SDJWTVCHolder(SDJWTHolder):
     TODO: Document further
     """
 
-    sd_jwt: JWT
+    _unverified_sd_jwt: JWT
 
     def __init__(self, 
                  sd_jwt_issuance: str,
@@ -35,7 +35,8 @@ class SDJWTVCHolder(SDJWTHolder):
         if enforce_no_key_binding and self._unverified_input_key_binding_jwt != '':
             raise SDJWTVCNewHolderVCHasKBJWTException
         
-        self.sd_jwt = JWT(jwt=self.serialized_sd_jwt)
+        self._unverified_sd_jwt = JWT(jwt=self.serialized_sd_jwt)
+        self._is_verified = False
 
             
         
@@ -57,13 +58,16 @@ class SDJWTVCHolder(SDJWTHolder):
                             nonce: str, 
                             aud: str, 
                             holder_key: JWK, 
-                            sign_alg: None | str = None):
+                            sign_alg: None | str = None,
+                            unsafe = False):
         """
-        Creates a verifiable presentation.
+        Creates a verifiable presentation with a KB JWT.
 
         Creates a presentation, but differs from `create_presentation` as implemented
         in the parent class by enforcing the required variables to create a KB-JWT.
         For creating presentations without enforcing KB JWTs, use `create_presentation`
+
+        TODO: Improve this so passing the claims_to_disclose obj doesn't suck
 
         ### Parameters
         - claims_to_disclose(`list | dict`): Claims to be disclosed in the presentation
@@ -72,9 +76,13 @@ class SDJWTVCHolder(SDJWTHolder):
         - holder_key(`JWK`): The holder's private key, corresponding to the public key
         given in the `cnf` claim of the SD JWT
         - sign_alg(`str`): The signing algorithm to use, "ES256" by default.
-        """
 
-        return super().create_presentation(claims_to_disclose, 
+        Does not return anything. Retrieve output from `sd_jwt_presentation` attribute.
+        """
+        if not unsafe and not self._is_verified:
+            raise Exception
+
+        super().create_presentation(claims_to_disclose, 
                                            nonce, 
                                            aud, 
                                            holder_key, 
@@ -85,8 +93,9 @@ class SDJWTVCHolder(SDJWTHolder):
         Checks for a valid signature.
         """
         try:
-            self.sd_jwt.validate(pub_key)
-            return True
+            self._unverified_sd_jwt.validate(pub_key)
+            self._is_verified = True
         except Exception:
             raise Exception #TODO: Clearer exception type
+        
 
