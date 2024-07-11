@@ -24,14 +24,17 @@ MOCK_INFORMATION = {
     },
 }
 
+
 @pytest.fixture
 def credential_issuer():
     return CredentialIssuer(MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem")
+
 
 @pytest.mark.asyncio
 async def test_credential_options(credential_issuer):
     response = await credential_issuer.get_credential_options()
     assert response.options == MOCK_INFORMATION
+
 
 @pytest.mark.asyncio
 async def test_request_credential(credential_issuer):
@@ -47,6 +50,7 @@ async def test_request_credential(credential_issuer):
     response = await credential_issuer.receive_credential_request("default", info_3)
     assert response.ticket == 3
 
+
 @pytest.mark.asyncio
 async def test_check_credential_status(credential_issuer):
     info = {"string": "string", "number": 0, "boolean": True}
@@ -57,13 +61,17 @@ async def test_check_credential_status(credential_issuer):
     assert response.ticket == 1
     assert response.status == "PENDING"
 
+
 @pytest.mark.asyncio
 async def test_invalid_credentials():
-    credential_issuer = CredentialIssuer(MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem")
+    credential_issuer = CredentialIssuer(
+        MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem"
+    )
 
     info = {"name": "Name Lastname"}
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("id", info)
+
 
 @pytest.mark.asyncio
 async def test_invalid_information(credential_issuer):
@@ -71,27 +79,47 @@ async def test_invalid_information(credential_issuer):
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("default", invalid_info_1)
 
-    invalid_info_2 = {"string": "string", "number": True, "boolean": False, "optional": None}
+    invalid_info_2 = {
+        "string": "string",
+        "number": True,
+        "boolean": False,
+        "optional": None,
+    }
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("default", invalid_info_2)
 
-    invalid_info_3 = {"string": "string", "number": 0, "boolean": None, "optional": None}
+    invalid_info_3 = {
+        "string": "string",
+        "number": 0,
+        "boolean": None,
+        "optional": None,
+    }
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("default", invalid_info_3)
 
-    invalid_info_4 = {"string": "string", "number": 0, "boolean": True, "optional": None, "not_field": True}
+    invalid_info_4 = {
+        "string": "string",
+        "number": 0,
+        "boolean": True,
+        "optional": None,
+        "not_field": True,
+    }
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("default", invalid_info_4)
 
     with pytest.raises(HTTPException):
         await credential_issuer.receive_credential_request("default")
 
+
 @pytest.mark.asyncio
 async def test_nonexistent_key():
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(MOCK_INFORMATION, "not/a/key.pem")
 
+
 @pytest.mark.asyncio
 async def test_invalid_key():
     with pytest.raises(ValueError):
-        CredentialIssuer(MOCK_INFORMATION, "vclib/issuer/tests/test_invalid_private_key.pem")
+        CredentialIssuer(
+            MOCK_INFORMATION, "vclib/issuer/tests/test_invalid_private_key.pem"
+        )

@@ -15,6 +15,7 @@ from .models.responses import (
     UpdateResponse,
 )
 
+
 class CredentialIssuer:
     """
     Base class used for the credential issuer agent.
@@ -27,13 +28,17 @@ class CredentialIssuer:
     - private_key: Private key used to sign credentials
     """
 
-    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str):
+    def __init__(
+        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+    ):
         self.credentials = credentials
         self.ticket = 0
         self.mapping = {}
         try:
             with open(private_key_path, "rb") as key_file:
-                self.private_key = serialization.load_pem_private_key(key_file.read(), password=None)
+                self.private_key = serialization.load_pem_private_key(
+                    key_file.read(), password=None
+                )
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Could not find private key: {e}")
         except ValueError as e:
@@ -44,7 +49,9 @@ class CredentialIssuer:
         along with required fields and types."""
         return OptionsResponse(options=self.credentials)
 
-    async def receive_credential_request(self, cred_type: str, information: dict = None) -> RequestResponse:
+    async def receive_credential_request(
+        self, cred_type: str, information: dict = None
+    ) -> RequestResponse:
         """Receives a request for credentials.
 
         ### Parameters
@@ -67,12 +74,17 @@ class CredentialIssuer:
         `get_credential_options()`.
         """
         if cred_type not in self.credentials:
-            raise HTTPException(status_code=404, detail=f"Credential type {cred_type} is not supported")
+            raise HTTPException(
+                status_code=404, detail=f"Credential type {cred_type} is not supported"
+            )
 
         try:
             self.check_input_typing(cred_type, information)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}")  # noqa E501
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
+            )
 
         self.ticket += 1
         link = str(uuid4())
@@ -93,7 +105,9 @@ class CredentialIssuer:
         if status.information is not None:
             self.mapping.pop(token)
             credential = self.create_credential(status.cred_type, status.information)
-        return UpdateResponse(ticket=ticket, status=status.status, credential=credential)
+        return UpdateResponse(
+            ticket=ticket, status=status.status, credential=credential
+        )
 
     def check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
@@ -114,7 +128,9 @@ class CredentialIssuer:
                                 raise TypeError(f"{field_name} expected to be string")
                         case "number":
                             # bools can count as ints, and need to be explicitly checked
-                            if not (isinstance(value, int) and not isinstance(value, bool)) and not isinstance(value, float):
+                            if not (
+                                isinstance(value, int) and not isinstance(value, bool)
+                            ) and not isinstance(value, float):
                                 raise TypeError(f"{field_name} expected to be number")
                         case "boolean":
                             if not isinstance(value, bool):

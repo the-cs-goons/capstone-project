@@ -9,6 +9,7 @@ from .exceptions import (
     SDJWTVCRegisteredClaimsException,
 )
 
+
 class SDJWTVCIssuer(SDJWTIssuer):
     """
     SD JWT VC class for credential issuers.
@@ -22,9 +23,17 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     SD_JWT_HEADER = "vc+sd-jwt"
     NONDISCLOSABLE_CLAIMS = ["iss", "nbf", "exp", "cnf", "vct", "status"]
-    ENFORCE_KEY_BINDING = True # For extensibility; True by default, can be disabled
+    ENFORCE_KEY_BINDING = True  # For extensibility; True by default, can be disabled
 
-    def __init__(self, disclosable_claims: Dict, oth_claims: Dict, issuer_key: JWK, holder_key: JWK | None, extra_header_parameters: dict = {}, **kwargs):
+    def __init__(
+        self,
+        disclosable_claims: Dict,
+        oth_claims: Dict,
+        issuer_key: JWK,
+        holder_key: JWK | None,
+        extra_header_parameters: dict = {},
+        **kwargs,
+    ):
         """
         Creates a new SDJWT from a set of disclosable/non-disclosable claims and signs
         it.
@@ -78,7 +87,13 @@ class SDJWTVCIssuer(SDJWTIssuer):
         # TODO: verification of any registered JWT claims
         # TODO: put the right stuff in the headers
 
-        super().__init__(payload, issuer_key, holder_key=holder_key, extra_header_parameters=extra_header_parameters, **kwargs)
+        super().__init__(
+            payload,
+            issuer_key,
+            holder_key=holder_key,
+            extra_header_parameters=extra_header_parameters,
+            **kwargs,
+        )
 
     def get_disclosures(self):
         """

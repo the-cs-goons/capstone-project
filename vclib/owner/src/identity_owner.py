@@ -13,6 +13,7 @@ from .models.exceptions import (
     IssuerURLNotFoundException,
 )
 
+
 class IdentityOwner:
     """
     Base Identity Owner class
@@ -24,6 +25,7 @@ class IdentityOwner:
     unused)
     - storage_key(`str`): Key for encrypting stored credentials (currently unused)
     """
+
     # TODO: Enforce https
 
     def __init__(self, storage_key: str, dev_mode=False):
@@ -167,7 +169,9 @@ class IdentityOwner:
 
             return options[cred_type]
 
-    def apply_for_credential(self, cred_type: str, issuer_url: str, info: dict) -> Credential:
+    def apply_for_credential(
+        self, cred_type: str, issuer_url: str, info: dict
+    ) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
@@ -195,10 +199,12 @@ class IdentityOwner:
 
         # For internal use by the ID owner library/agent
         id = uuid4().hex
-        #TODO: Verify
+        # TODO: Verify
         req_url = f"{issuer_url}/status?token={body['link']}"
 
-        credential = Credential(id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url)
+        credential = Credential(
+            id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url
+        )
         self.credentials[id] = credential
         self.store_credential(credential)
         return self.credentials[id]

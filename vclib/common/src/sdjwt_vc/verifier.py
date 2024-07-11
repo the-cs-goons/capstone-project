@@ -2,11 +2,22 @@ from typing import Callable, Dict
 
 from sd_jwt.verifier import SDJWTVerifier
 
+
 class SDJWTVCVerifier(SDJWTVerifier):
     """
     TODO: Docs
     """
-    def __init__(self, sd_jwt_presentation: str, cb_get_issuer_key: Callable[[str, Dict], str], expected_aud: str | None = None, expected_nonce: str | None = None, serialization_format: str = "compact", expect_kb_jwt: bool = True, cb_get_holder_key: None | Callable[[str, Dict], str] = None):
+
+    def __init__(
+        self,
+        sd_jwt_presentation: str,
+        cb_get_issuer_key: Callable[[str, Dict], str],
+        expected_aud: str | None = None,
+        expected_nonce: str | None = None,
+        serialization_format: str = "compact",
+        expect_kb_jwt: bool = True,
+        cb_get_holder_key: None | Callable[[str, Dict], str] = None,
+    ):
         """
         TODO: Docs
 
@@ -20,6 +31,13 @@ class SDJWTVCVerifier(SDJWTVerifier):
         - expected_nonce(`str`): The expected `nonce` claim of the KB JWT if applicable
         - serialization_format(`str`): "compact" (default) or "json"
         """
-        #TODO: Verification specific to VCs
-        super().__init__(sd_jwt_presentation, cb_get_issuer_key, expected_aud, expected_nonce, serialization_format)
-    #TODO: Other class methods
+        # TODO: Verification specific to VCs
+        super().__init__(
+            sd_jwt_presentation,
+            cb_get_issuer_key,
+            expected_aud,
+            expected_nonce,
+            serialization_format,
+        )
+
+    # TODO: Other class methods

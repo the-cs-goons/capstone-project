@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel
 
+
 class Credential(BaseModel):
     id: str
     # Something arbitrary to identify the credential with. For the ID Owner's use only.

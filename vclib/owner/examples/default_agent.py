@@ -11,12 +11,11 @@ MOCK_STORE = {
         "issuer_url": "https://example.com",
         "type": "Passport",
         "request_url": "https://example.com/status?token=example1",
-        "token":
-            "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",
-        "status":"ACCEPTED",
-        "status_message":None,
-        "issuer_name":"Example Issuer",
-        "received_at":1719295821397
+        "token": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
+        "status": "ACCEPTED",
+        "status_message": None,
+        "issuer_name": "Example Issuer",
+        "received_at": 1719295821397,
     },
     "example2": {
         "id": "example2",
@@ -24,12 +23,13 @@ MOCK_STORE = {
         "type": "Driver's Licence",
         "request_url": "https://example.com/status?token=example2",
         "token": None,
-        "status":"PENDING",
-        "status_message":None,
-        "issuer_name":"Example Issuer",
-        "received_at":None
-    }
+        "status": "PENDING",
+        "status_message": None,
+        "issuer_name": "Example Issuer",
+        "received_at": None,
+    },
 }
+
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
     def __init__(self, storage_key, dev_mode=False, mock_data={}):
@@ -53,6 +53,7 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
         router = super().get_server()
         router.get("/hello")(hello_world)
         return router
+
 
 identity_owner = DefaultWebIdentityOwner("", mock_data=MOCK_STORE)
 identity_owner_server = identity_owner.get_server()

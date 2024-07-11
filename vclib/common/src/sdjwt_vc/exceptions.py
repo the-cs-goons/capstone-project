@@ -5,9 +5,8 @@ class SDJWTVCRegisteredClaimsException(Exception):
     """
 
     def __init__(self, claim: str):
-        super().__init__(
-            f"Registered claim '{claim}' cannot be selectively disclosed."
-        )
+        super().__init__(f"Registered claim '{claim}' cannot be selectively disclosed.")
+
 
 class SDJWTVCNoHolderPublicKeyException(Exception):
     """
@@ -16,9 +15,8 @@ class SDJWTVCNoHolderPublicKeyException(Exception):
     """
 
     def __init__(self):
-        super().__init__(
-            "Holder Key cannot be `None`."
-        )
+        super().__init__("Holder Key cannot be `None`.")
+
 
 class SDJWTVCInvalidHolderPublicKeyException(Exception):
     """
@@ -30,6 +28,7 @@ class SDJWTVCInvalidHolderPublicKeyException(Exception):
             "Holder key referenced in `cnf` claim does not match expected value."
         )
 
+
 class SDJWTVCNewHolderVCHasKBJWTException(Exception):
     """
     Exception raised when a credential received from an issuer has a KB JWT attached
@@ -37,6 +36,4 @@ class SDJWTVCNewHolderVCHasKBJWTException(Exception):
     """
 
     def __init__(self):
-        super().__init__(
-            "Issued credential contains a KB JWT."
-        )
+        super().__init__("Issued credential contains a KB JWT.")

@@ -12,6 +12,7 @@ from .models.exceptions import (
 )
 from .models.responses import SchemaResponse
 
+
 class WebIdentityOwner(IdentityOwner):
     def __init__(self, storage_key, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
@@ -27,7 +28,9 @@ class WebIdentityOwner(IdentityOwner):
         - `Credential`: The requested credential, if it exists
         """
         if cred_id not in self.credentials.keys():
-            raise HTTPException(status_code=400, detail=f"Credential with ID {cred_id} not found.")
+            raise HTTPException(
+                status_code=400, detail=f"Credential with ID {cred_id} not found."
+            )
         return self.credentials[cred_id]
 
     def get_credentials(self) -> list[Credential]:
@@ -40,7 +43,9 @@ class WebIdentityOwner(IdentityOwner):
         return self.credentials.values()
 
     @override
-    async def get_credential_request_schema(self, cred_type: str, issuer_url: str) -> SchemaResponse:
+    async def get_credential_request_schema(
+        self, cred_type: str, issuer_url: str
+    ) -> SchemaResponse:
         """
         Retrieves the required information needed to submit a request for some ID type
         from an issuer.
@@ -53,10 +58,14 @@ class WebIdentityOwner(IdentityOwner):
         - `SchemaResponse`: A list of credentials
         """
         try:
-            req_schema = await super().get_credential_request_schema(cred_type, issuer_url)
+            req_schema = await super().get_credential_request_schema(
+                cred_type, issuer_url
+            )
             return SchemaResponse(request_schema=req_schema)
         except IssuerTypeNotFoundException:
-            raise HTTPException(status_code=400, detail=f"Credential type {cred_type} not found.")
+            raise HTTPException(
+                status_code=400, detail=f"Credential type {cred_type} not found."
+            )
         except IssuerURLNotFoundException:
             raise HTTPException(status_code=404, detail="Issuer URL not found")
         except CredentialIssuerException:
@@ -65,7 +74,9 @@ class WebIdentityOwner(IdentityOwner):
             raise HTTPException(status_code=500, detail=f"{e}")
 
     @override
-    async def apply_for_credential(self, issuer_url: str, cred_type: str, info: dict) -> Credential:
+    async def apply_for_credential(
+        self, issuer_url: str, cred_type: str, info: dict
+    ) -> Credential:
         """
         Sends request for a new credential directly, then stores it
 
@@ -81,7 +92,9 @@ class WebIdentityOwner(IdentityOwner):
         try:
             return super().apply_for_credential(cred_type, issuer_url, info)
         except IssuerTypeNotFoundException:
-            raise HTTPException(status_code=400, detail=f"Credential type {cred_type} not found.")
+            raise HTTPException(
+                status_code=400, detail=f"Credential type {cred_type} not found."
+            )
         except IssuerURLNotFoundException:
             raise HTTPException(status_code=404, detail="Issuer URL not found")
         except BadIssuerRequestException:
@@ -102,7 +115,9 @@ class WebIdentityOwner(IdentityOwner):
         - `Credential`: The updated credential, if it exists
         """
         if cred_id not in self.credentials.keys():
-            raise HTTPException(status_code=400, detail=f"Credential with ID {cred_id} not found.")
+            raise HTTPException(
+                status_code=400, detail=f"Credential with ID {cred_id} not found."
+            )
 
         await self.poll_credential_status(cred_id)
         return self.credentials[cred_id]

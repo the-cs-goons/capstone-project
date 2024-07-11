@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from vclib.common import hello_world
 from vclib.issuer import CredentialIssuer, StatusResponse
 
+
 class DefaultIssuer(CredentialIssuer):
     """Example implementation of the `CredentialIssuer` base class.
 
@@ -17,7 +18,9 @@ class DefaultIssuer(CredentialIssuer):
     time: datetime
 
     @override
-    def __init__(self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str):
+    def __init__(
+        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+    ):
         super().__init__(credentials, private_key_path)
         self.statuses = {}
 
@@ -35,13 +38,16 @@ class DefaultIssuer(CredentialIssuer):
         if curr_time - self.time < datetime.timedelta(0, 40, 0):
             return StatusResponse(status="PENDING", cred_type=None, information=None)
 
-        return StatusResponse(status="ACCEPTED", cred_type=cred_type, information=information)
+        return StatusResponse(
+            status="ACCEPTED", cred_type=cred_type, information=information
+        )
 
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
         router.get("/hello")(hello_world)
         return router
+
 
 credentials = {
     "id": {
@@ -70,5 +76,7 @@ credentials = {
     },
 }
 
-credential_issuer = DefaultIssuer(credentials, "/usr/src/examples/example_private_key.pem")
+credential_issuer = DefaultIssuer(
+    credentials, "/usr/src/examples/example_private_key.pem"
+)
 credential_issuer_server = credential_issuer.get_server()
