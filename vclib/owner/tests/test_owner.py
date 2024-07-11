@@ -29,7 +29,7 @@ MOCK_STORE = {
 }
 
 
-@pytest.fixture
+@pytest.fixture()
 def identity_owner():
     return DefaultWebIdentityOwner("example", mock_data=MOCK_STORE)
 

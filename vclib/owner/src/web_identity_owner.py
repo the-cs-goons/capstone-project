@@ -26,7 +26,7 @@ class WebIdentityOwner(IdentityOwner):
         ### Returns
         - `Credential`: The requested credential, if it exists
         """
-        if cred_id not in self.credentials.keys():
+        if cred_id not in self.credentials:
             raise HTTPException(
                 status_code=400, detail=f"Credential with ID {cred_id} not found."
             )
@@ -109,7 +109,7 @@ class WebIdentityOwner(IdentityOwner):
         ### Returns
         - `Credential`: The updated credential, if it exists
         """
-        if cred_id not in self.credentials.keys():
+        if cred_id not in self.credentials:
             raise HTTPException(
                 status_code=400, detail=f"Credential with ID {cred_id} not found."
             )

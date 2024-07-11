@@ -13,7 +13,7 @@ def test_serialise_and_load_credentials():
         status="PENDING",
         status_message=None,
         issuer_name="Example Issuer",
-        received_at=datetime.now(),
+        received_at=datetime.now(tz=datetime.UTC),
     )
 
     id_owner = IdentityOwner("example")

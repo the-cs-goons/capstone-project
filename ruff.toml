@@ -1,8 +1,8 @@
 target-version = "py312"
 
 [lint]
-# to consider: "C90", "D" minus ["D206", "D300", "D203", "D213"], "ANN", "S", "BLE"
-select = ["E", "F", "I", "W", "N", "UP", "YTT", "ASYNC", "FBT"]
+# to consider: "C90", "D" minus ["D206", "D300", "D203", "D213"], "ANN", "S", "BLE", "B", "A", "EM", "T20", "PT", "SLF"
+select = ["E", "F", "I", "W", "N", "UP", "YTT", "ASYNC", "FBT", "COM818", "C4", "DTZ", "T10", "EXE", "FA", "ISC003", "ICN", "LOG", "G", "INP", "PIE", "PYI", "Q004", "RSE", "RET", "SLOT", "SIM", "TID"]
 ignore = ["W191"]
 
 [format]

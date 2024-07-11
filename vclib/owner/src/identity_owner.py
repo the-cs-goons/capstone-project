@@ -91,7 +91,7 @@ class IdentityOwner:
         - validate body comes in expected format
 
         """
-        if cred_id not in self.credentials.keys():
+        if cred_id not in self.credentials:
             raise CredentialNotFoundException
         credential = self.credentials[cred_id]
 
@@ -152,11 +152,11 @@ class IdentityOwner:
                 raise IssuerURLNotFoundException
 
             body: dict = response.json()
-            if "options" not in body.keys():
+            if "options" not in body:
                 raise CredentialIssuerError
 
             options: dict = body["options"]
-            if cred_type not in options.keys():
+            if cred_type not in options:
                 raise IssuerTypeNotFoundException
 
             return options[cred_type]
@@ -180,9 +180,9 @@ class IdentityOwner:
             response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
             if not response.ok:
                 if response.status_code < 500:
-                    if "detail" not in response.json().keys():
+                    if "detail" not in response.json():
                         raise IssuerTypeNotFoundException
-                    elif response.status_code == 404:
+                    if response.status_code == 404:
                         raise IssuerURLNotFoundException
                     raise BadIssuerRequestException
                 raise CredentialIssuerError

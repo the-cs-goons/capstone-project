@@ -97,8 +97,7 @@ class ServiceProvider:
                     self.used_nonces.add(nonce)  # Mark nonce as used
                     # Print the issuer's details and return issuer's DID
                     return self.get_issuer_detail(ca_cert)
-                else:
-                    raise Exception("Certificate expired")
+                raise Exception("Certificate expired")
             except InvalidSignature:
                 print("Signature is invalid.")
                 continue

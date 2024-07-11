@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import datetime
 from time import mktime
 
 import pytest
@@ -11,12 +11,12 @@ from vclib.common import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def issuer_jwk():
     return JWK(generate="EC")
 
 
-@pytest.fixture
+@pytest.fixture()
 def holder_jwk():
     return JWK(generate="EC")
 
@@ -27,7 +27,7 @@ def test_get_and_verify_credential(issuer_jwk, holder_jwk):
         "family_name": "Jones",
         "dob": "1970-01-01",
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
 
     issuance = SDJWTVCIssuer(
         disclosable_claims, other, issuer_jwk, holder_jwk
@@ -52,9 +52,9 @@ def test_serialise_and_load_credential(issuer_jwk, holder_jwk):
     disclosable_claims = {
         "given_name": "Bob",
         "family_name": "Jones",
-        "dob": date.today().isoformat(),
+        "dob": datetime.now(tz=datetime.UTC).date().isoformat(),
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
 
     issuance = SDJWTVCIssuer(
         disclosable_claims, other, issuer_jwk, holder_jwk
@@ -90,7 +90,7 @@ def test_create_presentation(issuer_jwk, holder_jwk):
         "family_name": "Jones",
         "dob": "1970-01-01",
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
 
     issuance = SDJWTVCIssuer(
         disclosable_claims, other, issuer_jwk, holder_jwk

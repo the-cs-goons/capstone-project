@@ -11,12 +11,12 @@ from vclib.common import (
 )
 
 
-@pytest.fixture
+@pytest.fixture()
 def issuer_jwk():
     return JWK(generate="EC")
 
 
-@pytest.fixture
+@pytest.fixture()
 def holder_jwk():
     return JWK(generate="EC").public()
 
@@ -27,7 +27,7 @@ def test_create_credential(issuer_jwk, holder_jwk):
         "family_name": "Jones",
         "dob": "1970-01-01",
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
     new_credential = SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk)
 
     # Test 3 disclosures
@@ -41,7 +41,7 @@ def test_registered_jwt_claims_exception(issuer_jwk, holder_jwk):
         "family_name": "Jones",
         "iss": "1970-01-01",
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
     with pytest.raises(SDJWTVCRegisteredClaimsError):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk)
 
@@ -52,6 +52,6 @@ def test_no_holder_key_exception(issuer_jwk):
         "family_name": "Jones",
         "dob": "1970-01-01",
     }
-    other = {"iat": mktime(datetime.now().timetuple())}
+    other = {"iat": mktime(datetime.now(tz=datetime.UTC).timetuple())}
     with pytest.raises(SDJWTVCNoHolderPublicKeyError):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, None)

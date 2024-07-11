@@ -19,14 +19,14 @@ from vclib.provider.src.models.presentation_definition import (
 )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_server_exists():
     sp = ServiceProvider("test_bundle", "test_path")
     sp_server = sp.get_server()
     assert type(sp_server) == FastAPI
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_basic_presentation_request():
     sp = ServiceProvider("test_bundle", "test_path")
 
@@ -40,7 +40,7 @@ async def test_basic_presentation_request():
     assert response.presentation_definition.input_descriptors == []
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_multiple_presentation_requests():
     sp = ServiceProvider("test_bundle", "test_path")
 
@@ -67,7 +67,7 @@ async def test_multiple_presentation_requests():
     assert response2.presentation_definition.id == "test2"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_presentation_request_limit_disclosure():
     sp = ServiceProvider("test_bundle", "test_path")
 
@@ -93,7 +93,7 @@ async def test_presentation_request_limit_disclosure():
     assert response_constraint.limit_disclosure == "required"
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_presentation_request_two_fields_optional():
     sp = ServiceProvider("test_bundle", "test_path")
 
@@ -141,7 +141,7 @@ async def test_presentation_request_two_fields_optional():
     assert input_descriptor.constraints.fields[1].optional
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_presentation_request_not_found():
     service_provider = ServiceProvider("test_bundle", "test_path")
 
@@ -151,7 +151,7 @@ async def test_presentation_request_not_found():
         )
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_presentation_request_filter():
     sp = ServiceProvider("test_bundle", "test_path")
 
@@ -192,7 +192,7 @@ def create_dummy_certificate(private_key, public_key):
             x509.NameAttribute(NameOID.COMMON_NAME, "example.com"),
         ]
     )
-    cert = (
+    return (
         x509.CertificateBuilder()
         .subject_name(subject)
         .issuer_name(issuer)
@@ -212,10 +212,8 @@ def create_dummy_certificate(private_key, public_key):
         .sign(private_key=private_key, algorithm=hashes.SHA256())
     )
 
-    return cert
 
-
-@pytest.fixture
+@pytest.fixture()
 def service_provider():
     private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
     public_key = private_key.public_key()
@@ -227,7 +225,7 @@ def service_provider():
     return sp, cert_pem
 
 
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_verify_certificate_valid(service_provider):
     sp, cert_pem = service_provider
     nonce = "unique_nonce"

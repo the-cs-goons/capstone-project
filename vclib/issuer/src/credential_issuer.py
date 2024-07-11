@@ -144,7 +144,7 @@ class CredentialIssuer:
                             raise NotImplementedError
             elif not field_info["optional"]:
                 raise TypeError(f"{field_name} is non-optional and was not provided")
-        for field_name in information.keys():
+        for field_name in information:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
         return

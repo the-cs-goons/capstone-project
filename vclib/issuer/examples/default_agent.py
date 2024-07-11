@@ -28,14 +28,14 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_request(self, ticket: int, cred_type: str, information: dict):
         self.statuses[ticket] = (cred_type, information)
-        self.time = datetime.datetime.now()
+        self.time = datetime.datetime.now(tz=datetime.UTC)
         return
 
     @override
     def get_status(self, ticket: int) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
 
-        curr_time = datetime.datetime.now()
+        curr_time = datetime.datetime.now(tz=datetime.UTC)
         if curr_time - self.time < datetime.timedelta(0, 40, 0):
             return StatusResponse(status="PENDING", cred_type=None, information=None)
 
