@@ -14,12 +14,11 @@ from .models.responses import SchemaResponse
 
 
 class WebIdentityOwner(IdentityOwner):
-    def __init__(self, storage_key, dev_mode=False):
+    def __init__(self, storage_key, *, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
 
     def get_credential(self, cred_id) -> Credential:
-        """
-        Gets a credential by ID, if one exists
+        """Gets a credential by ID, if one exists
 
         ### Parameters
         - cred_id(`str`): The ID of the credential, as kept by the owner
@@ -34,8 +33,7 @@ class WebIdentityOwner(IdentityOwner):
         return self.credentials[cred_id]
 
     def get_credentials(self) -> list[Credential]:
-        """
-        Gets all credentials
+        """Gets all credentials
 
         ### Returns
         - `list[Credential]`: A list of credentials
@@ -46,8 +44,7 @@ class WebIdentityOwner(IdentityOwner):
     async def get_credential_request_schema(
         self, cred_type: str, issuer_url: str
     ) -> SchemaResponse:
-        """
-        Retrieves the required information needed to submit a request for some ID type
+        """Retrieves the required information needed to submit request for some ID type
         from an issuer.
 
         ### Parameters
@@ -77,8 +74,7 @@ class WebIdentityOwner(IdentityOwner):
     async def apply_for_credential(
         self, issuer_url: str, cred_type: str, info: dict
     ) -> Credential:
-        """
-        Sends request for a new credential directly, then stores it
+        """Sends request for a new credential directly, then stores it
 
         ### Parameters
         - issuer_url(`str`): The issuer URL
@@ -105,8 +101,7 @@ class WebIdentityOwner(IdentityOwner):
             raise HTTPException(status_code=500, detail=f"Error: {e}")
 
     async def refresh_credential(self, cred_id) -> Credential:
-        """
-        Refreshes a specified credential and returns it
+        """Refreshes a specified credential and returns it
 
         ### Parameters
         - cred_id(`str`): The internal ID of the credential to refresh
@@ -123,8 +118,7 @@ class WebIdentityOwner(IdentityOwner):
         return self.credentials[cred_id]
 
     async def refresh_all_pending_credentials(self):
-        """
-        Refreshes all PENDING credentials
+        """Refreshes all PENDING credentials
 
         ### Returns
         - `list[Credential]`: A list of all saved credentials

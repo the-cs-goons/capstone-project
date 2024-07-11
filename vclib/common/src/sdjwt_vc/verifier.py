@@ -4,9 +4,7 @@ from sd_jwt.verifier import SDJWTVerifier
 
 
 class SDJWTVCVerifier(SDJWTVerifier):
-    """
-    TODO: Docs
-    """
+    """TODO: Docs"""
 
     def __init__(
         self,
@@ -15,11 +13,11 @@ class SDJWTVCVerifier(SDJWTVerifier):
         expected_aud: str | None = None,
         expected_nonce: str | None = None,
         serialization_format: str = "compact",
-        expect_kb_jwt: bool = True,
         cb_get_holder_key: None | Callable[[str, dict], str] = None,
+        *,
+        expect_kb_jwt: bool = True,
     ):
-        """
-        TODO: Docs
+        """TODO: Docs
 
         ### Parameters
         - sd_jwt_presentation(`str`): A presentation from a credential holder

@@ -8,7 +8,8 @@ class Filter(BaseModelJson):
     asking for to avoid excessively invading the credential-owner's privacy
     Filters must specify a "type" or "format" that the field must adhere to.
     They can further specify what value they need
-    e.g. date.today - dateofbirth > 18 years"""
+    e.g. date.today - dateofbirth > 18 years
+    """
 
     type: (
         Literal["string", "number", "integer", "boolean", "array", "object"] | None
@@ -57,7 +58,8 @@ class Filter(BaseModelJson):
 class Field(BaseModelJson):
     """Each Field MUST contain a "path" property.\n
     Each Field MAY contain "id", "purpose", "name", "filter",
-    and "optional" properties"""
+    and "optional" properties
+    """
 
     path: list[str]
     id: str | None = None
@@ -71,6 +73,7 @@ class Field(BaseModelJson):
         id: str | None = None,
         name: str | None = None,
         filter: Filter | None = None,
+        *,
         optional: bool | None = False,
     ):
         super().__init__(path=path, id=id, name=name, filter=filter, optional=optional)
@@ -78,7 +81,8 @@ class Field(BaseModelJson):
 
 class Constraint(BaseModelJson):
     """Each Constraint MAY have a "fields" property,
-    and a "limit_disclosure" property"""
+    and a "limit_disclosure" property
+    """
 
     fields: list[Field] | None = None
     limit_disclosure: Literal["required", "preferred"] | None = None
@@ -93,7 +97,8 @@ class Constraint(BaseModelJson):
 
 class InputDescriptor(BaseModelJson):
     """Each input_descriptor MUST contain an "id" and a "constraints" property.\n
-    Each input_descriptor MAY contain "name", "purpose", and "format" properties"""
+    Each input_descriptor MAY contain "name", "purpose", and "format" properties
+    """
 
     id: str
     constraints: Constraint
@@ -117,7 +122,8 @@ class InputDescriptor(BaseModelJson):
 class PresentationDefinition(BaseModelJson):
     """presentation_definitions MUST have an "id", and an "input_descriptors"
     property.\n presentation_definitions MAY have "name", "purpose", and
-    "format" properties."""
+    "format" properties.
+    """
 
     id: str
     input_descriptors: list[InputDescriptor]

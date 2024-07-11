@@ -32,7 +32,9 @@ MOCK_STORE = {
 
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
-    def __init__(self, storage_key, dev_mode=False, mock_data={}):
+    def __init__(self, storage_key, mock_data=None, *, dev_mode=False):
+        if mock_data is None:
+            mock_data = {}
         self.MOCK_STORE = mock_data
         super().__init__(storage_key, dev_mode=dev_mode)
 

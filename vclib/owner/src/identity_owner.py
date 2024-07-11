@@ -15,8 +15,7 @@ from .models.exceptions import (
 
 
 class IdentityOwner:
-    """
-    Base Identity Owner class
+    """Base Identity Owner class
 
     ### Attributes
     - credentials(`dict[str, Credential]`): A dictionary of credentials, mapped by
@@ -28,9 +27,8 @@ class IdentityOwner:
 
     # TODO: Enforce https
 
-    def __init__(self, storage_key: str, dev_mode=False):
-        """
-        Creates a new Identity Owner
+    def __init__(self, storage_key: str, *, dev_mode=False):
+        """Creates a new Identity Owner
 
         ### Parameters
         - storage_key(`str`): A key to encrypt/decrypt credentials when
@@ -45,8 +43,7 @@ class IdentityOwner:
             self.credentials[cred.id] = cred
 
     def serialise_and_encrypt(self, cred: Credential):
-        """
-        # NOT YET IMPLEMENTED IN FULL
+        """# NOT YET IMPLEMENTED IN FULL
         TODO: Implement encryption for safe storage using key attr
         Converts the Credential object into some string value that can be stored
         and encrypts it
@@ -60,8 +57,7 @@ class IdentityOwner:
         return b64encode(cred.model_dump_json().encode())
 
     def load_from_serial(self, dump: str | bytes | bytearray) -> Credential:
-        """
-        # NOT YET IMPLEMENTED IN FULL
+        """# NOT YET IMPLEMENTED IN FULL
         TODO: Implement decryption in accordance with implementation in
         `serialise_and_encrypt`
 
@@ -76,8 +72,7 @@ class IdentityOwner:
         return Credential.model_validate(loads(b64decode(dump)))
 
     def get_pending_credentials(self) -> list[Credential]:
-        """
-        Retrieves all pending credentials.
+        """Retrieves all pending credentials.
 
         ### Returns
         - `list[Credential]`: A list of Credential objects with status `"PENDING"`.
@@ -85,17 +80,17 @@ class IdentityOwner:
         return [cred for cred in self.credentials.values() if cred.status == "PENDING"]
 
     async def poll_credential_status(self, cred_id: str):
-        """
-        Polls for a pending credential
+        """Polls for a pending credential
 
         ### Parameters
         - cred_id(`str`): An identifier for the desired credential
 
-        TODO:
+        Todo:
+        ----
         - enforce https for non-dev mode for security purposes
         - validate body comes in expected format
-        """
 
+        """
         if cred_id not in self.credentials.keys():
             raise CredentialNotFoundException
         credential = self.credentials[cred_id]
@@ -117,8 +112,7 @@ class IdentityOwner:
             return credential
 
     async def poll_all_pending_credentials(self) -> list[str]:
-        """
-        Polls the issuer for updates on all outstanding credential requests.
+        """Polls the issuer for updates on all outstanding credential requests.
 
         ### Returns
         - `list[str]` A list of credential IDs belonging to credentials that were
@@ -133,8 +127,7 @@ class IdentityOwner:
         return updated
 
     def add_credential_from_url(self, url: str):
-        """
-        Adds a credential to the Identity Owner from a request URL
+        """Adds a credential to the Identity Owner from a request URL
 
         ### Parameters
         - url(`str`): The request URL to poll to for the credential's status
@@ -146,8 +139,7 @@ class IdentityOwner:
         self.store_credential(credential)
 
     async def get_credential_request_schema(self, cred_type: str, issuer_url: str):
-        """
-        Retrieves the required information needed to submit a request for some ID type
+        """Retrieves required information needed to submit a request for some ID type
         from an issuer.
 
         ### Parameters
@@ -172,8 +164,7 @@ class IdentityOwner:
     def apply_for_credential(
         self, cred_type: str, issuer_url: str, info: dict
     ) -> Credential:
-        """
-        Sends request for a new credential directly, then stores it
+        """Sends request for a new credential directly, then stores it
 
         ### Parameters
         - issuer_url(`str`): The issuer URL

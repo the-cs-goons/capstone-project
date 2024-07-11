@@ -1,5 +1,4 @@
-"""
-Common module used by `vclib`.
+"""Common module used by `vclib`.
 
 Contains classes, functions and other helpers used by multiple parties in the VC model.
 """

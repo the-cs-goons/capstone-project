@@ -9,8 +9,7 @@ from .exceptions import (
 
 
 class SDJWTVCIssuer(SDJWTIssuer):
-    """
-    SD JWT VC class for credential issuers.
+    """SD JWT VC class for credential issuers.
 
     Built upon the SDJWTIssuer class from `sd_jwt`. Adds some extra things, mostly
     verification of things that the SD JWT specification leaves blank but the SD JWT VC
@@ -32,8 +31,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
         extra_header_parameters: dict = {},
         **kwargs,
     ):
-        """
-        Creates a new SDJWT from a set of disclosable/non-disclosable claims and signs
+        """Creates new SDJWT from a set of disclosable/non-disclosable claims and signs
         it.
 
         ### Parameters
@@ -64,7 +62,6 @@ class SDJWTVCIssuer(SDJWTIssuer):
         Other keyword arguments that `SDJWTIssuer` accepts can be passed down as
         keyword arguments - such as extra header options, or a holder key for KB JWTs
         """
-
         payload = {}
         for key, value in disclosable_claims.items():
             # Registered JWT claims are not disclosable
@@ -94,7 +91,5 @@ class SDJWTVCIssuer(SDJWTIssuer):
         )
 
     def get_disclosures(self):
-        """
-        TODO: Make this easier
-        """
+        """TODO: Make this easier"""
         return [digest.json for digest in self.ii_disclosures]

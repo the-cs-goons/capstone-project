@@ -12,7 +12,8 @@ class DefaultIssuer(CredentialIssuer):
 
     ### Added Attributes
     - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
-      of active credential requests."""
+    of active credential requests.
+    """
 
     statuses: dict[int, (str, dict)]
     time: datetime

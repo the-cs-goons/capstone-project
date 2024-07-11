@@ -1,6 +1,4 @@
-"""
-Identity Owner module
-"""
+"""Identity Owner module"""
 
 # Add imports from `owner/src` here to expose objects under vclib.owner
 from .src.identity_owner import IdentityOwner as IdentityOwner

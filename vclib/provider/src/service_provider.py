@@ -19,9 +19,7 @@ class ServiceProvider:
         ca_path: str,
         presentation_definitions: dict[str, PresentationRequestResponse] = {},
     ):
-        """
-        initialise the service provider with a list of CA bundle
-        """
+        """Initialise the service provider with a list of CA bundle"""
         self.presentation_definitions = presentation_definitions
         self.ca_bundle = ca_bundle
         self.ca_path = ca_path
@@ -49,9 +47,7 @@ class ServiceProvider:
         )
 
     def load_ca_bundle(self, path: str):
-        """
-        This method loads the CA bundle from a local file
-        """
+        """This method loads the CA bundle from a local file"""
         ca_certs = []
         try:
             with open(path, "rb") as bundle_file:
@@ -67,9 +63,7 @@ class ServiceProvider:
     def verify_certificate(
         self, cert_pem: bytes, nonce: str, timestamp: float
     ) -> bytes:
-        """
-        Verify the @credential take from owner
-        """
+        """Verify the @credential take from owner"""
         current_time = datetime.datetime.now(datetime.UTC)
         timestamp_datetime = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
         # Check if the nonce has been used or expired
@@ -114,8 +108,7 @@ class ServiceProvider:
         raise Exception("Failed to find certificate")  # No CA certificates matched
 
     def get_issuer_detail(self, issuer: Certificate) -> bytes:
-        """
-        Print details of the current issuer
+        """Print details of the current issuer
         Return the issuer object contains all the information for future modification
         """
         did = None

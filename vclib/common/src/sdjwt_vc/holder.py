@@ -6,8 +6,7 @@ from .exceptions import SDJWTVCNewHolderVCHasKBJWTError
 
 
 class SDJWTVCHolder(SDJWTHolder):
-    """
-    SD JWT VC class for credential holders (identity owners).
+    """SD JWT VC class for credential holders (identity owners).
 
     Built upon the SDJWTHolder class from `sd_jwt`. Adds some extra things, mostly
     verification of things that the SD JWT specification leaves blank but the SD JWT VC
@@ -22,11 +21,10 @@ class SDJWTVCHolder(SDJWTHolder):
         self,
         sd_jwt_issuance: str,
         serialization_format: str = "compact",
+        *,
         enforce_no_key_binding: bool = True,
     ):
-        """
-        TODO: Docs
-        """
+        """TODO: Docs"""
         super().__init__(sd_jwt_issuance, serialization_format)
         # Most of what's required is already implemented, we don't have to check
         # `status` because revocation is out of scope for this project.
@@ -41,8 +39,7 @@ class SDJWTVCHolder(SDJWTHolder):
         self._is_verified = False
 
     def serialise_issuance_compact(self) -> str:
-        """
-        Serialises the credential in a manner that can be stored, in compact format.
+        """Serialises the credential in a manner that can be stored, in compact format.
         NOT for creating a verifiable presentation.
 
         ### Returns
@@ -60,10 +57,10 @@ class SDJWTVCHolder(SDJWTHolder):
         aud: str,
         holder_key: JWK,
         sign_alg: None | str = None,
+        *,
         unsafe=False,
     ):
-        """
-        Creates a verifiable presentation with a KB JWT.
+        """Creates a verifiable presentation with a KB JWT.
 
         Creates a presentation, but differs from `create_presentation` as implemented
         in the parent class by enforcing the required variables to create a KB-JWT.
@@ -89,9 +86,7 @@ class SDJWTVCHolder(SDJWTHolder):
         )
 
     def verify_signature(self, pub_key: JWK) -> bool:
-        """
-        Checks for a valid signature.
-        """
+        """Checks for a valid signature."""
         try:
             self._unverified_sd_jwt.validate(pub_key)
             self._is_verified = True

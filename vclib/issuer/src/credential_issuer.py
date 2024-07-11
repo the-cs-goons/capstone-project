@@ -17,8 +17,7 @@ from .models.responses import (
 
 
 class CredentialIssuer:
-    """
-    Base class used for the credential issuer agent.
+    """Base class used for the credential issuer agent.
 
     ### Attributes
     - credentials(`dict`): A dictionary of available credentials that can be issued,
@@ -46,7 +45,8 @@ class CredentialIssuer:
 
     async def get_credential_options(self) -> OptionsResponse:
         """Retrieves available credentials that can be issued,
-        along with required fields and types."""
+        along with required fields and types.
+        """
         return OptionsResponse(options=self.credentials)
 
     async def receive_credential_request(
@@ -97,7 +97,8 @@ class CredentialIssuer:
         """Returns the current status of an active credential request.
 
         ### Parameters
-        - token(`str`): Maps to a ticket number through the `mapping` attribute."""
+        - token(`str`): Maps to a ticket number through the `mapping` attribute.
+        """
         ticket = self.mapping[token]
 
         status = self.get_status(ticket)
@@ -111,7 +112,8 @@ class CredentialIssuer:
 
     def check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
-        Raises `TypeError` if types do not match."""
+        Raises `TypeError` if types do not match.
+        """
         if information is None:
             raise TypeError("No request body provided")
 
@@ -168,7 +170,8 @@ class CredentialIssuer:
         - cred_type(`str`):  Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
         - information(`dict`): Request body, containing information for the
-          credential being requested."""
+        credential being requested.
+        """
         return
 
     def get_status(self, _ticket: int) -> StatusResponse:
@@ -188,7 +191,8 @@ class CredentialIssuer:
           `None` otherwise.
 
         IMPORTANT: The `Any` return value can be read by anyone with the link to
-        specified ticket, and must not have any sensitive information contained."""
+        specified ticket, and must not have any sensitive information contained.
+        """
         return StatusResponse(status="PENDING", cred_type=None, information=None)
 
     def create_credential(self, cred_type: str, information: dict) -> str:
