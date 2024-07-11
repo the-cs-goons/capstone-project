@@ -1,4 +1,4 @@
-from jwcrypto.jwk import JWK, JWKSet
+from jwcrypto.jwk import JWK
 from jwcrypto.jwt import JWT
 from sd_jwt.holder import SDJWTHolder
 

@@ -10,6 +10,7 @@ pytest = "*"
 fastapi = "*"
 requests = "*"
 pytest-mock = "*"
+ruff = "*"
 
 [dev-packages]
 

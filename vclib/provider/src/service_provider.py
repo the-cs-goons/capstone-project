@@ -1,16 +1,11 @@
 import datetime
-import os
-import time
-from typing import Literal, Optional
 
-import requests
 from cryptography import x509
 from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.backends import default_backend
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding, rsa
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.x509 import Certificate
-from cryptography.x509.oid import NameOID, ObjectIdentifier
+from cryptography.x509.oid import ObjectIdentifier
 from fastapi import FastAPI, HTTPException
 
 from .models.presentation_definition import PresentationDefinition

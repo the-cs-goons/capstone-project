@@ -1,3 +1,3 @@
-from .identity_owner import IdentityOwner
-from .models import Credential, CredentialNotFoundException, SchemaResponse
-from .web_identity_owner import WebIdentityOwner
+from .identity_owner import IdentityOwner as IdentityOwner
+from .models import Credential as Credential, CredentialNotFoundException as CredentialNotFoundException, SchemaResponse as SchemaResponse
+from .web_identity_owner import WebIdentityOwner as WebIdentityOwner
