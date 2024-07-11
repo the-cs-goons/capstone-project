@@ -50,7 +50,7 @@ class CredentialIssuer:
         return OptionsResponse(options=self.credentials)
 
     async def receive_credential_request(
-        self, cred_type: str, information: dict = None
+        self, cred_type: str, information: dict | None
     ) -> RequestResponse:
         """Receives a request for credentials.
 
@@ -147,7 +147,6 @@ class CredentialIssuer:
         for field_name in information:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
-        return
 
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""

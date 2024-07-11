@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from jwcrypto.jwk import JWK
 from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
@@ -19,7 +21,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
     """
 
     SD_JWT_HEADER = "vc+sd-jwt"
-    NONDISCLOSABLE_CLAIMS = ["iss", "nbf", "exp", "cnf", "vct", "status"]
+    NONDISCLOSABLE_CLAIMS: ClassVar = ["iss", "nbf", "exp", "cnf", "vct", "status"]
     ENFORCE_KEY_BINDING = True  # For extensibility; True by default, can be disabled
 
     def __init__(

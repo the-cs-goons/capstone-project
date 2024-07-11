@@ -29,7 +29,6 @@ class DefaultIssuer(CredentialIssuer):
     def get_request(self, ticket: int, cred_type: str, information: dict):
         self.statuses[ticket] = (cred_type, information)
         self.time = datetime.datetime.now(tz=datetime.UTC)
-        return
 
     @override
     def get_status(self, ticket: int) -> StatusResponse:
