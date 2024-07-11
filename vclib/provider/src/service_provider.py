@@ -70,10 +70,8 @@ class ServiceProvider:
         """
         Verify the @credential take from owner
         """
-        current_time = datetime.datetime.now(datetime.timezone.utc)
-        timestamp_datetime = datetime.datetime.fromtimestamp(
-            timestamp, datetime.timezone.utc
-        )
+        current_time = datetime.datetime.now(datetime.UTC)
+        timestamp_datetime = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
         # Check if the nonce has been used or expired
         if (
             nonce in self.used_nonces
@@ -95,10 +93,10 @@ class ServiceProvider:
                 )
                 # return True
                 not_valid_before = certificate.not_valid_before.replace(
-                    tzinfo=datetime.timezone.utc
+                    tzinfo=datetime.UTC
                 )
                 not_valid_after = certificate.not_valid_after.replace(
-                    tzinfo=datetime.timezone.utc
+                    tzinfo=datetime.UTC
                 )
                 # Check the validity period of the certificate
                 if not_valid_before <= current_time <= not_valid_after:

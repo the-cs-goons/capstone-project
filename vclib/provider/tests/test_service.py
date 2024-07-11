@@ -198,10 +198,8 @@ def create_dummy_certificate(private_key, public_key):
         .issuer_name(issuer)
         .public_key(public_key)
         .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.now(datetime.timezone.utc))
-        .not_valid_after(
-            datetime.datetime.now(datetime.timezone.utc) + timedelta(days=1)
-        )
+        .not_valid_before(datetime.datetime.now(datetime.UTC))
+        .not_valid_after(datetime.datetime.now(datetime.UTC) + timedelta(days=1))
         .add_extension(
             x509.SubjectAlternativeName([x509.DNSName("localhost")]), critical=False
         )

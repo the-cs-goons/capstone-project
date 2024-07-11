@@ -6,7 +6,7 @@ from . import IdentityOwner
 from .models.credentials import Credential
 from .models.exceptions import (
     BadIssuerRequestException,
-    CredentialIssuerException,
+    CredentialIssuerError,
     IssuerTypeNotFoundException,
     IssuerURLNotFoundException,
 )
@@ -68,7 +68,7 @@ class WebIdentityOwner(IdentityOwner):
             )
         except IssuerURLNotFoundException:
             raise HTTPException(status_code=404, detail="Issuer URL not found")
-        except CredentialIssuerException:
+        except CredentialIssuerError:
             raise HTTPException(status_code=500, detail="Issuer API Error")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"{e}")
@@ -99,7 +99,7 @@ class WebIdentityOwner(IdentityOwner):
             raise HTTPException(status_code=404, detail="Issuer URL not found")
         except BadIssuerRequestException:
             raise HTTPException(status_code=400, detail="Bad request to Issuer")
-        except CredentialIssuerException:
+        except CredentialIssuerError:
             raise HTTPException(status_code=500, detail="Issuer API Error")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error: {e}")

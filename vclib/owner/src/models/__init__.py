@@ -1,6 +1,6 @@
 from .credentials import Credential as Credential
 from .exceptions import (
-    CredentialIssuerException as CredentialIssuerException,
+    CredentialIssuerError as CredentialIssuerError,
 )
 from .exceptions import (
     CredentialNotFoundException as CredentialNotFoundException,

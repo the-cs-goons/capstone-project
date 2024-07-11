@@ -1,12 +1,10 @@
-from typing import Dict
-
 from jwcrypto.jwk import JWK
 from sd_jwt.common import SDObj
 from sd_jwt.issuer import SDJWTIssuer
 
 from .exceptions import (
-    SDJWTVCNoHolderPublicKeyException,
-    SDJWTVCRegisteredClaimsException,
+    SDJWTVCNoHolderPublicKeyError,
+    SDJWTVCRegisteredClaimsError,
 )
 
 
@@ -27,8 +25,8 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     def __init__(
         self,
-        disclosable_claims: Dict,
-        oth_claims: Dict,
+        disclosable_claims: dict,
+        oth_claims: dict,
         issuer_key: JWK,
         holder_key: JWK | None,
         extra_header_parameters: dict = {},
@@ -71,7 +69,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
         for key, value in disclosable_claims.items():
             # Registered JWT claims are not disclosable
             if key in self.NONDISCLOSABLE_CLAIMS:
-                raise SDJWTVCRegisteredClaimsException(key)
+                raise SDJWTVCRegisteredClaimsError(key)
             # The base class checks for disclosable claims by checking for this
             # wrapper class.
             # TODO: Improve this to work over arrays and objects
@@ -81,7 +79,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
             payload[key] = value
 
         if self.ENFORCE_KEY_BINDING and holder_key is None:
-            raise SDJWTVCNoHolderPublicKeyException
+            raise SDJWTVCNoHolderPublicKeyError
 
         # TODO: specific checking for mandatory fields that SDJWTIssuer does not enforce
         # TODO: verification of any registered JWT claims

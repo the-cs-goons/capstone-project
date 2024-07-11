@@ -6,8 +6,8 @@ from jwcrypto.jwk import JWK
 
 from vclib.common import (
     SDJWTVCIssuer,
-    SDJWTVCNoHolderPublicKeyException,
-    SDJWTVCRegisteredClaimsException,
+    SDJWTVCNoHolderPublicKeyError,
+    SDJWTVCRegisteredClaimsError,
 )
 
 
@@ -42,7 +42,7 @@ def test_registered_jwt_claims_exception(issuer_jwk, holder_jwk):
         "iss": "1970-01-01",
     }
     other = {"iat": mktime(datetime.now().timetuple())}
-    with pytest.raises(SDJWTVCRegisteredClaimsException):
+    with pytest.raises(SDJWTVCRegisteredClaimsError):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk)
 
 
@@ -53,5 +53,5 @@ def test_no_holder_key_exception(issuer_jwk):
         "dob": "1970-01-01",
     }
     other = {"iat": mktime(datetime.now().timetuple())}
-    with pytest.raises(SDJWTVCNoHolderPublicKeyException):
+    with pytest.raises(SDJWTVCNoHolderPublicKeyError):
         SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, None)

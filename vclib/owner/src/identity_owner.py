@@ -7,7 +7,7 @@ from requests import Response, Session
 from .models import Credential
 from .models.exceptions import (
     BadIssuerRequestException,
-    CredentialIssuerException,
+    CredentialIssuerError,
     CredentialNotFoundException,
     IssuerTypeNotFoundException,
     IssuerURLNotFoundException,
@@ -104,7 +104,7 @@ class IdentityOwner:
         with Session() as s:
             response: Response = s.get(credential.request_url)
             if not response.ok:
-                raise CredentialIssuerException
+                raise CredentialIssuerError
             # TODO: Logic for updating state according to how Mal's structured things
             body: dict = response.json()
             credential.status = body["status"]
@@ -161,7 +161,7 @@ class IdentityOwner:
 
             body: dict = response.json()
             if "options" not in body.keys():
-                raise CredentialIssuerException
+                raise CredentialIssuerError
 
             options: dict = body["options"]
             if cred_type not in options.keys():
@@ -194,7 +194,7 @@ class IdentityOwner:
                     elif response.status_code == 404:
                         raise IssuerURLNotFoundException
                     raise BadIssuerRequestException
-                raise CredentialIssuerException
+                raise CredentialIssuerError
             body = response.json()
 
         # For internal use by the ID owner library/agent

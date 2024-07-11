@@ -2,7 +2,7 @@ from jwcrypto.jwk import JWK
 from jwcrypto.jwt import JWT
 from sd_jwt.holder import SDJWTHolder
 
-from .exceptions import SDJWTVCNewHolderVCHasKBJWTException
+from .exceptions import SDJWTVCNewHolderVCHasKBJWTError
 
 
 class SDJWTVCHolder(SDJWTHolder):
@@ -35,7 +35,7 @@ class SDJWTVCHolder(SDJWTHolder):
 
         # When receiving the credential from the issuer, this should be enforced
         if enforce_no_key_binding and self._unverified_input_key_binding_jwt != "":
-            raise SDJWTVCNewHolderVCHasKBJWTException
+            raise SDJWTVCNewHolderVCHasKBJWTError
 
         self._unverified_sd_jwt = JWT(jwt=self.serialized_sd_jwt)
         self._is_verified = False

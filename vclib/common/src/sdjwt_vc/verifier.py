@@ -1,4 +1,4 @@
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from sd_jwt.verifier import SDJWTVerifier
 
@@ -11,12 +11,12 @@ class SDJWTVCVerifier(SDJWTVerifier):
     def __init__(
         self,
         sd_jwt_presentation: str,
-        cb_get_issuer_key: Callable[[str, Dict], str],
+        cb_get_issuer_key: Callable[[str, dict], str],
         expected_aud: str | None = None,
         expected_nonce: str | None = None,
         serialization_format: str = "compact",
         expect_kb_jwt: bool = True,
-        cb_get_holder_key: None | Callable[[str, Dict], str] = None,
+        cb_get_holder_key: None | Callable[[str, dict], str] = None,
     ):
         """
         TODO: Docs

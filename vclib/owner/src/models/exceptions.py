@@ -1,4 +1,4 @@
-class BaseIdentityOwnerException(Exception):
+class BaseIdentityOwnerError(Exception):
     """
     Base exception type
     """
@@ -6,7 +6,7 @@ class BaseIdentityOwnerException(Exception):
     pass
 
 
-class IdentityOwnerException(BaseIdentityOwnerException):
+class IdentityOwnerError(BaseIdentityOwnerError):
     """
     Base exception type for when something goes wrong with the Identity Owner
     """
@@ -14,7 +14,7 @@ class IdentityOwnerException(BaseIdentityOwnerException):
     pass
 
 
-class CredentialNotFoundException(IdentityOwnerException):
+class CredentialNotFoundError(IdentityOwnerError):
     """
     Exception type for trying to retrieve a non-existent credential
     """
@@ -22,7 +22,7 @@ class CredentialNotFoundException(IdentityOwnerException):
     pass
 
 
-class BadIssuerRequestException(IdentityOwnerException):
+class BadIssuerRequestError(IdentityOwnerError):
     """
     Exception type for when ID Owner makes a bad request
     """
@@ -30,7 +30,7 @@ class BadIssuerRequestException(IdentityOwnerException):
     pass
 
 
-class IssuerTypeNotFoundException(BadIssuerRequestException):
+class IssuerTypeNotFoundError(BadIssuerRequestError):
     """
     Exception type for when ID Owner requests an invalid credential type
     """
@@ -38,7 +38,7 @@ class IssuerTypeNotFoundException(BadIssuerRequestException):
     pass
 
 
-class IssuerURLNotFoundException(BadIssuerRequestException):
+class IssuerURLNotFoundError(BadIssuerRequestError):
     """
     Exception type for when given issuer url doesn't appear to exist
     """
@@ -46,7 +46,7 @@ class IssuerURLNotFoundException(BadIssuerRequestException):
     pass
 
 
-class CredentialIssuerException(BaseIdentityOwnerException):
+class CredentialIssuerError(BaseIdentityOwnerError):
     """
     Base exception type for when an error comes back from a credential issuer's API
     """
@@ -54,7 +54,7 @@ class CredentialIssuerException(BaseIdentityOwnerException):
     pass
 
 
-class ServiceProviderException(BaseIdentityOwnerException):
+class ServiceProviderError(BaseIdentityOwnerError):
     """
     Base exception type for when an error comes back from a service provider
     """

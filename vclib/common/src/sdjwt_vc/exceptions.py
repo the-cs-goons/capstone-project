@@ -1,4 +1,4 @@
-class SDJWTVCRegisteredClaimsException(Exception):
+class SDJWTVCRegisteredClaimsError(Exception):
     """
     Exception raised when a registered JWT claim that cannot be disclosed is marked as
     disclosable.
@@ -8,7 +8,7 @@ class SDJWTVCRegisteredClaimsException(Exception):
         super().__init__(f"Registered claim '{claim}' cannot be selectively disclosed.")
 
 
-class SDJWTVCNoHolderPublicKeyException(Exception):
+class SDJWTVCNoHolderPublicKeyError(Exception):
     """
     Exception raised when key binding is enforced and a holder key is expected, but the
     holder key is `None`.
@@ -18,7 +18,7 @@ class SDJWTVCNoHolderPublicKeyException(Exception):
         super().__init__("Holder Key cannot be `None`.")
 
 
-class SDJWTVCInvalidHolderPublicKeyException(Exception):
+class SDJWTVCInvalidHolderPublicKeyError(Exception):
     """
     Exception raised when the holder public key referenced in an SDJWT is incorrect
     """
@@ -29,7 +29,7 @@ class SDJWTVCInvalidHolderPublicKeyException(Exception):
         )
 
 
-class SDJWTVCNewHolderVCHasKBJWTException(Exception):
+class SDJWTVCNewHolderVCHasKBJWTError(Exception):
     """
     Exception raised when a credential received from an issuer has a KB JWT attached
     (the specification states that in this instance the credential MUST be ignored)
