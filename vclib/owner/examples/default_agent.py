@@ -32,11 +32,10 @@ MOCK_STORE = {
 }
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
-
     def __init__(self, storage_key, dev_mode=False, mock_data={}):
         self.MOCK_STORE = mock_data
         super().__init__(storage_key, dev_mode=dev_mode)
-    
+
     @override
     def load_all_credentials_from_storage(self) -> list[Credential]:
         return [Credential.model_validate(cred) for cred in self.MOCK_STORE.values()]

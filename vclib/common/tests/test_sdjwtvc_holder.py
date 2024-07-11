@@ -1,7 +1,7 @@
 from datetime import date, datetime
 from time import mktime
-
 import pytest
+
 from jwcrypto.jwk import JWK
 from jwcrypto.jwt import JWT
 
@@ -9,7 +9,6 @@ from vclib.common import (
     SDJWTVCHolder,
     SDJWTVCIssuer,
 )
-
 
 @pytest.fixture
 def issuer_jwk():
@@ -20,16 +19,10 @@ def holder_jwk():
     return JWK(generate='EC')
 
 def test_get_and_verify_credential(issuer_jwk, holder_jwk):
-    disclosable_claims = {
-        "given_name": "Bob", 
-        "family_name": "Jones", 
-        "dob": "1970-01-01"}
+    disclosable_claims = {"given_name": "Bob", "family_name": "Jones", "dob": "1970-01-01"}
     other = {"iat": mktime(datetime.now().timetuple())}
 
-    issuance = SDJWTVCIssuer(disclosable_claims, 
-                             other, 
-                             issuer_jwk, 
-                             holder_jwk).sd_jwt_issuance
+    issuance = SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk).sd_jwt_issuance
 
     held_credential = SDJWTVCHolder(issuance)
     assert held_credential.serialized_sd_jwt == issuance.split('~')[0]
@@ -46,17 +39,11 @@ def test_get_and_verify_credential(issuer_jwk, holder_jwk):
         held_credential.verify_signature(wrong_jwk.public())
 
 def test_serialise_and_load_credential(issuer_jwk, holder_jwk):
-    disclosable_claims = {
-        "given_name": "Bob", 
-        "family_name": "Jones", 
-        "dob": date.today().isoformat()}
+    disclosable_claims = {"given_name": "Bob", "family_name": "Jones", "dob": date.today().isoformat()}
     other = {"iat": mktime(datetime.now().timetuple())}
 
-    issuance = SDJWTVCIssuer(disclosable_claims, 
-                             other, 
-                             issuer_jwk, 
-                             holder_jwk).sd_jwt_issuance
-    
+    issuance = SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk).sd_jwt_issuance
+
     held_credential = SDJWTVCHolder(issuance)
     serialised = held_credential.serialise_issuance_compact()
 
@@ -76,38 +63,23 @@ def test_serialise_and_load_credential(issuer_jwk, holder_jwk):
     for item in deserialised._hash_to_disclosure.values():
         assert item in issued_array
         assert item in held_array
-    
+
     # Once more for good measure
     assert deserialised.serialise_issuance_compact().split('~')[0] == issued_array[0]
-    
 
 def test_create_presentation(issuer_jwk, holder_jwk):
-    disclosable_claims = {
-        "given_name": "Bob", 
-        "family_name": "Jones", 
-        "dob": "1970-01-01"}
+    disclosable_claims = {"given_name": "Bob", "family_name": "Jones", "dob": "1970-01-01"}
     other = {"iat": mktime(datetime.now().timetuple())}
 
-    issuance = SDJWTVCIssuer(disclosable_claims, 
-                             other, 
-                             issuer_jwk, 
-                             holder_jwk).sd_jwt_issuance
-    
+    issuance = SDJWTVCIssuer(disclosable_claims, other, issuer_jwk, holder_jwk).sd_jwt_issuance
+
     held_credential = SDJWTVCHolder(issuance)
     held_credential.verify_signature(issuer_jwk.public())
 
-    to_disclose = {
-        "dob": 
-        "literally anything goes here, I'm so tired of this library"
-        }
+    to_disclose = {"dob": "literally anything goes here, I'm so tired of this library"}
 
-    held_credential.create_keybound_presentation(
-        to_disclose, 
-        "deadbeef", 
-        "provider", 
-        holder_jwk
-        )
-    
+    held_credential.create_keybound_presentation(to_disclose, "deadbeef", "provider", holder_jwk)
+
     presentation = held_credential.sd_jwt_presentation
 
     presentation_parts = presentation.split("~")

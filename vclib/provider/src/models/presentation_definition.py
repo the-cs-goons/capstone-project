@@ -2,15 +2,13 @@ from typing import Literal, Optional
 
 from .base_model_json import BaseModelJson
 
-
 class Filter(BaseModelJson):
     '''Filters allows providers to further restrict the field they are
     asking for to avoid excessively invading the credential-owner's privacy
     Filters must specify a "type" or "format" that the field must adhere to.
     They can further specify what value they need
     e.g. date.today - dateofbirth > 18 years'''
-    type: Optional[
-        Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None
+    type: Optional[Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None
     format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None
 
     # String filters
@@ -22,22 +20,11 @@ class Filter(BaseModelJson):
     # exclusive min/max denote whether the min or max should be included in the range
     # can be used on dates
     minimum: Optional[int] = None
-    exclusiveMinimum: Optional[bool] = None
+    exclusive_minimum: Optional[bool] = None
     maximum: Optional[int] = None
-    exclusiveMaximum: Optional[bool] = None
+    exclusive_maximum: Optional[bool] = None
 
-    def __init__(
-            self,
-            type: Optional[Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None, # noqa E501
-            format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None,
-            min_length: Optional[int] = None,
-            max_length: Optional[int] = None,
-            pattern: Optional[str] = None,
-            minimum: Optional[int] = None,
-            exclusiveMinimum: Optional[bool] = None,
-            maximum: Optional[int] = None,
-            exclusiveMaximum: Optional[bool] = None
-            ):
+    def __init__(self, type: Optional[Literal['string', 'number', 'integer', 'boolean', 'array', 'object']] = None, format: Optional[Literal['date', 'date-time', 'email', 'uri']] = None, min_length: Optional[int] = None, max_length: Optional[int] = None, pattern: Optional[str] = None, minimum: Optional[int] = None, exclusive_minimum: Optional[bool] = None, maximum: Optional[int] = None, exclusive_maximum: Optional[bool] = None):
         super().__init__(
                 type = type,
                 format = format,
@@ -45,10 +32,9 @@ class Filter(BaseModelJson):
                 max_length = max_length,
                 pattern = pattern,
                 minimum = minimum,
-                exclusiveMinimum = exclusiveMinimum,
+                exclusive_minimum = exclusive_minimum,
                 maximum = maximum,
-                exclusiveMaximum = exclusiveMaximum)
-
+                exclusive_maximum = exclusive_maximum)
 
 class Field(BaseModelJson):
     '''Each Field MUST contain a "path" property.\n
@@ -60,23 +46,9 @@ class Field(BaseModelJson):
     filter: Optional[Filter] = None
     optional: Optional[bool] = False
 
-    def __init__(
-                self,
-                path: list[str],
-                id: Optional[str] = None,
-                name: Optional[str] = None,
-                filter: Optional[Filter] = None,
-                optional: Optional[bool] = False
-                ):
+    def __init__(self, path: list[str], id: Optional[str] = None, name: Optional[str] = None, filter: Optional[Filter] = None, optional: Optional[bool] = False):
 
-        super().__init__(
-            path = path,
-            id = id,
-            name = name,
-            filter = filter,
-            optional = optional)
-
-
+        super().__init__(path = path, id = id, name = name, filter = filter, optional = optional)
 
 class Constraint(BaseModelJson):
     '''Each Constraint MAY have a "fields" property,
@@ -84,15 +56,8 @@ class Constraint(BaseModelJson):
     fields: Optional[list[Field]] = None
     limit_disclosure: Optional[Literal['required', 'preferred']] = None
 
-    def __init__(
-                self,
-                fields: Optional[list[Field]] = None,
-                limit_disclosure: Optional[Literal['required', 'preferred']] = None
-                ):
-
-        super().__init__(
-            fields = fields,
-            limit_disclosure = limit_disclosure)
+    def __init__(self, fields: Optional[list[Field]] = None, limit_disclosure: Optional[Literal['required', 'preferred']] = None):
+        super().__init__(fields = fields, limit_disclosure = limit_disclosure)
 
 
 class InputDescriptor(BaseModelJson):
@@ -105,20 +70,8 @@ class InputDescriptor(BaseModelJson):
     purpose: Optional[str] = None
     format: Optional[str] = None
 
-    def __init__(
-                self,
-                id: str,
-                constraints: Constraint,
-                name: Optional[str] = None,
-                purpose: Optional[str] = None,
-                format: Optional[str] = None
-                ):
-
-        super().__init__(id = id,
-            constraints = constraints,
-            name = name,
-            purpose = purpose,
-            format = format)
+    def __init__(self, id: str, constraints: Constraint, name: Optional[str] = None, purpose: Optional[str] = None, format: Optional[str] = None):
+        super().__init__(id = id, constraints = constraints, name = name, purpose = purpose, format = format)
 
 class PresentationDefinition(BaseModelJson):
     '''presentation_definitions MUST have an "id", and an "input_descriptors"
@@ -130,16 +83,5 @@ class PresentationDefinition(BaseModelJson):
     name: Optional[str] = None
     purpose: Optional[str] = None
 
-    def __init__(
-                self,
-                id: str,
-                input_descriptors: list[InputDescriptor],
-                name: Optional[str] = None,
-                purpose: Optional[str] = None
-                ):
-
-        super().__init__(
-            id = id,
-            input_descriptors = input_descriptors,
-            name = name,
-            purpose = purpose)
+    def __init__(self, id: str, input_descriptors: list[InputDescriptor], name: Optional[str] = None, purpose: Optional[str] = None):
+        super().__init__(id = id, input_descriptors = input_descriptors, name = name, purpose = purpose)

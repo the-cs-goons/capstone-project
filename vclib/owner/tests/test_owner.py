@@ -53,4 +53,3 @@ def test_get_pending_credentials(identity_owner):
 def test_get_credentials(identity_owner):
     credentials = identity_owner.get_credentials()
     assert len(credentials) == 2
-
