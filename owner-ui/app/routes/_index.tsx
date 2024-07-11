@@ -18,17 +18,27 @@ export const meta: MetaFunction = () => {
 export const loader: LoaderFunction = async () => {
   const resp = await fetch(
     `http://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`,
-    { method: "GET" }
+    { method: "GET" },
   );
   // TODO: make this more concrete
-  const data: { id: string, type: string, issuer_name: string | null, token: string | null }[] = await resp.json();
+  const data: {
+    id: string;
+    type: string;
+    issuer_name: string | null;
+    token: string | null;
+  }[] = await resp.json();
   return json(data);
 };
 
 export default function Index() {
-  const credentials: { id: string, type: string, issuer_name: string | null, token: string | null }[] = useLoaderData();
+  const credentials: {
+    id: string;
+    type: string;
+    issuer_name: string | null;
+    token: string | null;
+  }[] = useLoaderData();
   return (
-    (<Container component="main">
+    <Container component="main">
       <Grid
         container
         columns={{ xs: 4, sm: 8, md: 12 }}
@@ -37,7 +47,7 @@ export default function Index() {
       >
         {credentials.map((credential) => {
           return (
-            (<Grid
+            <Grid
               key={credential.id}
               sx={{ display: "flex" }}
               justifyContent={"center"}
@@ -47,21 +57,21 @@ export default function Index() {
                 <Typography variant="h4">{credential.type}</Typography>
                 <Typography variant="h6">{credential.issuer_name}</Typography>
                 {credential.token
-                  ? Object.entries(JSON.parse(atob(credential.token)) as [string, string][]).map(
-                      ([key, value]) => {
-                        return (
-                          <Typography variant="body1" key={key}>
-                            {value}
-                          </Typography>
-                        );
-                      }
-                    )
+                  ? Object.entries(
+                      JSON.parse(atob(credential.token)) as [string, string][],
+                    ).map(([key, value]) => {
+                      return (
+                        <Typography variant="body1" key={key}>
+                          {value}
+                        </Typography>
+                      );
+                    })
                   : "Pending approval"}
               </Card>
-            </Grid>)
+            </Grid>
           );
         })}
       </Grid>
-    </Container>)
+    </Container>
   );
 }

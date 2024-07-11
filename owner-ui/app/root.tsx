@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from "react";
 import {
   Links,
   Meta,
@@ -7,58 +7,70 @@ import {
   ScrollRestoration,
   useRouteError,
   isRouteErrorResponse,
-} from '@remix-run/react';
-import { withEmotionCache } from '@emotion/react';
-import { CssBaseline, unstable_useEnhancedEffect as useEnhancedEffect } from '@mui/material';
-import ClientStyleContext from './src/ClientStyleContext';
+} from "@remix-run/react";
+import { withEmotionCache } from "@emotion/react";
+import {
+  CssBaseline,
+  unstable_useEnhancedEffect as useEnhancedEffect,
+} from "@mui/material";
+import ClientStyleContext from "./src/ClientStyleContext";
 
 interface DocumentProps {
   children: React.ReactNode;
   title?: string;
 }
 
-const Document = withEmotionCache(({ children, title }: DocumentProps, emotionCache) => {
-  const clientStyleData = React.useContext(ClientStyleContext);
+const Document = withEmotionCache(
+  ({ children, title }: DocumentProps, emotionCache) => {
+    const clientStyleData = React.useContext(ClientStyleContext);
 
-  // Only executed on client
-  useEnhancedEffect(() => {
-    // re-link sheet container
-    emotionCache.sheet.container = document.head;
-    // re-inject tags
-    const tags = emotionCache.sheet.tags;
-    emotionCache.sheet.flush();
-    tags.forEach((tag) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (emotionCache.sheet as any)._insertTag(tag);
-    });
-    // reset cache to reapply global styles
-    clientStyleData.reset();
-  }, []);
+    // Only executed on client
+    useEnhancedEffect(() => {
+      // re-link sheet container
+      emotionCache.sheet.container = document.head;
+      // re-inject tags
+      const tags = emotionCache.sheet.tags;
+      emotionCache.sheet.flush();
+      tags.forEach((tag) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (emotionCache.sheet as any)._insertTag(tag);
+      });
+      // reset cache to reapply global styles
+      clientStyleData.reset();
+    }, []);
 
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <meta name="viewport" content="width=device-width,initial-scale=1" />
-        {title ? <title>{title}</title> : null}
-        <Meta />
-        <Links />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
-        />
-        <meta name="emotion-insertion-point" content="emotion-insertion-point" />
-      </head>
-      <body>
-        {children}
-        <ScrollRestoration />
-        <Scripts />
-      </body>
-    </html>
-  );
-});
+    return (
+      <html lang="en">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          {title ? <title>{title}</title> : null}
+          <Meta />
+          <Links />
+          <link rel="preconnect" href="https://fonts.googleapis.com" />
+          <link
+            rel="preconnect"
+            href="https://fonts.gstatic.com"
+            crossOrigin=""
+          />
+          <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap"
+          />
+          <meta
+            name="emotion-insertion-point"
+            content="emotion-insertion-point"
+          />
+        </head>
+        <body>
+          {children}
+          <ScrollRestoration />
+          <Scripts />
+        </body>
+      </html>
+    );
+  },
+);
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -67,9 +79,7 @@ interface LayoutProps {
 export function Layout({ children }: LayoutProps) {
   return (
     <Document>
-      <React.StrictMode>
-        {children}
-      </React.StrictMode>
+      <React.StrictMode>{children}</React.StrictMode>
     </Document>
   );
 }
@@ -78,10 +88,10 @@ export function Layout({ children }: LayoutProps) {
 // https://remix.run/docs/en/main/file-conventions/routes
 export default function App() {
   return (
-      <>
-        <CssBaseline />
-        <Outlet />
-      </>
+    <>
+      <CssBaseline />
+      <Outlet />
+    </>
   );
 }
 
@@ -93,10 +103,17 @@ export function ErrorBoundary() {
     let message;
     switch (error.status) {
       case 401:
-        message = <p>Oops! Looks like you tried to visit a page that you do not have access to.</p>;
+        message = (
+          <p>
+            Oops! Looks like you tried to visit a page that you do not have
+            access to.
+          </p>
+        );
         break;
       case 404:
-        message = <p>Oops! Looks like you tried to visit a page that does not exist.</p>;
+        message = (
+          <p>Oops! Looks like you tried to visit a page that does not exist.</p>
+        );
         break;
 
       default:
@@ -104,12 +121,12 @@ export function ErrorBoundary() {
     }
 
     return (
-        <>
-          <h1>
-            {error.status}: {error.statusText}
-          </h1>
-          {message}
-        </>
+      <>
+        <h1>
+          {error.status}: {error.statusText}
+        </h1>
+        {message}
+      </>
     );
   }
 
@@ -121,7 +138,10 @@ export function ErrorBoundary() {
           <h1>There was an error</h1>
           <p>{error.message}</p>
           <hr />
-          <p>Hey, developer, you should replace this with what you want your users to see.</p>
+          <p>
+            Hey, developer, you should replace this with what you want your
+            users to see.
+          </p>
         </div>
       </>
     );
