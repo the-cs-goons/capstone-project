@@ -6,11 +6,11 @@ from requests import Response, Session
 
 from .models import Credential
 from .models.exceptions import (
-    BadIssuerRequestException,
+    BadIssuerRequestError,
     CredentialIssuerError,
-    CredentialNotFoundException,
-    IssuerTypeNotFoundException,
-    IssuerURLNotFoundException,
+    CredentialNotFoundError,
+    IssuerTypeNotFoundError,
+    IssuerURLNotFoundError,
 )
 
 
@@ -92,7 +92,7 @@ class IdentityOwner:
 
         """
         if cred_id not in self.credentials:
-            raise CredentialNotFoundException
+            raise CredentialNotFoundError
         credential = self.credentials[cred_id]
 
         # Closes session afterwards
@@ -149,7 +149,7 @@ class IdentityOwner:
         with Session() as s:
             response: Response = s.get(f"{issuer_url}/credentials")
             if not response.ok:
-                raise IssuerURLNotFoundException
+                raise IssuerURLNotFoundError
 
             body: dict = response.json()
             if "options" not in body:
@@ -157,7 +157,7 @@ class IdentityOwner:
 
             options: dict = body["options"]
             if cred_type not in options:
-                raise IssuerTypeNotFoundException
+                raise IssuerTypeNotFoundError
 
             return options[cred_type]
 
@@ -181,10 +181,10 @@ class IdentityOwner:
             if not response.ok:
                 if response.status_code < 500:
                     if "detail" not in response.json():
-                        raise IssuerTypeNotFoundException
+                        raise IssuerTypeNotFoundError
                     if response.status_code == 404:
-                        raise IssuerURLNotFoundException
-                    raise BadIssuerRequestException
+                        raise IssuerURLNotFoundError
+                    raise BadIssuerRequestError
                 raise CredentialIssuerError
             body = response.json()
 

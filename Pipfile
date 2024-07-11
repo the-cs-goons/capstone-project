@@ -6,13 +6,16 @@ name = "pypi"
 [packages]
 jwcrypto = "*"
 sd-jwt = "*"
-pytest = "*"
 fastapi = "*"
 requests = "*"
-pytest-mock = "*"
-ruff = "*"
 
 [dev-packages]
+pytest = "*"
+pytest-mock = "*"
+ruff = "*"
+tox = "*"
+pytest-asyncio = "*"
+pytest-cov = "*"
 
 [requires]
 python_version = "3.12"

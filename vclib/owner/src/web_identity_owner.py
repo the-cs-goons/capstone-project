@@ -5,10 +5,10 @@ from fastapi import FastAPI, HTTPException
 from . import IdentityOwner
 from .models.credentials import Credential
 from .models.exceptions import (
-    BadIssuerRequestException,
+    BadIssuerRequestError,
     CredentialIssuerError,
-    IssuerTypeNotFoundException,
-    IssuerURLNotFoundException,
+    IssuerTypeNotFoundError,
+    IssuerURLNotFoundError,
 )
 from .models.responses import SchemaResponse
 
@@ -59,11 +59,11 @@ class WebIdentityOwner(IdentityOwner):
                 cred_type, issuer_url
             )
             return SchemaResponse(request_schema=req_schema)
-        except IssuerTypeNotFoundException:
+        except IssuerTypeNotFoundError:
             raise HTTPException(
                 status_code=400, detail=f"Credential type {cred_type} not found."
             )
-        except IssuerURLNotFoundException:
+        except IssuerURLNotFoundError:
             raise HTTPException(status_code=404, detail="Issuer URL not found")
         except CredentialIssuerError:
             raise HTTPException(status_code=500, detail="Issuer API Error")
@@ -87,13 +87,13 @@ class WebIdentityOwner(IdentityOwner):
         """
         try:
             return super().apply_for_credential(cred_type, issuer_url, info)
-        except IssuerTypeNotFoundException:
+        except IssuerTypeNotFoundError:
             raise HTTPException(
                 status_code=400, detail=f"Credential type {cred_type} not found."
             )
-        except IssuerURLNotFoundException:
+        except IssuerURLNotFoundError:
             raise HTTPException(status_code=404, detail="Issuer URL not found")
-        except BadIssuerRequestException:
+        except BadIssuerRequestError:
             raise HTTPException(status_code=400, detail="Bad request to Issuer")
         except CredentialIssuerError:
             raise HTTPException(status_code=500, detail="Issuer API Error")

@@ -3,7 +3,7 @@ from .models import (
     Credential as Credential,
 )
 from .models import (
-    CredentialNotFoundException as CredentialNotFoundException,
+    CredentialNotFoundError as CredentialNotFoundError,
 )
 from .models import (
     SchemaResponse as SchemaResponse,

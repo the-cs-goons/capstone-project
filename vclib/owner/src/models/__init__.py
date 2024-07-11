@@ -3,6 +3,6 @@ from .exceptions import (
     CredentialIssuerError as CredentialIssuerError,
 )
 from .exceptions import (
-    CredentialNotFoundException as CredentialNotFoundException,
+    CredentialNotFoundError as CredentialNotFoundError,
 )
 from .responses import SchemaResponse as SchemaResponse

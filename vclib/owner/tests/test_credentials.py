@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 
 from vclib.owner import Credential, IdentityOwner
 
@@ -13,7 +13,7 @@ def test_serialise_and_load_credentials():
         status="PENDING",
         status_message=None,
         issuer_name="Example Issuer",
-        received_at=datetime.now(tz=datetime.UTC),
+        received_at=datetime.now(tz=UTC),
     )
 
     id_owner = IdentityOwner("example")

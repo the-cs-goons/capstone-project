@@ -50,7 +50,7 @@ class CredentialIssuer:
         return OptionsResponse(options=self.credentials)
 
     async def receive_credential_request(
-        self, cred_type: str, information: dict | None
+        self, cred_type: str, information: dict | None = None
     ) -> RequestResponse:
         """Receives a request for credentials.
 

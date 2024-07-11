@@ -86,10 +86,10 @@ class ServiceProvider:
                     hashes.SHA256(),
                 )
                 # return True
-                not_valid_before = certificate.not_valid_before.replace(
+                not_valid_before = certificate.not_valid_before_utc.replace(
                     tzinfo=datetime.UTC
                 )
-                not_valid_after = certificate.not_valid_after.replace(
+                not_valid_after = certificate.not_valid_after_utc.replace(
                     tzinfo=datetime.UTC
                 )
                 # Check the validity period of the certificate
@@ -124,8 +124,8 @@ class ServiceProvider:
         print(issuer.serial_number)
 
         print("\nValidity:")
-        print("Not Before:", issuer.not_valid_before)
-        print("Not After:", issuer.not_valid_after)
+        print("Not Before:", issuer.not_valid_before_utc)
+        print("Not After:", issuer.not_valid_after_utc)
 
         print("\nExtensions:")
         for ext in issuer.extensions:
