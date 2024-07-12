@@ -49,3 +49,4 @@ jobs:
       #   working-directory: owner-ui
       #   run: npm install && npm test
       #   if: ${{ steps.setup-node.conclusion == 'success' }}
+      # TODO: add JS linting to this as well
