@@ -1,47 +1,30 @@
-class BaseIdentityOwnerException(Exception):
-    """
-    Base exception type
-    """
-    pass
+class BaseIdentityOwnerError(Exception):
+    """Base exception type"""
 
-class IdentityOwnerException(BaseIdentityOwnerException):
-    """
-    Base exception type for when something goes wrong with the Identity Owner
-    """
-    pass
 
-class CredentialNotFoundException(IdentityOwnerException):
-    """
-    Exception type for trying to retrieve a non-existent credential
-    """
-    pass
+class IdentityOwnerError(BaseIdentityOwnerError):
+    """Base exception type for when something goes wrong with the Identity Owner"""
 
-class BadIssuerRequestException(IdentityOwnerException):
-    """
-    Exception type for when ID Owner makes a bad request
-    """
-    pass
 
-class IssuerTypeNotFoundException(BadIssuerRequestException):
-    """
-    Exception type for when ID Owner requests an invalid credential type
-    """
-    pass
+class CredentialNotFoundError(IdentityOwnerError):
+    """Exception type for trying to retrieve a non-existent credential"""
 
-class IssuerURLNotFoundException(BadIssuerRequestException):
-    """
-    Exception type for when given issuer url doesn't appear to exist
-    """
-    pass
 
-class CredentialIssuerException(BaseIdentityOwnerException):
-    """
-    Base exception type for when an error comes back from a credential issuer's API
-    """
-    pass
+class BadIssuerRequestError(IdentityOwnerError):
+    """Exception type for when ID Owner makes a bad request"""
 
-class ServiceProviderException(BaseIdentityOwnerException):
-    """
-    Base exception type for when an error comes back from a service provider
-    """
-    pass
+
+class IssuerTypeNotFoundError(BadIssuerRequestError):
+    """Exception type for when ID Owner requests an invalid credential type"""
+
+
+class IssuerURLNotFoundError(BadIssuerRequestError):
+    """Exception type for when given issuer url doesn't appear to exist"""
+
+
+class CredentialIssuerError(BaseIdentityOwnerError):
+    """Base exception type for when an error comes back from a credential issuer"""
+
+
+class ServiceProviderError(BaseIdentityOwnerError):
+    """Base exception type for when an error comes back from a service provider"""

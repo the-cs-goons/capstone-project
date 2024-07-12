@@ -1,21 +1,21 @@
-
-from datetime import datetime
+from datetime import UTC, datetime
 
 from vclib.owner import Credential, IdentityOwner
 
 
 def test_serialise_and_load_credentials():
-    credential = Credential(id="example", 
-                             issuer_url="https://example.com", 
-                             type="Example", 
-                             request_url="https://example.com/status?token=example",
-                             token="{'foo': 'bar'}",
-                             status="PENDING",
-                             status_message=None,
-                             issuer_name="Example Issuer",
-                             received_at=datetime.now()
-                             )
-    
+    credential = Credential(
+        id="example",
+        issuer_url="https://example.com",
+        type="Example",
+        request_url="https://example.com/status?token=example",
+        token="{'foo': 'bar'}",
+        status="PENDING",
+        status_message=None,
+        issuer_name="Example Issuer",
+        received_at=datetime.now(tz=UTC),
+    )
+
     id_owner = IdentityOwner("example")
     store = id_owner.serialise_and_encrypt(credential)
     credential2 = id_owner.load_from_serial(store)

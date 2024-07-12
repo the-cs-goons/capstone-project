@@ -17,8 +17,7 @@ from .models.responses import (
 
 
 class CredentialIssuer:
-    """
-    Base class used for the credential issuer agent.
+    """Base class used for the credential issuer agent.
 
     ### Attributes
     - credentials(`dict`): A dictionary of available credentials that can be issued,
@@ -37,8 +36,7 @@ class CredentialIssuer:
         try:
             with open(private_key_path, "rb") as key_file:
                 self.private_key = serialization.load_pem_private_key(
-                    key_file.read(),
-                    password=None,
+                    key_file.read(), password=None
                 )
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Could not find private key: {e}")
@@ -47,11 +45,12 @@ class CredentialIssuer:
 
     async def get_credential_options(self) -> OptionsResponse:
         """Retrieves available credentials that can be issued,
-        along with required fields and types."""
+        along with required fields and types.
+        """
         return OptionsResponse(options=self.credentials)
 
-    async def recieve_credential_request(
-        self, cred_type: str, information: dict = None
+    async def receive_credential_request(
+        self, cred_type: str, information: dict | None = None
     ) -> RequestResponse:
         """Receives a request for credentials.
 
@@ -84,7 +83,7 @@ class CredentialIssuer:
         except Exception as e:
             raise HTTPException(
                 status_code=400,
-                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa E501
+                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
             )
 
         self.ticket += 1
@@ -98,7 +97,8 @@ class CredentialIssuer:
         """Returns the current status of an active credential request.
 
         ### Parameters
-        - token(`str`): Maps to a ticket number through the `mapping` attribute."""
+        - token(`str`): Maps to a ticket number through the `mapping` attribute.
+        """
         ticket = self.mapping[token]
 
         status = self.get_status(ticket)
@@ -106,12 +106,14 @@ class CredentialIssuer:
         if status.information is not None:
             self.mapping.pop(token)
             credential = self.create_credential(status.cred_type, status.information)
-        return UpdateResponse(ticket=ticket, status=status.status, 
-                              credential=credential)
+        return UpdateResponse(
+            ticket=ticket, status=status.status, credential=credential
+        )
 
     def check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
-        Raises `TypeError` if types do not match."""
+        Raises `TypeError` if types do not match.
+        """
         if information is None:
             raise TypeError("No request body provided")
 
@@ -142,16 +144,15 @@ class CredentialIssuer:
                             raise NotImplementedError
             elif not field_info["optional"]:
                 raise TypeError(f"{field_name} is non-optional and was not provided")
-        for field_name in information.keys():
+        for field_name in information:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
-        return
 
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
         router = FastAPI()
         router.get("/credentials/")(self.get_credential_options)
-        router.post("/request/{cred_type}")(self.recieve_credential_request)
+        router.post("/request/{cred_type}")(self.receive_credential_request)
         router.get("/status/")(self.credential_status)
         return router
 
@@ -168,7 +169,8 @@ class CredentialIssuer:
         - cred_type(`str`):  Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
         - information(`dict`): Request body, containing information for the
-          credential being requested."""
+        credential being requested.
+        """
         return
 
     def get_status(self, _ticket: int) -> StatusResponse:
@@ -188,14 +190,15 @@ class CredentialIssuer:
           `None` otherwise.
 
         IMPORTANT: The `Any` return value can be read by anyone with the link to
-        specified ticket, and must not have any sensitive information contained."""
+        specified ticket, and must not have any sensitive information contained.
+        """
         return StatusResponse(status="PENDING", cred_type=None, information=None)
 
     def create_credential(self, cred_type: str, information: dict) -> str:
         """Function to generate credentials after being accepted.
 
         Overriding this function is *optional* - default implementation will be
-        SD-JWT-VC, however a temporary mimicing algorithm is used in place for the
+        SD-JWT-VC, however a temporary mimicking algorithm is used in place for the
         time being.
 
         ### Parameters

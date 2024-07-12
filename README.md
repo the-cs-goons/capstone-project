@@ -2,25 +2,22 @@
 
 ## Local development
 
-This project requires you have **Python 3.12** and **Node.js 20** installed.
-
 If you are planning to run unit tests on the code, you also need to make a copy of `example.env` and call it `.env` (`docker-compose` will work without doing this). The `.env` file contains environment variables that are passed to all tests and Docker containers, and because it is ignored by `.gitignore`, you can modify it as you like.
 
 ### Running tests
 
 #### Testing the Python agents
 
-To install the Python testing framework, run `pip install tox`.
+To perform tests, run `pipenv shell` then `tox` from the root directory of this repo. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
+In order to ensure that tox runs with the correct dependencies, run `pipenv requirements > requirements.txt` at the root to generate an up-to-date requirements.txt.
 
-To perform tests, run `tox` from the root directory of this repo. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
-
-The `tox` tests will also run a linter (called `ruff`) to validate that all your code follows a certain style. If it fails your code, you will need to run `ruff` yourself. This involves running `pip install ruff` followed by `ruff check --fix`.
+The `tox` tests will also run a linter (called `ruff`) to validate that all your code follows a certain style. If it fails your code, you will need to run `ruff` yourself. This involves running `ruff check --fix`.
 
 Running these tests also generates an HTML coverage report in the `htmlcov/` folder.
 
 #### Testing the React frontend
 
-From the `owner-ui` directory, run `npm test`. You may need to run `npm install` first to install the frontend's dependencies if you haven't already.
+From the `owner-ui` directory, run `pnpm test`. You may need to run `pnpm install` first to install the frontend's dependencies if you haven't already.
 
 ### Serving agents
 

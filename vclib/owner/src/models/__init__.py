@@ -1,3 +1,8 @@
-from .credentials import Credential
-from .exceptions import CredentialIssuerException, CredentialNotFoundException
-from .responses import SchemaResponse
+from .credentials import Credential as Credential
+from .exceptions import (
+    CredentialIssuerError as CredentialIssuerError,
+)
+from .exceptions import (
+    CredentialNotFoundError as CredentialNotFoundError,
+)
+from .responses import SchemaResponse as SchemaResponse

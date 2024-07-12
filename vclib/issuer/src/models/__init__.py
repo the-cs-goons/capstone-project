@@ -1,1 +1,1 @@
-from .responses import StatusResponse
+from .responses import StatusResponse as StatusResponse

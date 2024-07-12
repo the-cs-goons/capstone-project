@@ -1,15 +1,14 @@
-from jwcrypto.jwk import JWK, JWKSet
+from jwcrypto.jwk import JWK
 from jwcrypto.jwt import JWT
 from sd_jwt.holder import SDJWTHolder
 
-from .exceptions import SDJWTVCNewHolderVCHasKBJWTException
+from .exceptions import SDJWTVCNewHolderVCHasKBJWTError
 
 
 class SDJWTVCHolder(SDJWTHolder):
-    """
-    SD JWT VC class for credential holders (identity owners).
+    """SD JWT VC class for credential holders (identity owners).
 
-    Built upon the SDJWTHolder class from `sd_jwt`. Adds some extra things, mostly 
+    Built upon the SDJWTHolder class from `sd_jwt`. Adds some extra things, mostly
     verification of things that the SD JWT specification leaves blank but the SD JWT VC
     specification requires. Actually attempts to document the parent class.
 
@@ -18,31 +17,29 @@ class SDJWTVCHolder(SDJWTHolder):
 
     _unverified_sd_jwt: JWT
 
-    def __init__(self, 
-                 sd_jwt_issuance: str,
-                 serialization_format: str = "compact",
-                 enforce_no_key_binding: bool = True):
-        """
-        TODO: Docs
-        """
+    def __init__(
+        self,
+        sd_jwt_issuance: str,
+        serialization_format: str = "compact",
+        *,
+        enforce_no_key_binding: bool = True,
+    ):
+        """TODO: Docs"""
         super().__init__(sd_jwt_issuance, serialization_format)
-        # Most of what's required is already implemented, we don't have to check 
+        # Most of what's required is already implemented, we don't have to check
         # `status` because revocation is out of scope for this project.
         # There's some missing verification we could implement but for now I'm leaving
         # that out
 
         # When receiving the credential from the issuer, this should be enforced
-        if enforce_no_key_binding and self._unverified_input_key_binding_jwt != '':
-            raise SDJWTVCNewHolderVCHasKBJWTException
-        
+        if enforce_no_key_binding and self._unverified_input_key_binding_jwt != "":
+            raise SDJWTVCNewHolderVCHasKBJWTError
+
         self._unverified_sd_jwt = JWT(jwt=self.serialized_sd_jwt)
         self._is_verified = False
 
-            
-        
     def serialise_issuance_compact(self) -> str:
-        """
-        Serialises the credential in a manner that can be stored, in compact format.
+        """Serialises the credential in a manner that can be stored, in compact format.
         NOT for creating a verifiable presentation.
 
         ### Returns
@@ -52,16 +49,18 @@ class SDJWTVCHolder(SDJWTHolder):
         serialised = self.serialized_sd_jwt + sep
         serialised += sep.join(self._hash_to_disclosure.values()) + sep
         return serialised
-    
-    def create_keybound_presentation(self, 
-                            claims_to_disclose: list | dict, 
-                            nonce: str, 
-                            aud: str, 
-                            holder_key: JWK, 
-                            sign_alg: None | str = None,
-                            unsafe = False):
-        """
-        Creates a verifiable presentation with a KB JWT.
+
+    def create_keybound_presentation(
+        self,
+        claims_to_disclose: list | dict,
+        nonce: str,
+        aud: str,
+        holder_key: JWK,
+        sign_alg: None | str = None,
+        *,
+        unsafe=False,
+    ):
+        """Creates a verifiable presentation with a KB JWT.
 
         Creates a presentation, but differs from `create_presentation` as implemented
         in the parent class by enforcing the required variables to create a KB-JWT.
@@ -82,20 +81,14 @@ class SDJWTVCHolder(SDJWTHolder):
         if not unsafe and not self._is_verified:
             raise Exception
 
-        super().create_presentation(claims_to_disclose, 
-                                           nonce, 
-                                           aud, 
-                                           holder_key, 
-                                           sign_alg)
-    
+        super().create_presentation(
+            claims_to_disclose, nonce, aud, holder_key, sign_alg
+        )
+
     def verify_signature(self, pub_key: JWK) -> bool:
-        """
-        Checks for a valid signature.
-        """
+        """Checks for a valid signature."""
         try:
             self._unverified_sd_jwt.validate(pub_key)
             self._is_verified = True
         except Exception:
-            raise Exception #TODO: Clearer exception type
-        
-
+            raise Exception  # TODO: Clearer exception type

@@ -1,22 +1,53 @@
-FROM python:3.12-slim-bookworm
+# syntax=docker/dockerfile:1
 
-WORKDIR /usr/src
+ARG PYTHON_VERSION=3.12.4
+FROM python:${PYTHON_VERSION}-slim AS base
+
+# Prevents Python from writing pyc files.
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Keeps Python from buffering stdout and stderr to avoid situations where
+# the application crashes without emitting any logs due to buffering.
+ENV PYTHONUNBUFFERED=1
+
+WORKDIR /usr/src/app
+
+# Create a non-privileged user that the app will run under.
+# See https://docs.docker.com/go/dockerfile-user-best-practices/
+ARG UID=10001
+RUN adduser \
+    --disabled-password \
+    --gecos "" \
+    --home "/nonexistent" \
+    --shell "/sbin/nologin" \
+    --no-create-home \
+    --uid "${UID}" \
+    appuser
 
 # copy init files
-COPY --from=root __init__.py ./vclib/__init__.py
-COPY --from=root common/__init__.py ./vclib/common/__init__.py
+COPY --from=vclib-root __init__.py ./vclib/__init__.py
+COPY --from=vclib-root common/__init__.py ./vclib/common/__init__.py
 COPY __init__.py ./vclib/provider/__init__.py
 
 # install python dependencies
-COPY requirements.txt .
-COPY --from=root common/requirements.txt ./common.txt
-RUN pip install -r requirements.txt
-RUN pip install -r common.txt
+#COPY --from=root Pipfile.lock ./Pipfile.lock
+#RUN pipenv requirements > requirements.txt
+COPY --from=root requirements.txt ./requirements.txt
 
-# remove build dependencies
-RUN pip uninstall -y pip
+# Download dependencies as a separate step to take advantage of Docker's caching.
+# Leverage a cache mount to /root/.cache/pip to speed up subsequent builds.
+# Leverage a bind mount to requirements.txt to avoid having to copy them into
+# into this layer.
+RUN python -m pip install -r requirements.txt
 
-# copy application code over
-COPY examples examples
+# Switch to the non-privileged user to run the application.
+USER appuser
 
-ENTRYPOINT uvicorn examples.default_agent:service_provider_server --host "0.0.0.0" --port "$CS3900_SERVICE_AGENT_PORT" --log-level "debug" --reload
+# Copy the source code into the container.
+COPY . .
+
+# Expose the port that the application listens on.
+EXPOSE ${CS3900_SERVICE_AGENT_PORT}
+
+# Run the application.
+CMD uvicorn examples.default_agent:service_provider_server --host=0.0.0.0 --port="$CS3900_SERVICE_AGENT_PORT" --log-level "debug" --reload
