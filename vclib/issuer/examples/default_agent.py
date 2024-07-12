@@ -77,6 +77,6 @@ credentials = {
 }
 
 credential_issuer = DefaultIssuer(
-    credentials, "/usr/src/examples/example_private_key.pem"
+    credentials, "/usr/src/app/examples/example_private_key.pem"
 )
 credential_issuer_server = credential_issuer.get_server()
