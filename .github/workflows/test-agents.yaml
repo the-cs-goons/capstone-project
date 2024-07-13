@@ -1,4 +1,4 @@
-name: 'Run tests on agents'
+name: "Run tests on agents"
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
   pull-requests: read
 concurrency:
-  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -45,8 +45,7 @@ jobs:
           path: htmlcov/
         if: ${{ steps.test-python.conclusion == 'success' }}
 
-      # - name: Run React tests
-      #   working-directory: owner-ui
-      #   run: npm install && npm test
-      #   if: ${{ steps.setup-node.conclusion == 'success' }}
-      # TODO: add JS linting to this as well
+      - name: Run frontend tests
+        working-directory: owner-ui
+        run: pnpm install && pnpm test
+        if: ${{ steps.setup-node.conclusion == 'success' }}
