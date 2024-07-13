@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -25,15 +25,56 @@ class StatusResponse(BaseModel):
     information: dict[str, Any] | None
 
 
-class UniqueCredentialIdentifier:
+class PublicKeyJwk(BaseModel):
+    kty: str
+    use: str
+    alg: str
+    crv: str
+    x: str
+    y: str
+    kid: str
+
+
+class VerificationMethod(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    id: str
+    type: str
+    controller: str
+    publicKeyJwk: PublicKeyJwk  # noqa: N815
+
+
+class DIDJSONResponse(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    context: list[str] = Field(alias="@context")
+    id: str
+    verificationMethod: list[VerificationMethod]  # noqa: N815
+    authentication: list[str]
+
+
+class ConfigEntries(BaseModel):
+    did: str
+    jwt: str
+
+
+class DIDConfigResponse(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    entries: list[ConfigEntries]
+
+class ProofTypesSupported(BaseModel):
+    proof_signing_alg_values_supported: str
+
+class UniqueCredentialIdentifier(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
     format: str
     vct: str
     # scope: str
     cryptographic_binding_methods_supported: list[str]
     credential_signing_alg_values_supported: list[str]
-    # todo: cleanup the following
-    proof_types_supported: dict[str, dict[str, str]]
-    claims: dict[str, dict[str, str]]
+    proof_types_supported: dict[str, ProofTypesSupported]
+    claims: dict[str, dict[str, Any]]
 
 
 class MetadataResponse(BaseModel):
@@ -45,7 +86,7 @@ class MetadataResponse(BaseModel):
     deferred_credential_endpoint: str
     # notification_endpoint: str
     credential_configurations_supported: dict[str, UniqueCredentialIdentifier]
-    credential_identifiers_supported: str
+    credential_identifiers_supported: bool
     # display: str
 
 
@@ -54,10 +95,10 @@ class OAuthMetadataResponse(BaseModel):
     authorization_endpoint: str
     token_endpoint: str
     registration_endpoint: str
-    scopes_supported: str
-    response_types_supported: str
-    grant_types_supported: str
-    authorization_details_types_supported: str
-    anon_access_supported: str = Field(
+    scopes_supported: list[str]
+    response_types_supported: list[str]
+    grant_types_supported: list[str]
+    authorization_details_types_supported: list[str]
+    anon_access_supported: bool = Field(
         alias="pre-authorized_grant_anonymous_access_supported"
     )
