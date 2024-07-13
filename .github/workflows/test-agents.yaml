@@ -69,7 +69,6 @@ jobs:
         id: coverage-node
         uses: actions/upload-artifact@v4
         with:
-          working-directory: owner-ui
           name: frontend-code-coverage-report
-          path: coverage/
+          path: owner-ui/coverage/
         if: ${{ steps.test-node.conclusion == 'success' }}
