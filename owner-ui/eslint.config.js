@@ -39,5 +39,5 @@ export default [
     files: ["**/.eslintrc.cjs"],
     languageOptions: { globals: { ...globals.node } },
   },
-  eslintConfigPrettier
+  eslintConfigPrettier,
 ];
