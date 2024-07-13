@@ -2,7 +2,9 @@ name: 3900w11athecsgoons
 
 services:
   owner-ui:
-    build: ./owner-ui
+    build:
+      context: ./owner-ui
+      target: dev
     ports:
       - $CS3900_OWNER_UI_PORT:$CS3900_OWNER_UI_PORT
     volumes:
