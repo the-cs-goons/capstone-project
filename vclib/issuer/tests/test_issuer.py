@@ -6,21 +6,21 @@ from vclib.issuer import CredentialIssuer
 MOCK_INFORMATION = {
     "default": {
         "string": {
-            "type": "string",
-            "optional": False,
+            "mandatory": True,
+            "value_type": "string"
         },
         "number": {
-            "type": "number",
-            "optional": False,
+            "mandatory": True,
+            "value_type": "number"
         },
         "boolean": {
-            "type": "boolean",
-            "optional": False,
+            "mandatory": True,
+            "value_type": "boolean"
         },
         "optional": {
-            "type": "string",
-            "optional": True,
-        },
+            "mandatory": False,
+            "value_type": "string"
+        }
     },
 }
 

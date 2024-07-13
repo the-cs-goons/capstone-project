@@ -3,9 +3,9 @@
     "credential_endpoint": "https://issuer-lib:8082/credentials",
     "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
     "credential_configurations_supported": {
-        "https://issuer-lib:8082/ID": {
+        "https://issuer-lib:8082/default": {
             "format": "vc+sd-jwt",
-            "vct": "https://issuer-lib:8082/ID",
+            "vct": "https://issuer-lib:8082/default",
             "cryptographic_binding_methods_supported": [
                 "did:peer"
             ],
@@ -18,36 +18,20 @@
                 }
             },
             "claims": {
-                "given_name": {
+                "string": {
                     "mandatory": true,
                     "value_type": "string"
                 },
-                "family_name": {
+                "number": {
                     "mandatory": true,
-                    "value_type": "string"
-                },
-                "email": {
-                    "value_type": "string"
-                },
-                "phone_number": {
                     "value_type": "number"
                 },
-                "address": {
-                    "street_address": {
-                        "value_type": "string"
-                    },
-                    "state": {
-                        "value_type": "string"
-                    },
-                    "country": {
-                        "value_type": "string"
-                    }
-                },
-                "birthdate": {
-                    "value_type": "number"
-                },
-                "is_over_18": {
+                "boolean": {
                     "mandatory": true,
+                    "value_type": "boolean"
+                },
+                "optional": {
+                    "mandatory": false,
                     "value_type": "string"
                 }
             }
