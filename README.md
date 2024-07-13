@@ -8,7 +8,7 @@ If you are planning to run unit tests on the code, you also need to make a copy 
 
 #### Testing the Python agents
 
-To perform tests, run `pipenv shell` then `tox` from the root directory of this repo. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
+To perform tests, run `pipenv shell` then `tox` from the root directory of this repo. You will need to have run `pipenv sync` at least once to set up the virtual environment. Any options you provide to `tox` using `--` (e.g. `tox -- --capture=no`) will be passed to pytest (e.g. `pytest --capture=no`).
 In order to ensure that tox runs with the correct dependencies, run `pipenv requirements > requirements.txt` at the root to generate an up-to-date requirements.txt.
 
 The `tox` tests will also run a linter (called `ruff`) to validate that all your code follows a certain style. If it fails your code, you will need to run `ruff` yourself. This involves running `ruff check --fix`.
