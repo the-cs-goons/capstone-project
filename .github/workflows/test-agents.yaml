@@ -1,4 +1,4 @@
-name: 'Run tests on agents'
+name: "Run tests on agents"
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ permissions:
   contents: read
   pull-requests: read
 concurrency:
-  group: '${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}'
+  group: "${{ github.workflow }} @ ${{ github.event.pull_request.head.label || github.head_ref || github.ref }}"
   cancel-in-progress: true
 
 jobs:
@@ -26,12 +26,20 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
 
       - name: Set up Node.js 20
         id: setup-node
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "pnpm"
+          cache-dependency-path: "owner-ui/pnpm-lock.yaml"
 
       - name: Run Python tests
         id: test-python
@@ -39,14 +47,29 @@ jobs:
         if: ${{ steps.setup-python.conclusion == 'success' }}
 
       - name: Archive Python code coverage results
+        id: coverage-python
         uses: actions/upload-artifact@v4
         with:
-          name: code-coverage-report
+          name: python-code-coverage-report
           path: htmlcov/
         if: ${{ steps.test-python.conclusion == 'success' }}
 
-      # - name: Run React tests
-      #   working-directory: owner-ui
-      #   run: npm install && npm test
-      #   if: ${{ steps.setup-node.conclusion == 'success' }}
-      # TODO: add JS linting to this as well
+      - name: Run frontend tests
+        id: test-node
+        working-directory: owner-ui
+        run: pnpm install && pnpm coverage
+        if: ${{ steps.setup-node.conclusion == 'success' }}
+
+      - name: Lint frontend
+        id: lint-node
+        working-directory: owner-ui
+        run: pnpm lint && pnpm format-check
+        if: ${{ steps.test-node.conclusion == 'success' }}
+
+      - name: Archive frontend code coverage results
+        id: coverage-node
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-code-coverage-report
+          path: owner-ui/coverage/
+        if: ${{ steps.test-node.conclusion == 'success' }}
