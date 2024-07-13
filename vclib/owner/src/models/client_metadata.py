@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import List, Optional
-from pydantic import BaseModel, AnyUrl
+from pydantic import BaseModel
 
 class TokenAuthMethod(Enum):
     CLIENT_SECRET_BASIC = "client_secret_basic"
@@ -9,8 +9,8 @@ class TokenAuthMethod(Enum):
 
 
 class WalletClientMetadata(BaseModel):
-    redirect_uris: List[AnyUrl]
-    credential_offer_endpoint: AnyUrl
+    redirect_uris: List[str]
+    credential_offer_endpoint: str
     token_endpoint_auth_method: TokenAuthMethod | str
     grant_types: List[str]
     response_types: List[str]

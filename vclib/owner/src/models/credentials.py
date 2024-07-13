@@ -10,8 +10,8 @@ class Credential(BaseModel):
     # Not super useful to have now, but may be necessary later for retrieving JWKs
     type: str
     request_url: str
-    token: str | None = None
-    status: str = "PENDING"
+    sd_jwt_vc: str | None = None
     status_message: str | None = None
     issuer_name: str | None = None
     received_at: datetime | None = None
+    access_token: str

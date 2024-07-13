@@ -11,7 +11,7 @@ class IssuerMetadata(BaseModel):
     credential_identifiers_supported: Optional[bool]
     display: Optional[Any]
 
-class AuthorizationMetadata:
+class AuthorizationMetadata(BaseModel):
     """
     "issuer": Credential Issuer Identifier
     "authorization_endpoint": "[Credential Issuer Identifier]/authorise"
@@ -24,10 +24,10 @@ class AuthorizationMetadata:
     "pre-authorized_grant_anonymous_access_supported": false (for now)
 
     """
-    issuer: HttpUrl
-    authorization_endpoint: HttpUrl
-    token_endpoint: HttpUrl
-    registration_endpoint: HttpUrl
+    issuer: str
+    authorization_endpoint: str
+    token_endpoint: str
+    registration_endpoint: str
     scopes_supported: Optional[Any]
     response_types_supported: List[str]
     grant_types_supported: List[str]

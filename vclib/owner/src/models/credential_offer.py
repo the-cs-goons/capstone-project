@@ -1,5 +1,5 @@
 from typing import Dict, List, Optional
-from pydantic import AnyHttpUrl, BaseModel
+from pydantic import BaseModel
 
 
 class CredentialOffer(BaseModel):
@@ -17,7 +17,7 @@ class CredentialOffer(BaseModel):
     Authorization Server accepts for this credential offer, plus extra parameters to
     use.
     """
-    credential_issuer: AnyHttpUrl
+    credential_issuer: str
     credential_configuration_ids: List[str]
     grants: Optional[Dict]
 
