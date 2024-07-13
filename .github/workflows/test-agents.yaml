@@ -38,6 +38,7 @@ jobs:
         with:
           node-version: "20"
           cache: "pnpm"
+          cache-dependency-path: "owner-ui/pnpm-lock.yaml"
 
       - name: Run Python tests
         id: test-python
