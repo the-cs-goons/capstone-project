@@ -17,7 +17,7 @@ Running these tests also generates an HTML coverage report in the `htmlcov/` fol
 
 #### Testing the React frontend
 
-From the `owner-ui` directory, run `pnpm test`. You may need to run `pnpm install` first to install the frontend's dependencies if you haven't already.
+From the `owner-ui` directory, run `pnpm test` or `pnpm coverage`. You may need to run `pnpm install` first to install the frontend's dependencies if you haven't already.
 
 ### Serving agents
 
