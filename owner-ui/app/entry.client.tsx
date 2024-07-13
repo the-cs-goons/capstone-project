@@ -8,7 +8,7 @@ import createEmotionCache from "./src/createEmotionCache";
 interface ClientCacheProviderProps {
   children: React.ReactNode;
 }
-function ClientCacheProvider({ children }: ClientCacheProviderProps) {
+function ClientCacheProvider({ children }: Readonly<ClientCacheProviderProps>) {
   const [cache, setCache] = React.useState(createEmotionCache());
 
   const clientStyleContextValue = React.useMemo(

@@ -76,7 +76,7 @@ interface LayoutProps {
   children: React.ReactNode;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children }: Readonly<LayoutProps>) {
   return (
     <Document>
       <React.StrictMode>{children}</React.StrictMode>
@@ -133,17 +133,15 @@ export function ErrorBoundary() {
   if (error instanceof Error) {
     console.error(error);
     return (
-      <>
-        <div>
-          <h1>There was an error</h1>
-          <p>{error.message}</p>
-          <hr />
-          <p>
-            Hey, developer, you should replace this with what you want your
-            users to see.
-          </p>
-        </div>
-      </>
+      <div>
+        <h1>There was an error</h1>
+        <p>{error.message}</p>
+        <hr />
+        <p>
+          Hey, developer, you should replace this with what you want your users
+          to see.
+        </p>
+      </div>
     );
   }
 
