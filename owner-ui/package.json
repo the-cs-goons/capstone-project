@@ -10,6 +10,7 @@
     "typecheck": "tsc",
     "lint": "eslint",
     "format": "prettier . --write",
+    "format-check": "prettier . --check",
     "test": "vitest",
     "coverage": "vitest run --coverage"
   },
