@@ -3,7 +3,7 @@
  * https://jestjs.io/docs/configuration
  */
 
-import type { JestConfigWithTsJest } from "ts-jest";
+import { createJsWithTsEsmPreset, type JestConfigWithTsJest } from "ts-jest";
 
 const config: JestConfigWithTsJest = {
   // All imported modules in your tests should be mocked automatically
@@ -92,6 +92,7 @@ const config: JestConfigWithTsJest = {
   // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^~/(.*)$": "<rootDir>/app/$1",
   },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
@@ -139,7 +140,7 @@ const config: JestConfigWithTsJest = {
   // setupFiles: [],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
-  // setupFilesAfterEnv: [],
+  setupFilesAfterEnv: ["<rootDir>/jest-setup.ts"],
 
   // The number of seconds after which a test is considered as slow and reported as such in the results.
   // slowTestThreshold: 5,
@@ -177,18 +178,9 @@ const config: JestConfigWithTsJest = {
   // testRunner: "jest-circus/runner",
 
   // A map from regular expressions to paths to transformers
-  transform: {
-    // '^.+\\.[tj]sx?$' to process ts,js,tsx,jsx with `ts-jest`
-    // '^.+\\.m?[tj]sx?$' to process ts,js,tsx,jsx,mts,mjs,mtsx,mjsx with `ts-jest`
-    "^.+\\.tsx?$": [
-      "ts-jest",
-      {
-        useESM: true,
-      },
-    ],
-  },
+  transform: createJsWithTsEsmPreset().transform,
 
-  extensionsToTreatAsEsm: [".jsx", ".ts", ".tsx"],
+  extensionsToTreatAsEsm: createJsWithTsEsmPreset().extensionsToTreatAsEsm,
 
   // An array of regexp pattern strings that are matched against all source file paths, matched files will skip transformation
   // transformIgnorePatterns: [
