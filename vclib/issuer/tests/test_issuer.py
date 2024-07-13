@@ -27,7 +27,14 @@ MOCK_INFORMATION = {
 
 @pytest.fixture()
 def credential_issuer():
-    return CredentialIssuer(MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem")
+    return CredentialIssuer(
+        MOCK_INFORMATION,
+        "vclib/issuer/tests/test_private_key.pem",
+        "vclib/issuer/tests/test_diddoc.json",
+        "vclib/issuer/tests/test_didconf.json",
+        "vclib/issuer/tests/test_metadata.json",
+        "vclib/issuer/tests/test_oauth_metadata.json",
+    )
 
 
 @pytest.mark.asyncio()
@@ -65,7 +72,12 @@ async def test_check_credential_status(credential_issuer):
 @pytest.mark.asyncio()
 async def test_invalid_credentials():
     credential_issuer = CredentialIssuer(
-        MOCK_INFORMATION, "vclib/issuer/tests/test_private_key.pem"
+        MOCK_INFORMATION,
+        "vclib/issuer/tests/test_private_key.pem",
+        "vclib/issuer/tests/test_diddoc.json",
+        "vclib/issuer/tests/test_didconf.json",
+        "vclib/issuer/tests/test_metadata.json",
+        "vclib/issuer/tests/test_oauth_metadata.json",
     )
 
     info = {"name": "Name Lastname"}
@@ -114,12 +126,24 @@ async def test_invalid_information(credential_issuer):
 @pytest.mark.asyncio()
 async def test_nonexistent_key():
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(MOCK_INFORMATION, "not/a/key.pem")
+        CredentialIssuer(
+            MOCK_INFORMATION,
+            "not/a/key.pem",
+            "vclib/issuer/tests/test_diddoc.json",
+            "vclib/issuer/tests/test_didconf.json",
+            "vclib/issuer/tests/test_metadata.json",
+            "vclib/issuer/tests/test_oauth_metadata.json",
+        )
 
 
 @pytest.mark.asyncio()
 async def test_invalid_key():
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION, "vclib/issuer/tests/test_invalid_private_key.pem"
+            MOCK_INFORMATION,
+            "vclib/issuer/tests/test_invalid_private_key.pem",
+            "vclib/issuer/tests/test_diddoc.json",
+            "vclib/issuer/tests/test_didconf.json",
+            "vclib/issuer/tests/test_metadata.json",
+            "vclib/issuer/tests/test_oauth_metadata.json",
         )

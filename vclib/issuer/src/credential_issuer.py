@@ -9,6 +9,8 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
 
 from .models.responses import (
+    DIDConfigResponse,
+    DIDJSONResponse,
     MetadataResponse,
     OAuthMetadataResponse,
     OptionsResponse,
@@ -27,10 +29,21 @@ class CredentialIssuer:
     - ticket(`int`): Internal tracking of current ticket number
     - mapping(`dict[str, int]`): Mapping of links to tickets
     - private_key: Private key used to sign credentials
+
+
+    TODO
+    diddoc_path
+
     """
 
     def __init__(
-        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+        self,
+        credentials: dict[str, dict[str, dict[str, Any]]],
+        private_key_path: str,
+        diddoc_path: str,
+        did_config_path: str,
+        metadata_path: str,
+        oauth_metadata_path: str,
     ):
         self.credentials = credentials
         self.ticket = 0
@@ -44,6 +57,38 @@ class CredentialIssuer:
             raise FileNotFoundError(f"Could not find private key: {e}")
         except ValueError as e:
             raise ValueError(f"Invalid private key provided: {e}")
+
+        try:
+            with open(diddoc_path, "rb") as diddoc_file:
+                self.diddoc = json.load(diddoc_file)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find DIDDoc: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid DIDDoc provided: {e}")
+
+        try:
+            with open(did_config_path, "rb") as did_config_file:
+                self.did_config = json.load(did_config_file)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find DID configuration json: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid DID configuration json provided: {e}")
+
+        try:
+            with open(metadata_path, "rb") as metadata_file:
+                self.metadata = json.load(metadata_file)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find metadata json: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid metadata json provided: {e}")
+
+        try:
+            with open(oauth_metadata_path, "rb") as oauth_metadata_file:
+                self.oauth_metadata = json.load(oauth_metadata_file)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find OAuth metadata json: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid OAuth metadata json provided: {e}")
 
     async def get_credential_options(self) -> OptionsResponse:
         """Retrieves available credentials that can be issued,
@@ -150,6 +195,18 @@ class CredentialIssuer:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
+    def get_did_json(self) -> DIDJSONResponse:
+        return self.diddoc
+
+    def get_did_config(self) -> DIDConfigResponse:
+        return self.did_config
+
+    def get_issuer_metadata(self) -> MetadataResponse:
+        return self.metadata
+
+    def get_oauth_metadata(self) -> OAuthMetadataResponse:
+        return self.oauth_metadata
+
     def authorize(self):
         pass
 
@@ -168,16 +225,16 @@ class CredentialIssuer:
         router.post("/request/{cred_type}")(self.receive_credential_request)
         router.get("/status/")(self.credential_status)
 
-        router.get("/.well-known/did.json")(self.did_json)
-        router.get("/.well-known/did-configuration")(self.did_config)
-        router.get("/.well-known/openid-credential-issuer")(self.issuer_metadata)
-        router.get("/.well-known/oauth-authorization-server")(self.oauth_metadata)
+        router.get("/.well-known/did.json")(self.get_did_json)
+        router.get("/.well-known/did-configuration")(self.get_did_config)
+        router.get("/.well-known/openid-credential-issuer")(self.get_issuer_metadata)
+        router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
 
         """OAuth endpoints"""
         router.post("/authorize")(self.authorize)
         router.post("/token")(self.token)
 
-        router.post("/credentials")(self.get_credential)
+        # router.post("/credentials")(self.get_credential)
         # router.post("/deferred")(self.deferred_credential)
 
         return router
@@ -185,18 +242,6 @@ class CredentialIssuer:
     ###
     ### User-defined functions, designed to be overwritten
     ###
-    def did_json(self):
-        pass
-
-    def did_config(self):
-        pass
-
-    def issuer_metadata(self) -> MetadataResponse:
-        pass
-
-    def oauth_metadata(self) -> OAuthMetadataResponse:
-        pass
-
     def get_request(self, _ticket: int, _cred_type: str, _information: dict):
         """## !!! This function must be `@override`n !!!
 

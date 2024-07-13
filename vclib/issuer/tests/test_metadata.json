@@ -1,0 +1,57 @@
+{
+    "credential_issuer": "https://issuer-lib:8082",
+    "credential_endpoint": "https://issuer-lib:8082/credentials",
+    "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
+    "credential_configurations_supported": {
+        "https://issuer-lib:8082/ID": {
+            "format": "vc+sd-jwt",
+            "vct": "https://issuer-lib:8082/ID",
+            "cryptographic_binding_methods_supported": [
+                "did:peer"
+            ],
+            "credential_signing_alg_values_supported": [
+                "ES256"
+            ],
+            "proof_types_supported": {
+                "jwt": {
+                    "proof_signing_alg_values_supported": "EdDSA"
+                }
+            },
+            "claims": {
+                "given_name": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "family_name": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "email": {
+                    "value_type": "string"
+                },
+                "phone_number": {
+                    "value_type": "number"
+                },
+                "address": {
+                    "street_address": {
+                        "value_type": "string"
+                    },
+                    "state": {
+                        "value_type": "string"
+                    },
+                    "country": {
+                        "value_type": "string"
+                    }
+                },
+                "birthdate": {
+                    "value_type": "number"
+                },
+                "is_over_18": {
+                    "mandatory": true,
+                    "value_type": "string"
+                }
+            }
+        }
+    },
+    "credential_identifiers_supported": true
+}

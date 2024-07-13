@@ -20,9 +20,22 @@ class DefaultIssuer(CredentialIssuer):
 
     @override
     def __init__(
-        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+        self,
+        credentials: dict[str, dict[str, dict[str, Any]]],
+        private_key_path: str,
+        diddoc_path: str,
+        did_config_path: str,
+        metadata_path: str,
+        oauth_metadata_path: str,
     ):
-        super().__init__(credentials, private_key_path)
+        super().__init__(
+            credentials,
+            private_key_path,
+            diddoc_path,
+            did_config_path,
+            metadata_path,
+            oauth_metadata_path,
+        )
         self.statuses = {}
 
     @override
@@ -77,6 +90,10 @@ credentials = {
 }
 
 credential_issuer = DefaultIssuer(
-    credentials, "/usr/src/app/examples/example_private_key.pem"
+    credentials, "/usr/src/app/examples/example_private_key.pem",
+    "/usr/src/app/examples/example_diddoc.json",
+    "/usr/src/app/examples/example_didconf.json",
+    "/usr/src/app/examples/example_metadata.json",
+    "/usr/src/app/examples/example_oauth_metadata.json",
 )
 credential_issuer_server = credential_issuer.get_server()
