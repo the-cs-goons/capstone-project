@@ -8,6 +8,8 @@
     "dev": "remix vite:dev",
     "start": "remix-serve ./build/server/index.js",
     "typecheck": "tsc",
+    "lint": "eslint",
+    "format": "prettier . --write",
     "test": "jest"
   },
   "dependencies": {
