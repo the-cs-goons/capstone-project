@@ -48,16 +48,16 @@ class ExampleServiceProvider(ServiceProvider):
         transaction_id = f"{uuid.uuid4()}_{int(time.time())}"
         request.state = transaction_id
         request.wallet_nonce = wallet_nonce
-        self.current_transaction_ids[transaction_id] = "age_verification"
+        self.current_transactions[transaction_id] = "age_verification"
         response = jsonable_encoder(request, exclude_none = True)
         return JSONResponse(content=response)
 
-    def __create_request_uri_QR(self, request_type: str):
+    def __create_request_uri_qr(self, request_type: str):
         pass
 
 service_provider = ExampleServiceProvider([], "test")
 
-age_request_PD_data = {
+age_request_pd_data = {
     "id": "age-verification",
     "input_descriptors": [
         {
@@ -84,13 +84,13 @@ age_request_PD_data = {
     ]
 }
 
-age_request_PD = PresentationDefinition(**age_request_PD_data)
+age_request_pd = PresentationDefinition(**age_request_pd_data)
 
 age_request_data = {
     "client_id": "some did",
     "client_id_scheme": "did",
     "client_metadata": {"data" : "metadata in this object"},
-    "presentation_definition": age_request_PD,
+    "presentation_definition": age_request_pd,
     "redirect_uri": f"http://owner-lib:{os.getenv('CS3900_OWNER_AGENT_PORT')}/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",

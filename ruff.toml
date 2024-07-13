@@ -4,7 +4,7 @@ target-version = "py312"
 # to consider: "C90", "D" minus ["D206", "D300", "D203", "D213"], "ANN", "S", "BLE", "B", "A", "EM", "T20", "PT", "SLF", "ARG", "PTH", "PL", "TRY", "PERF
 # feel free to remove rules if they're getting annoying, just added these for completion's sake :D
 select = ["E", "F", "I", "W", "N", "UP", "YTT", "ASYNC", "FBT", "COM818", "C4", "DTZ", "T10", "EXE", "FA", "ISC003", "ICN", "LOG", "G", "INP", "PIE", "PYI", "Q004", "RSE", "RET", "SLOT", "SIM", "TID", "TCH", "INT", "PD", "NPY", "AIR", "FURB", "RUF"]
-ignore = ["W191"]
+ignore = ["W191", "N815"]
 
 [format]
 docstring-code-format = true

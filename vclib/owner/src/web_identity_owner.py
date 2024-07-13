@@ -1,9 +1,11 @@
 from typing import override
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Form
+import httpx
 
 from . import IdentityOwner
 from .models.credentials import Credential
+from .models.field_selection_object import FieldSelectionObject
 from .models.exceptions import (
     BadIssuerRequestError,
     CredentialIssuerError,
@@ -16,6 +18,20 @@ from .models.responses import SchemaResponse
 class WebIdentityOwner(IdentityOwner):
     def __init__(self, storage_key, *, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
+
+    def get_server(self) -> FastAPI:
+        router = FastAPI()
+
+        router.get("/credential/{cred_id}")(self.get_credential)
+        router.get("/credentials")(self.get_credentials)
+        router.get("/request/{cred_type}")(self.get_credential_request_schema)
+        router.post("/request/{cred_type}")(self.apply_for_credential)
+        router.get("/refresh/{cred_id}")(self.refresh_credential)
+        router.get("/refresh/all")(self.refresh_all_pending_credentials)
+        router.get("/presentation/init")(self.get_auth_request)
+        router.post("/presentation/present_selection")(self.present_selection)
+
+        return router
 
     def get_credential(self, cred_id) -> Credential:
         """Gets a credential by ID, if one exists
@@ -126,14 +142,15 @@ class WebIdentityOwner(IdentityOwner):
         await self.poll_all_pending_credentials()
         return self.credentials.values()
 
-    def get_server(self) -> FastAPI:
-        router = FastAPI()
+    async def present_selection(
+            self,
+            fields: FieldSelectionObject
+        ):
+        pass
 
-        router.get("/credential/{cred_id}")(self.get_credential)
-        router.get("/credentials")(self.get_credentials)
-        router.get("/request/{cred_type}")(self.get_credential_request_schema)
-        router.post("/request/{cred_type}")(self.apply_for_credential)
-        router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh/all")(self.refresh_all_pending_credentials)
-
-        return router
+    async def get_auth_request(
+            self,
+            request_URI = Form(...)
+        ):
+        ## retreive auth_request object
+        pass
