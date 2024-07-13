@@ -1,10 +1,13 @@
 from base64 import b64decode, b64encode
 from json import loads
+from typing import Dict
 from uuid import uuid4
 
 from requests import Response, Session
 
-from .models import Credential
+from .models.credentials import Credential
+from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
+from .models.credential_offer import CredentialOffer
 from .models.exceptions import (
     BadIssuerRequestError,
     CredentialIssuerError,
@@ -12,7 +15,6 @@ from .models.exceptions import (
     IssuerTypeNotFoundError,
     IssuerURLNotFoundError,
 )
-
 
 class IdentityOwner:
     """Base Identity Owner class
@@ -25,9 +27,13 @@ class IdentityOwner:
     - storage_key(`str`): Key for encrypting stored credentials (currently unused)
     """
 
+    client_metadata: WalletClientMetadata
+
+    client_registrations: Dict
+
     # TODO: Enforce https
 
-    def __init__(self, storage_key: str, *, dev_mode=False):
+    def __init__(self, storage_key: str, *, dev_mode=False,):
         """Creates a new Identity Owner
 
         ### Parameters
@@ -36,6 +42,7 @@ class IdentityOwner:
         - dev_mode(`bool`): An optional parameter (CURRENTLY UNUSED)
 
         """
+        self.client_registrations = {}
         self.storage_key = storage_key
         self.dev_mode = dev_mode
         self.credentials: dict[str, Credential] = {}
@@ -71,134 +78,47 @@ class IdentityOwner:
         """
         return Credential.model_validate(loads(b64decode(dump)))
 
-    def get_pending_credentials(self) -> list[Credential]:
-        """Retrieves all pending credentials.
-
-        ### Returns
-        - `list[Credential]`: A list of Credential objects with status `"PENDING"`.
+    async def get_credential_offer(self, credential_offer_uri: str | None, credential_offer: str | None):
         """
-        return [cred for cred in self.credentials.values() if cred.status == "PENDING"]
-
-    async def poll_credential_status(self, cred_id: str):
-        """Polls for a pending credential
+        Recieve a credential offer.
 
         ### Parameters
-        - cred_id(`str`): An identifier for the desired credential
-
-        Todo:
-        ----
-        - enforce https for non-dev mode for security purposes
-        - validate body comes in expected format
-
+        - credential_offer_uri(`str | None`): A URL linking to a credential offer 
+        object. If provided, `credential_offer` MUST be none. 
+        - credential_offer(`str`): A URL-encoded credential offer object. If given,
+        `credential_offer_uri` MUST be none. 
         """
-        if cred_id not in self.credentials:
-            raise CredentialNotFoundError
-        credential = self.credentials[cred_id]
+        if credential_offer and credential_offer_uri:
+            raise Exception("Can't accept both credential_offer and credential_offer_uri")
+        
+        if not credential_offer and not credential_offer_uri:
+            raise Exception("Neither credential_offer nor credential_offer_uri were provided")
+        
+        offer: CredentialOffer
+        if credential_offer_uri:
+            # Create a credential offer obj from the URI
+            with Session() as s:
+                res: Response = s.get(credential_offer_uri)
+                res.raise_for_status()
+                offer = CredentialOffer.model_validate_json(res.content)
+        else:
+            offer = CredentialOffer.model_validate_json(credential_offer)
 
-        # Closes session afterwards
+        issuer_uri = offer.credential_issuer
+
+
+    async def get_issuer_metadata(self, issuer_uri):
         with Session() as s:
-            response: Response = s.get(credential.request_url)
-            if not response.ok:
-                raise CredentialIssuerError
-            # TODO: Logic for updating state according to how Mal's structured things
-            body: dict = response.json()
-            credential.status = body["status"]
+            s.get(f"{issuer_uri}/.well-known/openid-credential-issuer")
 
-            if credential.status == "ACCEPTED":
-                credential.token = body["credential"]
-            elif credential.status == "REJECTED":
-                credential.status_message = body["detail"]
-
-            return credential
-
-    async def poll_all_pending_credentials(self) -> list[str]:
-        """Polls the issuer for updates on all outstanding credential requests.
-
-        ### Returns
-        - `list[str]` A list of credential IDs belonging to credentials that were
-        updated.
-        """
-        updated = []
-        for cred in self.get_pending_credentials():
-            if cred.status == "Pending":
-                await self.poll_credential_status(cred.id)
-                updated.append(cred.id)
-
-        return updated
-
-    def add_credential_from_url(self, url: str):
-        """Adds a credential to the Identity Owner from a request URL
-
-        ### Parameters
-        - url(`str`): The request URL to poll to for the credential's status
-        """
-        id = uuid4()
-        # TODO: Poll issuer for type and base URL
-        credential = Credential(id=id, issuer_url="", type="", request_url=url)
-        self.credentials[id] = credential
-        self.store_credential(credential)
-
-    async def get_credential_request_schema(self, cred_type: str, issuer_url: str):
-        """Retrieves required information needed to submit a request for some ID type
-        from an issuer.
-
-        ### Parameters
-        - issuer_url(`str`): The issuer URL
-        - cred_type(`str`): The type of the credential schema request being asked for
-        """
+    async def register_client(self, registration_url, wallet_metadata=None):
+        metadata = wallet_metadata
+        if not metadata:
+            metadata = self.client_metadata
         with Session() as s:
-            response: Response = s.get(f"{issuer_url}/credentials")
-            if not response.ok:
-                raise IssuerURLNotFoundError
-
-            body: dict = response.json()
-            if "options" not in body:
-                raise CredentialIssuerError
-
-            options: dict = body["options"]
-            if cred_type not in options:
-                raise IssuerTypeNotFoundError
-
-            return options[cred_type]
-
-    def apply_for_credential(
-        self, cred_type: str, issuer_url: str, info: dict
-    ) -> Credential:
-        """Sends request for a new credential directly, then stores it
-
-        ### Parameters
-        - issuer_url(`str`): The issuer URL
-        - cred_type(`str`): The type of the credential schema request being asked for
-        - info(`dict`): The body of the request to forward on to the issuer, sent as
-        JSON
-
-        ### Returns
-        - `Credential`: The new (pending) credential, if requested successfully
-        """
-        body: dict
-        with Session() as s:
-            response: Response = s.post(f"{issuer_url}/request/{cred_type}", json=info)
-            if not response.ok:
-                if response.status_code < 500:
-                    if "detail" not in response.json():
-                        raise IssuerTypeNotFoundError
-                    if response.status_code == 404:
-                        raise IssuerURLNotFoundError
-                    raise BadIssuerRequestError
-                raise CredentialIssuerError
-            body = response.json()
-
-        # For internal use by the ID owner library/agent
-        id = uuid4().hex
-        # TODO: Verify
-        req_url = f"{issuer_url}/status?token={body['link']}"
-
-        credential = Credential(
-            id=id, issuer_url=issuer_url, type=cred_type, request_url=req_url
-        )
-        self.credentials[id] = credential
-        self.store_credential(credential)
-        return self.credentials[id]
+            res: Response = s.post(registration_url, json=metadata)
+            body: dict = res.json()
+            return RegisteredClientMetadata.model_validate_json(body)
 
     ###
     ### User-defined functions, designed to be overwritten

@@ -14,7 +14,7 @@ from .models.responses import SchemaResponse
 
 
 class WebIdentityOwner(IdentityOwner):
-    def __init__(self, storage_key, *, dev_mode=False):
+    def __init__(self, storage_key, *args, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
 
     def get_credential(self, cred_id) -> Credential:
@@ -131,8 +131,8 @@ class WebIdentityOwner(IdentityOwner):
 
         router.get("/credential/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
-        router.get("/request/{cred_type}")(self.get_credential_request_schema)
-        router.post("/request/{cred_type}")(self.apply_for_credential)
+        # router.get("/request/{cred_type}")(self.get_credential_request_schema)
+        # router.post("/request/{cred_type}")(self.apply_for_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh/all")(self.refresh_all_pending_credentials)
 
