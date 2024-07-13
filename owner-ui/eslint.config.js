@@ -9,7 +9,7 @@ import { fixupConfigRules, fixupPluginRules } from "@eslint/compat";
 import eslintConfigPrettier from "eslint-config-prettier";
 
 export default [
-  { ignores: ["!**/.server", "!**/.client", "**/build"] },
+  { ignores: ["!**/.server", "!**/.client", "**/build", "**/coverage"] },
   { files: ["**/*.{js,mjs,cjs,ts,jsx,tsx}"] },
   {
     plugins: { "jsx-a11y": fixupPluginRules(jsxA11Y) },
