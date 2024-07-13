@@ -212,11 +212,16 @@ class IdentityOwner:
             res.raise_for_status()
             body: dict = res.json()
 
-            s.auth = None
-            s.headers["Authorization"] = f"Bearer {body.get('access_token')}"
-            s.get(issuer_metadata.credential_endpoint)
+            token = body.get("access_token")
+            # TODO: ADD CREDENTIALS
+            for cred_id in body.get("authorization_details")["credential_identifiers"]:
+                cred = Credential(uuid4().hex, 
+                                  issuer_url=issuer_metadata.credential_issuer,
+                                  cred_type=cred_id,
+                                  credential_configuration_id=cred_id
+                                  )
 
-        # Get Credential
+
 
 
 
