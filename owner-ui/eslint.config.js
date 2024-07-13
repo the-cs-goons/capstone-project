@@ -19,7 +19,7 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
-  { languageOptions: { globals: globals.browser } },
+  { languageOptions: { globals: { ...globals.browser, ...globals.node } } },
   {
     settings: {
       react: { version: "detect" },

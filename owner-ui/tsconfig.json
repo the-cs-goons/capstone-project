@@ -5,7 +5,12 @@
     "isolatedModules": true,
     "esModuleInterop": true,
     "jsx": "react-jsx",
-    "types": ["@remix-run/node", "vite/client", "jest"],
+    "types": [
+      "@remix-run/node",
+      "vite/client",
+      "vitest/globals",
+      "vitest/jsdom"
+    ],
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
