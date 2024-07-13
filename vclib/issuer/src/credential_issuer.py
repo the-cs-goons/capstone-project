@@ -32,7 +32,7 @@ class CredentialIssuer:
 
 
     TODO
-    diddoc_path
+    paths
 
     """
 
@@ -161,17 +161,14 @@ class CredentialIssuer:
         """Checks fields in the given information are of the correct type.
         Raises `TypeError` if types do not match.
         """
-        if information is None:
-            raise TypeError("No request body provided")
-
         for field_name, field_info in self.credentials[cred_type].items():
             if field_name in information:
                 value = information[field_name]
                 if value is None:
-                    if not field_info["optional"]:
-                        raise TypeError(f"{field_name} is non-optional and was null")
+                    if field_info["mandatory"]:
+                        raise TypeError(f"{field_name} is mandatory and was null")
                 else:
-                    match field_info["type"]:
+                    match field_info["value_type"]:
                         case "string":
                             if not isinstance(value, str):
                                 raise TypeError(f"{field_name} expected to be string")
@@ -189,8 +186,8 @@ class CredentialIssuer:
                             raise NotImplementedError
                         case "object":
                             raise NotImplementedError
-            elif not field_info["optional"]:
-                raise TypeError(f"{field_name} is non-optional and was not provided")
+            elif field_info["mandatory"]:
+                raise TypeError(f"{field_name} is mandatory and was not provided")
         for field_name in information:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")

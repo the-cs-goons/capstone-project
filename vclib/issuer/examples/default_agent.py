@@ -63,30 +63,41 @@ class DefaultIssuer(CredentialIssuer):
 
 
 credentials = {
-    "id": {
-        "name": {
-            "type": "string",
-            "optional": False,
+    "ID": {
+        "given_name": {
+            "mandatory": True,
+            "value_type": "string"
         },
-        "age": {
-            "type": "number",
-            "optional": False,
+        "family_name": {
+            "mandatory": True,
+            "value_type": "string"
         },
-    },
-    "id2": {
-        "firstname": {
-            "type": "string",
-            "optional": False,
+        "email": {
+            "value_type": "string"
         },
-        "lastname": {
-            "type": "string",
-            "optional": True,
+        "phone_number": {
+            "value_type": "number"
         },
-        "adult": {
-            "type": "boolean",
-            "optional": False,
+        "address": {
+            "street_address": {
+                "value_type": "string"
+            },
+            "state": {
+                "value_type": "string"
+            },
+            "country": {
+                "value_type": "string"
+            }
         },
-    },
+        "birthdate": {
+            "mandatory": True,
+            "value_type": "number"
+        },
+        "is_over_18": {
+            "mandatory": True,
+            "value_type": "string"
+        }
+    }
 }
 
 credential_issuer = DefaultIssuer(
