@@ -34,6 +34,24 @@ RUN --mount=type=bind,source=package.json,target=package.json \
     pnpm install --prod --frozen-lockfile
 
 ################################################################################
+# Create a stage for running in development mode.
+FROM base AS dev
+
+RUN --mount=type=bind,source=package.json,target=package.json \
+    --mount=type=bind,source=pnpm-lock.yaml,target=pnpm-lock.yaml \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    pnpm install --frozen-lockfile
+
+# Copy the rest of the source files into the image.
+COPY . .
+
+# Expose the port that the application listens on.
+EXPOSE ${CS3900_OWNER_UI_PORT}
+
+# Run the application.
+CMD pnpm dev
+
+################################################################################
 # Create a stage for building the application.
 FROM deps AS build
 
@@ -52,7 +70,7 @@ RUN pnpm run build
 ################################################################################
 # Create a new stage to run the application with minimal runtime dependencies
 # where the necessary files are copied from the build stage.
-FROM base AS final
+FROM base AS prod
 
 # Use production node environment by default.
 ENV NODE_ENV production
