@@ -6,6 +6,10 @@ import { coverageConfigDefaults } from "vitest/config";
 
 export default defineConfig({
   plugins: [!process.env.VITEST && remix(), tsconfigPaths()],
+  server: {
+    port: process.env.CS3900_OWNER_UI_PORT,
+    host: true,
+  },
   test: {
     globals: true,
     environment: "jsdom",
