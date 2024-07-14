@@ -203,26 +203,26 @@ def test_fetch_did_document_success(service_provider):
 
 def base64url_encode(data):
     """Encode data in a base64url-safe manner, without padding."""
-    base64_encoded = base64.urlsafe_b64encode(data).decode('utf-8')
+    base64_encoded = base64.urlsafe_b64encode(data.encode()).decode('utf-8')
     return base64_encoded.rstrip('=')
 
 def create_test_jwt():
-    header = {"kid": "did:web:example.com#key-1", "alg": "HS256"}
+    header = {"kid": "did:web:example.com#key-1", "alg": "RS256"}
     payload = {"sub": "123", "nonce": "nonce-value"}
 
-    encoded_header = base64url_encode(json.dumps(header).encode())
-    encoded_payload = base64url_encode(json.dumps(payload).encode())
+    encoded_header = base64url_encode(json.dumps(header))
+    encoded_payload = base64url_encode(json.dumps(payload))
 
-    signature = base64url_encode(b'signature-placeholder')
+    signature = base64url_encode('signature-placeholder')
 
     return f"{encoded_header}.{encoded_payload}.{signature}"
 
 def test_verify_jwt_success(service_provider):
     with patch.object(service_provider, 'fetch_did_document') as mock_fetch, \
-         patch('jose.jwt.decode') as mock_decode, \
-         patch('jose.jwk.construct') as mock_construct:
+         patch('jwt.decode') as mock_decode, \
+         patch('jwt.algorithms.RSAAlgorithm.from_jwk') as mock_from_jwk:
 
-        mock_fetch.return_value = {
+        example_did_document = {
             "@context": "https://www.w3.org/ns/did/v1",
             "id": "did:web:example.com",
             "verificationMethod": [{
@@ -232,12 +232,13 @@ def test_verify_jwt_success(service_provider):
                 "publicKeyJwk": {"kty": "EC", "crv": "P-256", "x": "abc", "y": "def"}
             }]
         }
+        mock_fetch.return_value = example_did_document
         mock_decode.return_value = {'sub': '123'}
         fake_token = create_test_jwt()
         fake_did_url = 'https://example.com'
 
         result = service_provider.verify_jwt(fake_token, fake_did_url, 'nonce-value')
-        mock_construct.assert_called_once_with(
-            {"kty": "EC", "crv": "P-256", "x": "abc", "y": "def"})
+
+        mock_from_jwk.assert_called_once_with(example_did_document['verificationMethod'][0]['publicKeyJwk'])
         mock_decode.assert_called_once()
         assert result == {'sub': '123'}

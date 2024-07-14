@@ -1,9 +1,9 @@
 
 from uuid import uuid4
 
+import jwt
 import requests
 from fastapi import FastAPI, HTTPException
-from jose import jwk, jwt
 
 from .models.presentation_definition import PresentationDefinition
 from .models.presentation_request_response import PresentationRequestResponse
@@ -49,16 +49,41 @@ class ServiceProvider:
 
         raise Exception(f"Failed to fetch DID document from {did_url}")
 
+    # def verify_jwt(self, token: str, did_url: str, nonce: str) -> dict:
+    #     ''' Take in the JWT and verify with the did '''
+    #     did_doc = self.fetch_did_document(did_url)
+    #     header = jwt.get_unverified_header(token)
+    #     kid = header['kid']
+
+    #     for vm in did_doc['verificationMethod']:
+    #         if vm['id'] == kid:
+    #             public_key = jwk.construct(vm['publicKeyJwk'])
+    #             # Verify the JWT using the public key
+    #             return jwt.decode(token, public_key, algorithms=['HS256'])
+
+    #     raise Exception("Verification method not found or invalid token.")
+
     def verify_jwt(self, token: str, did_url: str, nonce: str) -> dict:
         ''' Take in the JWT and verify with the did '''
         did_doc = self.fetch_did_document(did_url)
         header = jwt.get_unverified_header(token)
         kid = header['kid']
 
+        # Find the public key in the DID document
         for vm in did_doc['verificationMethod']:
             if vm['id'] == kid:
-                public_key = jwk.construct(vm['publicKeyJwk'])
+                public_key = vm['publicKeyJwk']
+                # Convert public key into a format usable by PyJWT
+                public_key = jwt.algorithms.RSAAlgorithm.from_jwk(public_key)
+
                 # Verify the JWT using the public key
-                return jwt.decode(token, public_key, algorithms=['HS256'])
+                try:
+                    return jwt.decode(
+                        token,
+                        key=public_key,
+                        algorithms=["RS256"],
+                        options={"verify_exp": False})
+                except Exception as e:
+                    raise Exception("JWT verification failed: " + str(e))
 
         raise Exception("Verification method not found or invalid token.")
