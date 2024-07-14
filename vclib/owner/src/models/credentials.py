@@ -3,8 +3,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from vclib.common.src.sdjwt_vc.holder import SDJWTVCHolder
-
+from .oauth import AccessToken
 
 class BaseCredential(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().bytes.decode("utf-8"))
@@ -18,8 +17,8 @@ class BaseCredential(BaseModel):
 class DeferredCredential(BaseCredential):
     transaction_id: str
     deferred_credential_endpoint: str
-    access_token: str
     last_request: str
+    access_token: AccessToken
 
 class Credential(BaseCredential):
     raw_sdjwtvc: str

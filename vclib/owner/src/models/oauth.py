@@ -6,10 +6,12 @@ class AuthorizationDetails(BaseModel):
     credential_configuration_id: str
     credential_identifiers: List[str]
 
-class OAuthTokenResponse(BaseModel):
+class AccessToken(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
+
+class OAuthTokenResponse(AccessToken):
     c_nonce: Optional[Any]
     c_nonce_expires_in: Optional[Any]
     authorization_details: List[AuthorizationDetails]

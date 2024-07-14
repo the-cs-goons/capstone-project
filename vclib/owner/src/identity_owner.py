@@ -13,7 +13,7 @@ from .models.client_metadata import RegisteredClientMetadata, WalletClientMetada
 from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
-from .models.oauth import OAuthTokenResponse
+from .models.oauth import AccessToken, OAuthTokenResponse
 from vclib.owner.src.models import issuer_metadata
 
 
@@ -50,9 +50,13 @@ class IdentityOwner:
 
         
         self.dev_mode = dev_mode
-        self.credentials: dict[str, Credential] = {}
+        self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
+
+    ###
+    ### Storage and persistence
+    ###
 
     def serialise_and_encrypt(self, cred: Credential):
         """# NOT YET IMPLEMENTED IN FULL
@@ -82,6 +86,10 @@ class IdentityOwner:
         - `Credential`: A Credential object
         """
         return Credential.model_validate(loads(b64decode(dump)))
+
+    ###
+    ### Credential Issuance (OAuth2)
+    ###
 
     async def get_credential_offer(self,
                                    credential_offer_uri: str | None,
@@ -240,7 +248,6 @@ class IdentityOwner:
             self.oauth_clients[state] = wallet_metadata
             return authorization_url
 
-
     async def get_access_token_and_credentials_from_callback(self, 
                         code: str, 
                         state: str,
@@ -340,7 +347,11 @@ class IdentityOwner:
                             err += "Value 'transaction_id' missing from response."
                             raise Exception(err)
                         deferred = issuer_metadata.deferred_credential_endpoint
-                        
+                        token = AccessToken(
+                            access_token=access_token_res.access_token,
+                            token_type=access_token_res.token_type,
+                            expires_in=access_token_res.expires_in
+                        )
                         new_credential = DeferredCredential(
                             issuer_url=issuer_uri,
                             credential_configuration_id=config_id,
@@ -348,7 +359,7 @@ class IdentityOwner:
                             c_type=cred_type,
                             transaction_id=tx_id,
                             deferred_credential_endpoint=deferred,
-                            access_token=access_token_res.access_token,
+                            access_token=token,
                             last_request=datetime.now().isoformat(),
                         )
                         
@@ -386,6 +397,23 @@ class IdentityOwner:
             registered = RegisteredClientMetadata.model_validate(body)
         return registered
     
+    ###
+    ### Internal
+    ###
+
+    def get_credential(self, cred_id: str, refresh: bool = True):
+        """
+        Gets a credential, given an ID
+        """
+        if refresh:
+            return self.refresh_credential(cred_id)
+        
+        credential = self.credentials.get(cred_id, None)
+        if not credential:
+            raise Exception(f"Credential of ID {cred_id} not found.")
+        
+        return credential
+
     def get_deferred_credentials(self) -> list[Credential]:
         """Retrieves all pending credentials.
 
@@ -395,30 +423,64 @@ class IdentityOwner:
         return [cred for cred in self.credentials.values() if cred.is_deferred]
 
     async def refresh_credential(self, cred_id: str):
-        """Polls for a pending credential
+        """
+        Refreshes a credential.
+
+        If the credential has already been retrieved, the credential
+        will be returned unchanged.
+
+        If the credential is deferred, it will be re-requested
 
         ### Parameters
         - cred_id(`str`): An identifier for the desired credential
 
-        Todo:
-        ----
-        - enforce https for non-dev mode for security purposes
-        - validate body comes in expected format
 
         """
-        credential = self.credentials.get(cred_id, None)
-
-        if not credential:
+        cred = self.credentials.get(cred_id, None)
+        if not cred:
             raise Exception("Credential Not Found")
-        
-        if not credential.is_deferred:
-            return credential
+        if not cred.is_deferred or isinstance(cred, Credential):
+            return cred
 
-        # TODO: Re-implement
+        token = cred.access_token.model_dump()
+        body = { "transaction_id": cred.transaction_id }
+        with OAuth2Session(token=token) as s:
+            refresh: Response = s.request(
+                'POST',
+                cred.deferred_credential_endpoint,
+                json = body
+            )
+            refresh.raise_for_status()
 
-        return credential
+            if refresh.status_code == 202:
+                cred.last_request = datetime.now().isoformat()
+                self.store_credential(cred)
+                return cred
+            
+            elif refresh.status_code == 200:
+                new = refresh.json().get("credential", None)
+                if not new:
+                    err = "Invalid credential response from issuer: "
+                    err += "Value 'credential' missing from response."
+                    raise Exception(err)
+                
+                new_credential = Credential(
+                    id=cred_id,
+                    issuer_url=cred.issuer_url,
+                    credential_configuration_id=cred.credential_configuration_id,
+                    is_deferred=False,
+                    c_type=cred.c_type,
+                    received_at=datetime.now().isoformat(),
+                    raw_sdjwtvc=new,
+                    )
+                self.credentials.pop(cred_id)
+                self.credentials[cred_id] = new_credential
+                self.store_credential(new_credential)
+                return new_credential
+            else:
+                raise Exception("Invalid credential response")
 
-    async def poll_all_pending_credentials(self) -> list[str]:
+    async def refresh_all_deferred_credentials(self) -> list[str]:
         """Polls the issuer for updates on all outstanding credential requests.
 
         ### Returns
