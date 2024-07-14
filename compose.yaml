@@ -2,13 +2,15 @@ name: 3900w11athecsgoons
 
 services:
   owner-ui:
-    build: ./owner-ui
+    build:
+      context: ./owner-ui
+      target: dev
     ports:
       - $CS3900_OWNER_UI_PORT:$CS3900_OWNER_UI_PORT
     volumes:
       - type: bind
-        source: owner-ui
-        target: /usr/src/app
+        source: owner-ui/app
+        target: /usr/src/app/app
     env_file:
       - path: example.env
         required: true
