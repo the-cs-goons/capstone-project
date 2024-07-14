@@ -54,6 +54,9 @@ importers:
       '@remix-run/dev':
         specifier: ^2.10.2
         version: 2.10.2(@remix-run/react@2.10.2(react-dom@19.0.0-rc-df5f2736-20240712(react@19.0.0-rc-df5f2736-20240712))(react@19.0.0-rc-df5f2736-20240712)(typescript@5.5.3))(@remix-run/serve@2.10.2(typescript@5.5.3))(@types/node@20.14.10)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@types/node@20.14.10)(typescript@5.5.3))(typescript@5.5.3)(vite@5.3.3(@types/node@20.14.10))
+      '@remix-run/testing':
+        specifier: ^2.10.2
+        version: 2.10.2(react-dom@19.0.0-rc-df5f2736-20240712(react@19.0.0-rc-df5f2736-20240712))(react@19.0.0-rc-df5f2736-20240712)(typescript@5.5.3)
       '@testing-library/dom':
         specifier: ^10.3.1
         version: 10.3.1
@@ -899,6 +902,16 @@ packages:
     resolution: {integrity: sha512-c6CzKw4WBP4FkPnz63ua7g73/P1v34Uho2C44SZZf8IOVCGzEM9liLq6slDivn0m/UbyQnXThdXmsVjFcobmZg==}
     engines: {node: '>=18.0.0'}
     peerDependencies:
+      typescript: ^5.1.0
+    peerDependenciesMeta:
+      typescript:
+        optional: true
+
+  '@remix-run/testing@2.10.2':
+    resolution: {integrity: sha512-snSVgF1yCuyBKICfASIKCoyY+rW+QcnLWWN9nIl2n8c9NhHldlE4PRMBfRYjg1lQsik6yzzC+aPX+Yk+hjDbSQ==}
+    engines: {node: '>=18.0.0'}
+    peerDependencies:
+      react: ^18.0.0
       typescript: ^5.1.0
     peerDependenciesMeta:
       typescript:
@@ -4925,6 +4938,18 @@ snapshots:
       turbo-stream: 2.2.0
     optionalDependencies:
       typescript: 5.5.3
+
+  '@remix-run/testing@2.10.2(react-dom@19.0.0-rc-df5f2736-20240712(react@19.0.0-rc-df5f2736-20240712))(react@19.0.0-rc-df5f2736-20240712)(typescript@5.5.3)':
+    dependencies:
+      '@remix-run/node': 2.10.2(typescript@5.5.3)
+      '@remix-run/react': 2.10.2(react-dom@19.0.0-rc-df5f2736-20240712(react@19.0.0-rc-df5f2736-20240712))(react@19.0.0-rc-df5f2736-20240712)(typescript@5.5.3)
+      '@remix-run/router': 1.17.1
+      react: 19.0.0-rc-df5f2736-20240712
+      react-router-dom: 6.24.1(react-dom@19.0.0-rc-df5f2736-20240712(react@19.0.0-rc-df5f2736-20240712))(react@19.0.0-rc-df5f2736-20240712)
+    optionalDependencies:
+      typescript: 5.5.3
+    transitivePeerDependencies:
+      - react-dom
 
   '@remix-run/web-blob@3.1.0':
     dependencies:

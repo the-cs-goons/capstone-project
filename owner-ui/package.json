@@ -32,6 +32,7 @@
     "@eslint/compat": "^1.1.1",
     "@eslint/js": "^9.7.0",
     "@remix-run/dev": "^2.10.2",
+    "@remix-run/testing": "^2.10.2",
     "@testing-library/dom": "^10.3.1",
     "@testing-library/jest-dom": "^6.4.6",
     "@testing-library/react": "^16.0.0",
