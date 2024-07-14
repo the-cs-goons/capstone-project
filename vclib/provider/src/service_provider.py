@@ -12,20 +12,15 @@ from .models.presentation_request_response import PresentationRequestResponse
 class ServiceProvider:
     def __init__(
         self,
-        ca_bundle,
-        ca_path: str,
         presentation_definitions: dict[str, PresentationRequestResponse] = {},
     ):
         """Initialise the service provider with a list of CA bundle"""
         self.presentation_definitions = presentation_definitions
-        self.ca_bundle = ca_bundle
-        self.ca_path = ca_path
         self.used_nonces = set()
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.get("/request/{request_type}")(self.get_presentation_request)
-        # router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
         return router
 
     def add_presentation_definition(
@@ -48,7 +43,7 @@ class ServiceProvider:
 
     def fetch_did_document(self, did_url):
         ''' fetch the did document from endpoint '''
-        response = requests.get(did_url + '/did.json')
+        response = requests.get(did_url + './well-known/did.json')
         if response.status_code == 200:
             return response.json()
 

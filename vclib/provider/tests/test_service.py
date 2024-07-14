@@ -18,14 +18,14 @@ from vclib.provider.src.models.presentation_definition import (
 
 @pytest.mark.asyncio()
 async def test_server_exists():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
     sp_server = sp.get_server()
     assert type(sp_server) == FastAPI
 
 
 @pytest.mark.asyncio()
 async def test_basic_presentation_request():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(id="test1", input_descriptors=[])
 
@@ -39,7 +39,7 @@ async def test_basic_presentation_request():
 
 @pytest.mark.asyncio()
 async def test_multiple_presentation_requests():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd1 = PresentationDefinition(id="test1", input_descriptors=[])
 
@@ -66,7 +66,7 @@ async def test_multiple_presentation_requests():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_limit_disclosure():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="test_limit_disclosure_1",
@@ -92,7 +92,7 @@ async def test_presentation_request_limit_disclosure():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_two_fields_optional():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="name_age_presentation_1",
@@ -140,7 +140,7 @@ async def test_presentation_request_two_fields_optional():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_not_found():
-    service_provider = ServiceProvider("test_bundle", "test_path")
+    service_provider = ServiceProvider()
 
     with pytest.raises(HTTPException):
         await service_provider.get_presentation_request(
@@ -150,7 +150,7 @@ async def test_presentation_request_not_found():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_filter():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="test_filter",
@@ -179,7 +179,7 @@ async def test_presentation_request_filter():
 
 @pytest.fixture
 def service_provider():
-    return ServiceProvider(ca_bundle=None, ca_path='')
+    return ServiceProvider()
 
 def test_fetch_did_document_success(service_provider):
     with patch('requests.get') as mock_get:
