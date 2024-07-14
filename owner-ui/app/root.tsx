@@ -104,6 +104,7 @@ export function ErrorBoundary() {
 
     return (
       <>
+        <title>{`${error.status} ${error.statusText}`}</title>
         <h1>
           {error.status}: {error.statusText}
         </h1>
@@ -115,15 +116,18 @@ export function ErrorBoundary() {
   if (error instanceof Error) {
     console.error(error);
     return (
-      <div>
-        <h1>There was an error</h1>
-        <p>{error.message}</p>
-        <hr />
-        <p>
-          Hey, developer, you should replace this with what you want your users
-          to see.
-        </p>
-      </div>
+      <>
+        <title>Error!</title>
+        <div>
+          <h1>There was an error</h1>
+          <p>{error.message}</p>
+          <hr />
+          <p>
+            Hey, developer, you should replace this with what you want your
+            users to see.
+          </p>
+        </div>
+      </>
     );
   }
 
