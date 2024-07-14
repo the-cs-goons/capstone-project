@@ -40,83 +40,6 @@ class WebIdentityOwner(IdentityOwner):
         """
         return self.credentials.values()
 
-    @override
-    async def get_credential_request_schema(
-        self, cred_type: str, issuer_url: str
-    ) -> SchemaResponse:
-        """Retrieves the required information needed to submit request for some ID type
-        from an issuer.
-
-        ### Parameters
-        - issuer_url(`str`): The issuer URL, as a URL Parameter
-        - cred_type(`str`): The type of the credential schema request being asked for
-
-        ### Returns
-        - `SchemaResponse`: A list of credentials
-        """
-        try:
-            req_schema = await super().get_credential_request_schema(
-                cred_type, issuer_url
-            )
-            return SchemaResponse(request_schema=req_schema)
-        except IssuerTypeNotFoundError:
-            raise HTTPException(
-                status_code=400, detail=f"Credential type {cred_type} not found."
-            )
-        except IssuerURLNotFoundError:
-            raise HTTPException(status_code=404, detail="Issuer URL not found")
-        except CredentialIssuerError:
-            raise HTTPException(status_code=500, detail="Issuer API Error")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"{e}")
-
-    @override
-    async def apply_for_credential(
-        self, issuer_url: str, cred_type: str, info: dict
-    ) -> Credential:
-        """Sends request for a new credential directly, then stores it
-
-        ### Parameters
-        - issuer_url(`str`): The issuer URL
-        - cred_type(`str`): The type of the credential schema request being asked for
-        - info(`dict`): The body of the request to forward on to the issuer, sent as
-        JSON
-
-        ### Returns
-        - `Credential`: The new (pending) credential, if requested successfully
-        """
-        try:
-            return super().apply_for_credential(cred_type, issuer_url, info)
-        except IssuerTypeNotFoundError:
-            raise HTTPException(
-                status_code=400, detail=f"Credential type {cred_type} not found."
-            )
-        except IssuerURLNotFoundError:
-            raise HTTPException(status_code=404, detail="Issuer URL not found")
-        except BadIssuerRequestError:
-            raise HTTPException(status_code=400, detail="Bad request to Issuer")
-        except CredentialIssuerError:
-            raise HTTPException(status_code=500, detail="Issuer API Error")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error: {e}")
-
-    async def refresh_credential(self, cred_id) -> Credential:
-        """Refreshes a specified credential and returns it
-
-        ### Parameters
-        - cred_id(`str`): The internal ID of the credential to refresh
-
-        ### Returns
-        - `Credential`: The updated credential, if it exists
-        """
-        if cred_id not in self.credentials:
-            raise HTTPException(
-                status_code=400, detail=f"Credential with ID {cred_id} not found."
-            )
-
-        await self.poll_credential_status(cred_id)
-        return self.credentials[cred_id]
-
     async def refresh_all_pending_credentials(self):
         """Refreshes all PENDING credentials
 
@@ -131,9 +54,10 @@ class WebIdentityOwner(IdentityOwner):
 
         router.get("/credential/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
-        # router.get("/request/{cred_type}")(self.get_credential_request_schema)
-        # router.post("/request/{cred_type}")(self.apply_for_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh/all")(self.refresh_all_pending_credentials)
+
+        router.get("/offer")(self.get_credential_offer)
+        router.post("/offer")(self.get_offer_oauth_url)
 
         return router

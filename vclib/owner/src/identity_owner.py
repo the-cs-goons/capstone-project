@@ -221,11 +221,6 @@ class IdentityOwner:
                                   credential_configuration_id=cred_id
                                   )
 
-
-
-
-
-
     async def get_issuer_metadata(self,
                                   issuer_uri,
                                   path="/.well-known/openid-credential-issuer"):
@@ -243,6 +238,52 @@ class IdentityOwner:
             body: dict = res.json()
             registered = RegisteredClientMetadata.model_validate_json(body)
         return registered
+    
+    def get_deferred_credentials(self) -> list[Credential]:
+        """Retrieves all pending credentials.
+
+        ### Returns
+        - `list[Credential]`: A list of credentials that have been deferred.
+        """
+        return [cred for cred in self.credentials.values() if cred.is_deferred]
+
+    async def refresh_credential(self, cred_id: str):
+        """Polls for a pending credential
+
+        ### Parameters
+        - cred_id(`str`): An identifier for the desired credential
+
+        Todo:
+        ----
+        - enforce https for non-dev mode for security purposes
+        - validate body comes in expected format
+
+        """
+        credential = self.credentials.get(cred_id, None)
+
+        if not credential:
+            raise Exception("Credential Not Found")
+        
+        if not credential.is_deferred:
+            return credential
+
+        # TODO: Re-implement
+
+        return credential
+
+    async def poll_all_pending_credentials(self) -> list[str]:
+        """Polls the issuer for updates on all outstanding credential requests.
+
+        ### Returns
+        - `list[str]` A list of credential IDs belonging to credentials that were
+        updated.
+        """
+        updated = []
+        for cred in self.get_deferred_credentials():
+            await self.refresh_credential(cred.id)
+            updated.append(cred.id)
+
+        return updated
 
     ###
     ### User-defined functions, designed to be overwritten
