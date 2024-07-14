@@ -1,4 +1,6 @@
 
+from uuid import uuid4
+
 import requests
 from fastapi import FastAPI, HTTPException
 from jose import jwk, jwt
@@ -41,6 +43,9 @@ class ServiceProvider:
             client_id, self.presentation_definitions[request_type]
         )
 
+    def generate_nonce(self):
+        return str(uuid4())
+
     def fetch_did_document(self, did_url):
         ''' fetch the did document from endpoint '''
         response = requests.get(did_url + '/did.json')
@@ -59,6 +64,6 @@ class ServiceProvider:
             if vm['id'] == kid:
                 public_key = jwk.construct(vm['publicKeyJwk'])
                 # Verify the JWT using the public key
-                return jwt.decode(token, public_key, algorithms=['ES256'])
+                return jwt.decode(token, public_key, algorithms=['HS256'])
 
         raise Exception("Verification method not found or invalid token.")
