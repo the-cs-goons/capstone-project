@@ -9,8 +9,13 @@ import {
   isRouteErrorResponse,
 } from "@remix-run/react";
 import { withEmotionCache } from "@emotion/react";
-import { unstable_useEnhancedEffect as useEnhancedEffect } from "@mui/material";
+import {
+  CssBaseline,
+  ThemeProvider,
+  unstable_useEnhancedEffect as useEnhancedEffect,
+} from "@mui/material";
 import ClientStyleContext from "~/src/ClientStyleContext";
+import { walletTheme } from "./styles/theme";
 
 interface DocumentProps {
   children: React.ReactNode;
@@ -68,7 +73,12 @@ const Document = withEmotionCache(
 );
 
 export function Layout({ children }: Readonly<DocumentProps>) {
-  return <Document>{children}</Document>;
+  return (
+    <ThemeProvider theme={walletTheme}>
+      <CssBaseline />
+      <Document>{children}</Document>
+    </ThemeProvider>
+  );
 }
 
 // https://remix.run/docs/en/main/route/component

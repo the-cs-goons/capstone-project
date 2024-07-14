@@ -1,9 +1,4 @@
-import {
-  Card,
-  Container,
-  Typography,
-  Unstable_Grid2 as Grid,
-} from "@mui/material";
+import { Card, Typography, Unstable_Grid2 as Grid } from "@mui/material";
 import type { LoaderFunction } from "@remix-run/node";
 import {
   isRouteErrorResponse,
@@ -11,6 +6,8 @@ import {
   useLoaderData,
   type MetaFunction,
 } from "@remix-run/react";
+import { CredentialsGridContainer } from "~/components/CredentialsGridContainer";
+import { FlexContainer } from "~/components/FlexContainer";
 
 export const meta: MetaFunction = ({ error }) => {
   let title = "Credentials - SSI Wallet";
@@ -47,40 +44,45 @@ export default function Credentials() {
   const credentials: Array<CredentialDataField> = useLoaderData();
 
   return (
-    <Container component="main">
-      <Grid
-        container
-        columns={{ xs: 4, sm: 8, md: 12 }}
-        spacing={{ xs: 2, md: 3 }}
-        marginTop={{ xs: 1, md: 1.5 }}
-      >
-        {credentials.map((credential) => {
-          return (
-            <Grid
-              key={credential.id}
-              sx={{ display: "flex" }}
-              justifyContent={"center"}
-              size={4}
-            >
-              <Card>
-                <Typography variant="h4">{credential.type}</Typography>
-                <Typography variant="h6">{credential.issuer_name}</Typography>
-                {credential.token
-                  ? Object.entries(
-                      JSON.parse(atob(credential.token)) as [string, string][],
-                    ).map(([key, value]) => {
-                      return (
-                        <Typography variant="body1" key={key}>
-                          {value}
-                        </Typography>
-                      );
-                    })
-                  : "Pending approval"}
-              </Card>
-            </Grid>
-          );
-        })}
-      </Grid>
-    </Container>
+    <FlexContainer component="main" maxWidth="xl" disableGutters={true}>
+      <CredentialsGridContainer>
+        <Grid
+          container
+          columns={{ xs: 4, sm: 8, md: 12 }}
+          spacing={{ xs: 2, sm: 3 }}
+          sx={{ mt: { xs: 1, md: 1.5 } }}
+        >
+          {credentials.map((credential) => {
+            return (
+              <Grid
+                key={credential.id}
+                sx={{ display: "flex" }}
+                justifyContent={"center"}
+                size={4}
+              >
+                <Card>
+                  <Typography variant="h4">{credential.type}</Typography>
+                  <Typography variant="h6">{credential.issuer_name}</Typography>
+                  {credential.token
+                    ? Object.entries(
+                        JSON.parse(atob(credential.token)) as [
+                          string,
+                          string,
+                        ][],
+                      ).map(([key, value]) => {
+                        return (
+                          <Typography variant="body1" key={key}>
+                            {value}
+                          </Typography>
+                        );
+                      })
+                    : "Pending approval"}
+                </Card>
+              </Grid>
+            );
+          })}
+        </Grid>
+      </CredentialsGridContainer>
+    </FlexContainer>
   );
 }
