@@ -28,7 +28,6 @@ pygments==2.18.0; python_version >= '3.8'
 pyjwt==2.8.0
 python-dotenv==1.0.1
 python-multipart==0.0.9; python_version >= '3.8'
-python-jose==3.3.0
 pyyaml==6.0.1; python_version >= '3.6'
 requests==2.32.3; python_version >= '3.8'
 rich==13.7.1; python_full_version >= '3.7.0'

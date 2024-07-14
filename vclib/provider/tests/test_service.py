@@ -207,7 +207,7 @@ def base64url_encode(data):
     return base64_encoded.rstrip('=')
 
 def create_test_jwt():
-    header = {"kid": "did:web:example.com#key-1", "alg": "RS256"}
+    header = {"kid": "did:web:example.com#key-1", "alg": "ES256"}
     payload = {"sub": "123", "nonce": "nonce-value"}
 
     encoded_header = base64url_encode(json.dumps(header))
@@ -220,7 +220,7 @@ def create_test_jwt():
 def test_verify_jwt_success(service_provider):
     with patch.object(service_provider, 'fetch_did_document') as mock_fetch, \
          patch('jwt.decode') as mock_decode, \
-         patch('jwt.algorithms.RSAAlgorithm.from_jwk') as mock_from_jwk:
+         patch('jwt.algorithms.ECAlgorithm.from_jwk') as mock_from_jwk:
 
         example_did_document = {
             "@context": "https://www.w3.org/ns/did/v1",
