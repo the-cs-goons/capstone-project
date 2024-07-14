@@ -20,7 +20,7 @@ class UpdateResponse(BaseModel):
 
 
 class StatusResponse(BaseModel):
-    status: Any
+    status: str
     cred_type: str | None
     information: dict[str, Any] | None
 
@@ -63,8 +63,10 @@ class DIDConfigResponse(BaseModel):
 
     entries: list[ConfigEntries]
 
+
 class ProofTypesSupported(BaseModel):
     proof_signing_alg_values_supported: str
+
 
 class UniqueCredentialIdentifier(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)

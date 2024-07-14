@@ -44,7 +44,7 @@ class DefaultIssuer(CredentialIssuer):
         self.time = datetime.datetime.now(tz=datetime.UTC)
 
     @override
-    def get_status(self, ticket: int) -> StatusResponse:
+    def get_credential_status(self, ticket: str) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
 
         curr_time = datetime.datetime.now(tz=datetime.UTC)
@@ -55,6 +55,11 @@ class DefaultIssuer(CredentialIssuer):
             status="ACCEPTED", cred_type=cred_type, information=information
         )
 
+    # @override
+    # def get_deferred_credential(self, transaction_id: str) -> StatusResponse:
+
+    #     return super().get_deferred_credential(ticket, transaction_id)
+
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
@@ -64,44 +69,23 @@ class DefaultIssuer(CredentialIssuer):
 
 credentials = {
     "ID": {
-        "given_name": {
-            "mandatory": True,
-            "value_type": "string"
-        },
-        "family_name": {
-            "mandatory": True,
-            "value_type": "string"
-        },
-        "email": {
-            "value_type": "string"
-        },
-        "phone_number": {
-            "value_type": "number"
-        },
+        "given_name": {"mandatory": True, "value_type": "string"},
+        "family_name": {"mandatory": True, "value_type": "string"},
+        "email": {"value_type": "string"},
+        "phone_number": {"value_type": "number"},
         "address": {
-            "street_address": {
-                "value_type": "string"
-            },
-            "state": {
-                "value_type": "string"
-            },
-            "country": {
-                "value_type": "string"
-            }
+            "street_address": {"value_type": "string"},
+            "state": {"value_type": "string"},
+            "country": {"value_type": "string"},
         },
-        "birthdate": {
-            "mandatory": True,
-            "value_type": "number"
-        },
-        "is_over_18": {
-            "mandatory": True,
-            "value_type": "string"
-        }
+        "birthdate": {"mandatory": True, "value_type": "number"},
+        "is_over_18": {"mandatory": True, "value_type": "string"},
     }
 }
 
 credential_issuer = DefaultIssuer(
-    credentials, "/usr/src/app/examples/example_private_key.pem",
+    credentials,
+    "/usr/src/app/examples/example_private_key.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",
     "/usr/src/app/examples/example_metadata.json",

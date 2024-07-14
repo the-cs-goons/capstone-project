@@ -1,13 +1,14 @@
 import json
 from base64 import b64encode
 from hashlib import sha256
-from typing import Any
+from typing import Annotated, Any
 from uuid import uuid4
 
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Response, status
 
+from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
 from .models.responses import (
     DIDConfigResponse,
     DIDJSONResponse,
@@ -48,6 +49,7 @@ class CredentialIssuer:
         self.credentials = credentials
         self.ticket = 0
         self.mapping = {}
+        self.transaction_id_to_ticket = {}
         try:
             with open(private_key_path, "rb") as key_file:
                 self.private_key = serialization.load_pem_private_key(
@@ -122,14 +124,15 @@ class CredentialIssuer:
         """
         if cred_type not in self.credentials:
             raise HTTPException(
-                status_code=404, detail=f"Credential type {cred_type} is not supported"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Credential type {cred_type} is not supported",
             )
 
         try:
             self.check_input_typing(cred_type, information)
         except Exception as e:
             raise HTTPException(
-                status_code=400,
+                status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
             )
 
@@ -165,7 +168,7 @@ class CredentialIssuer:
             if field_name in information:
                 value = information[field_name]
                 if value is None:
-                    if field_info["mandatory"]:
+                    if field_info.get("mandatory"):
                         raise TypeError(f"{field_name} is mandatory and was null")
                 else:
                     match field_info["value_type"]:
@@ -186,7 +189,7 @@ class CredentialIssuer:
                             raise NotImplementedError
                         case "object":
                             raise NotImplementedError
-            elif field_info["mandatory"]:
+            elif field_info.get("mandatory"):
                 raise TypeError(f"{field_name} is mandatory and was not provided")
         for field_name in information:
             if field_name not in self.credentials[cred_type]:
@@ -210,17 +213,81 @@ class CredentialIssuer:
     def token(self):
         pass
 
-    def get_credential(self):
-        pass
+    def get_credential(
+        self,
+        response: Response,
+        request: CredentialRequestBody,
+        authorization: Annotated[str | None, Header()] = None,
+    ):
+        # TODO: Errors for incorrect/missing auth code
+        if authorization is None or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or missing authorization code",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        access_token = authorization.split(" ")[1]
+        ticket = self.mapping[access_token]
+
+        cred_status = self.get_credential_status(ticket)
+        if cred_status.information is not None:
+            self.mapping.pop(access_token)
+
+            if cred_status.status == "ACCEPTED":
+                credential = self.create_credential(
+                    request.credential_identifier, cred_status.information
+                )
+                return {"credential": credential}
+
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "credential_request_denied"}
+
+        transaction_id = str(uuid4())
+        self.transaction_id_to_ticket[transaction_id] = ticket
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {"transaction_id": transaction_id}
+
+    def get_deferred_credential(
+        self,
+        response: Response,
+        request: DeferredCredentialRequestBody,
+        authorization: Annotated[str | None, Header()] = None,
+    ):
+        # TODO: Errors for incorrect/missing auth code
+        if authorization is None or not authorization.startswith("Bearer "):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid or missing authorization code",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        if request.transaction_id not in self.transaction_id_to_ticket:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_transaction_id"}
+
+        access_token = authorization.split(" ")[1]
+        ticket = self.transaction_id_to_ticket[request.transaction_id]
+
+        cred_status = self.get_credential_status(ticket)
+        if cred_status.information is not None:
+            self.transaction_id_to_ticket.pop(request.transaction_id)
+            self.mapping.pop(access_token)
+            credential = self.create_credential(
+                cred_status.cred_type, cred_status.information
+            )
+            return {"credential": credential}
+
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"error": "issuance_pending"}
 
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
         router = FastAPI()
 
         # todo: replace these
-        router.get("/credentials/")(self.get_credential_options)
+        # router.get("/credentials/")(self.get_credential_options)
         router.post("/request/{cred_type}")(self.receive_credential_request)
-        router.get("/status/")(self.credential_status)
+        # router.get("/status/")(self.credential_status)
 
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
@@ -231,8 +298,8 @@ class CredentialIssuer:
         router.post("/authorize")(self.authorize)
         router.post("/token")(self.token)
 
-        # router.post("/credentials")(self.get_credential)
-        # router.post("/deferred")(self.deferred_credential)
+        router.post("/credentials")(self.get_credential)
+        router.post("/deferred")(self.get_deferred_credential)
 
         return router
 
@@ -253,7 +320,7 @@ class CredentialIssuer:
         """
         return
 
-    def get_status(self, _ticket: int) -> StatusResponse:
+    def get_credential_status(self, _ticket: int) -> StatusResponse:
         """## !!! This function must be `@override`n !!!
 
         Function to process requests for credential application status updates, as
@@ -264,12 +331,12 @@ class CredentialIssuer:
 
         ### Returns
         A `StatusResponse` object is returned, with the following fields:
-        - `Any`: A string representing the status of the application.
-        - `str`: The type of credential that was requested.
-        - `dict`: Fields to be used in the new credential, once approved. Set as
+        - `status`: A string representing the status of the application.
+        - `cred_type`: The type of credential that was requested.
+        - `information`: Fields to be used in the new credential, once approved. Set as
           `None` otherwise.
 
-        IMPORTANT: The `Any` return value can be read by anyone with the link to
+        IMPORTANT: The `status` return value can be read by anyone with the link to
         specified ticket, and must not have any sensitive information contained.
         """
         return StatusResponse(status="PENDING", cred_type=None, information=None)
