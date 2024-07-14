@@ -1,6 +1,7 @@
 
 from pydantic import BaseModel
 
+from .issuer_metadata import IssuerMetadata, AuthorizationMetadata
 
 class CredentialOffer(BaseModel):
     """
@@ -20,4 +21,5 @@ class CredentialOffer(BaseModel):
     credential_issuer: str
     credential_configuration_ids: list[str]
     grants: dict | None
+
 

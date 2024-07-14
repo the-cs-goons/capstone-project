@@ -1,25 +1,28 @@
-from datetime import datetime
-from typing import Dict, Optional
+from typing import Any, Optional
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+from vclib.common.src.sdjwt_vc.holder import SDJWTVCHolder
 
 
-class Credential(BaseModel):
-    id: str
-
+class BaseCredential(BaseModel):
+    id: str = Field(default_factory=lambda: uuid4().bytes.decode("utf-8"))
     issuer_name: Optional[str]
     issuer_url: str
-    issuer_metadata_url: Optional[str]
-
-    is_deferred: bool
-    transaction_id: Optional[str]
-    deferred_credential_endpoint: Optional[str]
-
-    cred_type: str
     credential_configuration_id: str
-    retrieve_from: Optional[str]
-    sd_jwt_vc: Optional[str]
-    credential_configuration: Dict
+    credential_configuration_name: Optional[str]
+    is_deferred: bool
+    c_type: str
 
-    received_at: Optional[int]
-    access_token: Optional[str]
+class DeferredCredential(BaseCredential):
+    transaction_id: str
+    deferred_credential_endpoint: str
+    access_token: str
+    last_request: str
+
+class Credential(BaseCredential):
+    raw_sdjwtvc: str
+    received_at: str
+
+    
