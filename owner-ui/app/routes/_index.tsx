@@ -4,13 +4,21 @@ import {
   Typography,
   Unstable_Grid2 as Grid,
 } from "@mui/material";
-import { useLoaderData } from "@remix-run/react";
+import { isRouteErrorResponse, useLoaderData } from "@remix-run/react";
 import { json } from "@remix-run/node";
 import type { MetaFunction, LoaderFunction } from "@remix-run/node";
 
-export const meta: MetaFunction = () => {
+export const meta: MetaFunction = ({ error }) => {
+  let title = "SSI Wallet";
+  if (error) {
+    title = isRouteErrorResponse(error)
+      ? `${error.status} ${error.statusText}`
+      : "Error!";
+  }
   return [
-    { title: "SSI Wallet" },
+    {
+      title: title,
+    },
     { name: "description", content: "Take control of your identity." },
   ];
 };

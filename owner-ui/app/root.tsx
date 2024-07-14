@@ -9,19 +9,15 @@ import {
   isRouteErrorResponse,
 } from "@remix-run/react";
 import { withEmotionCache } from "@emotion/react";
-import {
-  CssBaseline,
-  unstable_useEnhancedEffect as useEnhancedEffect,
-} from "@mui/material";
-import ClientStyleContext from "./src/ClientStyleContext";
+import { unstable_useEnhancedEffect as useEnhancedEffect } from "@mui/material";
+import ClientStyleContext from "~/src/ClientStyleContext";
 
 interface DocumentProps {
   children: React.ReactNode;
-  title?: string;
 }
 
 const Document = withEmotionCache(
-  ({ children, title }: DocumentProps, emotionCache) => {
+  ({ children }: Readonly<DocumentProps>, emotionCache) => {
     const clientStyleData = React.useContext(ClientStyleContext);
 
     // Only executed on client
@@ -44,7 +40,6 @@ const Document = withEmotionCache(
         <head>
           <meta charSet="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
-          {title ? <title>{title}</title> : null}
           <Meta />
           <Links />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -72,27 +67,14 @@ const Document = withEmotionCache(
   },
 );
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export function Layout({ children }: Readonly<LayoutProps>) {
-  return (
-    <Document>
-      <React.StrictMode>{children}</React.StrictMode>
-    </Document>
-  );
+export function Layout({ children }: Readonly<DocumentProps>) {
+  return <Document>{children}</Document>;
 }
 
 // https://remix.run/docs/en/main/route/component
 // https://remix.run/docs/en/main/file-conventions/routes
 export default function App() {
-  return (
-    <>
-      <CssBaseline />
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
 
 // https://remix.run/docs/en/main/route/error-boundary

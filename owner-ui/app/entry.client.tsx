@@ -4,6 +4,8 @@ import { RemixBrowser } from "@remix-run/react";
 import { CacheProvider } from "@emotion/react";
 import ClientStyleContext from "./src/ClientStyleContext";
 import createEmotionCache from "./src/createEmotionCache";
+import { CssBaseline, ThemeProvider } from "@mui/material";
+import { walletTheme } from "~/styles/theme";
 
 interface ClientCacheProviderProps {
   children: React.ReactNode;
@@ -31,9 +33,14 @@ const hydrate = () => {
   React.startTransition(() => {
     ReactDOM.hydrateRoot(
       document,
-      <ClientCacheProvider>
-        <RemixBrowser />
-      </ClientCacheProvider>,
+      <React.StrictMode>
+        <ClientCacheProvider>
+          <ThemeProvider theme={walletTheme}>
+            <CssBaseline />
+            <RemixBrowser />
+          </ThemeProvider>
+        </ClientCacheProvider>
+      </React.StrictMode>,
     );
   });
 };
