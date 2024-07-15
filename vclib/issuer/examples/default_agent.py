@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Any, override
 
 from fastapi import FastAPI
@@ -57,9 +58,19 @@ class DefaultIssuer(CredentialIssuer):
             status="ACCEPTED", cred_type=cred_type, information=information
         )
 
+    async def credential_offer(self):
+        cred_offer = {
+            "credential_issuer": "https://issuer-lib:8082",
+            "credential_configuration_ids": ["ID"],
+        }
+        await self.offer_credential(
+            "https://owner-lib:8081/offer", json.dumps(cred_offer)
+        )
+
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
+        router.get("/offer")(self.credential_offer)
         router.get("/hello")(hello_world)
         return router
 
@@ -82,7 +93,7 @@ credentials = {
 
 credential_issuer = DefaultIssuer(
     credentials,
-    "https://issuer-lib:8082",
+    "http://issuer-lib:8082",
     "/usr/src/app/examples/example_jwk_private.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",

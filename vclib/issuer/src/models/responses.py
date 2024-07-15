@@ -102,10 +102,10 @@ class OAuthMetadataResponse(BaseModel):
     authorization_endpoint: str
     token_endpoint: str
     registration_endpoint: str
-    scopes_supported: list[str]
+    scopes_supported: Any | None = Field(default=None)
     response_types_supported: list[str]
     grant_types_supported: list[str]
     authorization_details_types_supported: list[str]
-    anon_access_supported: bool = Field(
+    pre_authorized_supported: bool = Field(
         alias="pre-authorized_grant_anonymous_access_supported"
     )

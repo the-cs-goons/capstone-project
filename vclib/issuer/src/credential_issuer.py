@@ -9,6 +9,7 @@ from fastapi import FastAPI, Header, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
+from requests import Session
 
 from vclib.common import SDJWTVCIssuer
 from vclib.issuer.src.models.oauth import (
@@ -358,7 +359,7 @@ class CredentialIssuer:
 
         # TODO: Allow customising endpoints using passed in metadata
         # router.get("/credentials/")(self.get_credential_options)
-        router.post("/request/{cred_type}")(self.receive_credential_request)
+        # router.post("/request/{cred_type}")(self.receive_credential_request)
 
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
@@ -482,3 +483,8 @@ class CredentialIssuer:
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwt, None)
 
         return new_credential.sd_jwt_issuance
+
+    async def offer_credential(self, uri: str, credential_offer: str):
+        with Session() as s:
+            s.get(f"{uri}?credential_offer={credential_offer}")
+        return {uri: credential_offer}

@@ -100,7 +100,7 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
                 client_id="example_client_id",
                 client_secret="example_client_secret",
             )
-        return super().register_client(
+        return await super().register_client(
             registration_url, issuer_uri, wallet_metadata=wallet_metadata
         )
 
