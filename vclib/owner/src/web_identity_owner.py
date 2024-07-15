@@ -14,8 +14,9 @@ class WebIdentityOwner(IdentityOwner):
     def __init__(self,
                  redirect_uris: list[str],
                  cred_offer_endpoint: str,
+                 *,
                  oauth_client_options: dict[str, Any] = {},
-                 dev_mode=False):
+                 dev_mode: bool = False):
         """
         Create a new Identity Owner
 
@@ -29,8 +30,8 @@ class WebIdentityOwner(IdentityOwner):
         path.
         - oauth_client_options(`dict = {}`): A dictionary containing optional overrides
         for the wallet's OAuth client info, used in registration of new clients. See
-        `WalletClientMetadata` for accepted fields. 
-        Note that even if keys `"redirect_uris"` or `"credential_offer_endpoint"` are 
+        `WalletClientMetadata` for accepted fields.
+        Note that even if keys `"redirect_uris"` or `"credential_offer_endpoint"` are
         provided, they will be overwritten by their respective positional arguments.
         """
 
@@ -46,7 +47,11 @@ class WebIdentityOwner(IdentityOwner):
             dev_mode=dev_mode
             )
 
-    async def get_credential(self, cred_id: str, refresh: int = 1) -> Credential | DeferredCredential:
+    async def get_credential(
+            self,
+            cred_id: str,
+            refresh: int = 1
+            ) -> Credential | DeferredCredential:
         """
         Gets a credential by ID, if one exists
 
@@ -63,7 +68,7 @@ class WebIdentityOwner(IdentityOwner):
         r = refresh != 0
         try:
             return await super()._get_credential(cred_id, r)
-        except:
+        except Exception:
             raise HTTPException(
                 status_code=400,
                 detail=f"Credential with ID {cred_id} not found.")

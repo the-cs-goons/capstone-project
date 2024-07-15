@@ -1,5 +1,5 @@
 from base64 import b64decode, b64encode
-from datetime import datetime
+from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
 from urllib.parse import urlencode
@@ -138,6 +138,7 @@ class IdentityOwner:
 
     async def get_credential_offer_metadata(self,
                                             offer: CredentialOffer,
+                                            *,
                                             force_refresh: bool = False
                                             ) -> tuple[
                                                 IssuerMetadata,
@@ -208,12 +209,11 @@ class IdentityOwner:
 
         ### Parameters:
         - credential_configuration_id: The selected credential configuration.
-
         ONLY ONE of the following must be provided:
         - credential_offer_uri(`str | None`): A URL linking to a credential offer
         object.
-        - credential_offer(`str`): A URL-encoded credential offer object. 
-        
+        - credential_offer(`str`): A URL-encoded credential offer object.
+
         ### Returns
         - `str`: The issuer authorization URL to redirect the end user to
         """
@@ -225,7 +225,10 @@ class IdentityOwner:
 
         issuer_metadata: IssuerMetadata
         auth_metadata: AuthorizationMetadata
-        (issuer_metadata, auth_metadata) = await self.get_credential_offer_metadata(offer)
+        (
+            issuer_metadata,
+            auth_metadata
+            ) = await self.get_credential_offer_metadata(offer)
 
         if credential_configuration_id not in offer.credential_configuration_ids:
             raise Exception("Not a valid credential_configuration_id")
@@ -275,12 +278,12 @@ class IdentityOwner:
         then attempts to retrieve one or more credentials from the issuer, depending
         on what the end user authorized the wallet to access.
 
-        The retrieved credentials are only saved if every credential request was 
+        The retrieved credentials are only saved if every credential request was
         successful. (TODO: Might change this behaviour later)
 
         ### Parameters:
         - code(`str`): The authorization code, to be used in the token request.
-        - state(`str`): An opaque string used to identify the context of the 
+        - state(`str`): An opaque string used to identify the context of the
         authorization response. In addition to the benefits of this parameter in
         OAuth2, the state identifies the issuer from where the response originated,
         and is used to identify the client registered for this response.
@@ -376,7 +379,7 @@ class IdentityOwner:
                             credential_configuration_id=config_id,
                             is_deferred=False,
                             c_type=cred_type,
-                            received_at=datetime.now().isoformat(),
+                            received_at=datetime.now(tz=UTC).isoformat(),
                             raw_sdjwtvc=new,
                             )
 
@@ -403,7 +406,7 @@ class IdentityOwner:
                             transaction_id=tx_id,
                             deferred_credential_endpoint=deferred,
                             access_token=token,
-                            last_request=datetime.now().isoformat(),
+                            last_request=datetime.now(tz=UTC).isoformat(),
                         )
 
                         new_credentials.append(new_credential)
@@ -447,6 +450,7 @@ class IdentityOwner:
     async def _get_credential(
             self,
             cred_id: str,
+            *,
             refresh: bool = True
             ) -> Credential | DeferredCredential:
         """
@@ -454,7 +458,7 @@ class IdentityOwner:
 
         ### Parameters
         - cred_id(`str`): The ID of the credential, as kept by the owner
-        - refresh(`bool = True`): Whether or not to refresh the credential, if 
+        - refresh(`bool = True`): Whether or not to refresh the credential, if
         currently deferred. `True` by default.
 
         ### Returns
@@ -511,11 +515,11 @@ class IdentityOwner:
             refresh.raise_for_status()
 
             if refresh.status_code == 202:
-                cred.last_request = datetime.now().isoformat()
+                cred.last_request = datetime.now(tz=UTC).isoformat()
                 self.store_credential(cred)
                 return cred
 
-            elif refresh.status_code == 200:
+            if refresh.status_code == 200:
                 new = refresh.json().get("credential", None)
                 if not new:
                     err = "Invalid credential response from issuer: "
@@ -528,15 +532,15 @@ class IdentityOwner:
                     credential_configuration_id=cred.credential_configuration_id,
                     is_deferred=False,
                     c_type=cred.c_type,
-                    received_at=datetime.now().isoformat(),
+                    received_at=datetime.now(tz=UTC).isoformat(),
                     raw_sdjwtvc=new,
                     )
                 self.credentials.pop(cred_id)
                 self.credentials[cred_id] = new_credential
                 self.store_credential(new_credential)
                 return new_credential
-            else:
-                raise Exception("Invalid credential response")
+
+            raise Exception("Invalid credential response")
 
     async def refresh_all_deferred_credentials(self) -> list[str]:
         """
@@ -545,7 +549,7 @@ class IdentityOwner:
         ### Returns
         - `list[str]` A list of credential IDs that a refresh was attempted on. Note
         that the IDs all credentials that were deferred before calling this method will
-        be returned; even if the credential is still deferred, because the 
+        be returned; even if the credential is still deferred, because the
         `last_request` attribute will be updated.
         """
         updated = []
