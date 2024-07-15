@@ -40,8 +40,8 @@ MOCK_STORE = {
 }
 
 EXAMPLE_ISSUER = "https://example.com"
-OWNER_HOST = environ.get("CS3900_OWNER_AGENT_HOST", "http://localhost")
-OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8080")
+OWNER_HOST = environ.get("CS3900_OWNER_AGENT_HOST", "https://localhost")
+OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8081")
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 
