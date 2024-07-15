@@ -1,5 +1,6 @@
 import pytest
-from vclib.owner import IdentityOwner, Credential, DeferredCredential
+
+from vclib.owner import Credential, DeferredCredential, IdentityOwner
 
 MOCK_STORE = {
     "example1": {

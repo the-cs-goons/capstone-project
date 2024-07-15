@@ -16,4 +16,5 @@ from .src.models.issuer_metadata import IssuerMetadata as IssuerMetadata
 from .src.models.oauth import AccessToken as AccessToken
 from .src.models.oauth import AuthorizationDetails as AuthorizationDetails
 from .src.models.oauth import OAuthTokenResponse as OAuthTokenResponse
+from .src.models.request_body import CredentialSelection as CredentialSelection
 from .src.web_identity_owner import WebIdentityOwner as WebIdentityOwner

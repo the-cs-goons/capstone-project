@@ -200,7 +200,7 @@ class IdentityOwner:
 
         return (issuer_metadata, auth_metadata)
 
-    async def auth_redirect_from_offer(self,
+    async def get_auth_redirect_from_offer(self,
                                   credential_configuration_id: str,
                                   credential_offer: CredentialOffer,
                                   ):
@@ -481,11 +481,11 @@ class IdentityOwner:
 
         return credential
 
-    def get_deferred_credentials(self) -> list[Credential]:
+    def get_deferred_credentials(self) -> list[DeferredCredential]:
         """Retrieves all pending credentials.
 
         ### Returns
-        - `list[Credential]`: A list of credentials that have been deferred.
+        - `list[DeferredCredential]`: A list of credentials that have been deferred.
         """
         return [cred for cred in self.credentials.values() if cred.is_deferred]
 

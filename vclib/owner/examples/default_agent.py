@@ -50,10 +50,12 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
             redirect_uris,
             cred_offer_endpoint,
             *,
+            mock_uri = OWNER_URI,
             oauth_client_options = {},
             mock_data = {},
             dev_mode=False):
         self.MOCK_STORE: dict = mock_data
+        self.mock_uri = mock_uri
         super().__init__(
             redirect_uris,
             cred_offer_endpoint,
@@ -87,8 +89,8 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
                               ) -> RegisteredClientMetadata:
         if registration_url == "https://example.com/oauth2/register":
             return RegisteredClientMetadata(
-                redirect_uris=[f"{OWNER_URI}/add"],
-                credential_offer_endpoint=f"{OWNER_URI}/offer",
+                redirect_uris=[f"{self.mock_uri}/add"],
+                credential_offer_endpoint=f"{self.mock_uri}/offer",
                 issuer_uri=issuer_uri,
                 client_id="example_client_id",
                 client_secret="example_client_secret"

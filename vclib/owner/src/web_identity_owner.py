@@ -81,7 +81,7 @@ class WebIdentityOwner(IdentityOwner):
         TODO: Adjust when storage implemented
 
         ### Returns
-        - `list[Credential]`: A list of credentials
+        - `list[Credential | DeferredCredential]`: A list of credentials
         """
         return self.credentials.values()
 
@@ -98,7 +98,7 @@ class WebIdentityOwner(IdentityOwner):
                     status_code=400,
                     detail="Can't provide both issuer_uri and credential_offer."
                     )
-            redirect_url = await self.auth_redirect_from_offer(
+            redirect_url = await self.get_auth_redirect_from_offer(
                                     credential_selection.credential_configuration_id,
                                     credential_selection.credential_offer
                                     )
