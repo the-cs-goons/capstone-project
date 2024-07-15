@@ -1,16 +1,16 @@
-from typing import Any, Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
 from .oauth import AccessToken
 
+
 class BaseCredential(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().bytes.decode("utf-8"))
-    issuer_name: Optional[str]
+    issuer_name: str | None
     issuer_url: str
     credential_configuration_id: str
-    credential_configuration_name: Optional[str]
+    credential_configuration_name: str | None
     is_deferred: bool
     c_type: str
 
@@ -24,4 +24,4 @@ class Credential(BaseCredential):
     raw_sdjwtvc: str
     received_at: str
 
-    
+

@@ -1,6 +1,4 @@
-from datetime import UTC, datetime
 
-from vclib.owner import Credential, IdentityOwner
 
 
 # def test_serialise_and_load_credentials():

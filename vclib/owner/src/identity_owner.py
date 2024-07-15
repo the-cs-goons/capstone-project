@@ -1,55 +1,63 @@
 from base64 import b64decode, b64encode
 from datetime import datetime
 from json import dumps, loads
-from typing import Any, Tuple, Dict
+from typing import Any
 from urllib.parse import urlencode
 
+from oauthlib.oauth2 import WebApplicationClient
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
-from oauthlib.oauth2 import WebApplicationClient
 
 from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
 from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
-from vclib.owner.src.models import issuer_metadata
 
 
 class IdentityOwner:
-    """Base Identity Owner class
+    """
+    ## Base IdentityOwner class
 
     ### Attributes
-    - credentials(`dict[str, Credential]`): A dictionary of credentials, mapped by
-    their IDs
-    - dev_mode(`bool`): Flag for running in development environment (currently
-    unused)
-    - storage_key(`str`): Key for encrypting stored credentials (currently unused)
+    - oauth_clients(`dict[str, RegisteredClientMetadata]`): A dictionary of objects
+    representing registered OAuth2 clients. At any given time, the user may have
+    multiple OAuth contexts, for different issuers. During client registration &
+    constructing the authorization redirect for the end user, the `state` parameter
+    representing the new context is used as the key to store the relevant oauth client
+    data. These only need to be stored in memory, they do not need to persist.
+
+    - issuer_metadata_store(`dict[str, IssuerMetadata]`): A dictionary of objects
+    containing an issuer's metadata, stored under the issuer's URI.
+
+    - auth_metadata_store(`dict[str, AuthorizationMetadata]`): A dictionary of objects
+    containing an issuer's authorization server, stored under the issuer's URI.
     """
 
-    # TODO: Enforce https
-
     def __init__(self,
-                 oauth_client_metadata: dict,
+                 oauth_client_metadata: dict[str, Any],
                  *,
                  dev_mode=False,):
         """
-        Creates a new Identity Owner
+        Create a new Identity Owner
 
         ### Parameters
-
+        - oauth_client_metadata(`dict`): A dictionary containing at minimum key/values
+        "redirect_uris": `list[str]` and "credential_offer_endpoint": `str`.
+        For additional entries, see `WalletClientMetadata`.
         """
         self.client_metadata = WalletClientMetadata.model_validate(
             oauth_client_metadata
             )
 
-        self.oauth_clients: Dict[str, RegisteredClientMetadata] = {}
-        self.issuer_metadata_store: Dict[str, IssuerMetadata] = {}
-        self.auth_metadata_store: Dict[str, AuthorizationMetadata] = {}
+        self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
+        self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
+        self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
 
-        
+        # Currently unused
         self.dev_mode = dev_mode
+        # TODO: Replace with storage implementation
         self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
@@ -127,12 +135,12 @@ class IdentityOwner:
             offer = CredentialOffer.model_validate_json(credential_offer)
 
         return offer
-    
-    async def get_credential_offer_metadata(self, 
-                                            offer: CredentialOffer, 
+
+    async def get_credential_offer_metadata(self,
+                                            offer: CredentialOffer,
                                             force_refresh: bool = False
-                                            ) -> Tuple[
-                                                IssuerMetadata, 
+                                            ) -> tuple[
+                                                IssuerMetadata,
                                                 AuthorizationMetadata
                                                 ]:
         """
@@ -161,7 +169,7 @@ class IdentityOwner:
             auth_metadata = self.auth_metadata_store.get(issuer_uri, None)
 
         # If not already retrieved, get issuer metadata
-        if not issuer_metadata: 
+        if not issuer_metadata:
             issuer_metadata = IssuerMetadata.model_validate(
                 await self.get_issuer_metadata(issuer_uri))
             # Check that the metadata matches
@@ -183,21 +191,31 @@ class IdentityOwner:
                     "Bad Issuer Authorization Metadata")
             # Store it for easier access later if valid
             self.auth_metadata_store[issuer_uri] = auth_metadata
-        
+
         return (issuer_metadata, auth_metadata)
 
     async def get_offer_oauth_url(self,
-                                  credential_offer_uri: str | None,
-                                  credential_offer: str | None,
-                                  credential_configuration_id: str):
+                                  credential_configuration_id: str,
+                                  credential_offer_uri: str | None = None,
+                                  credential_offer: str | None = None
+                                  ):
         """
         Takes a user's selection of credential configurations for a previously
         received credential offer, and returns an OAuth2 authorization URL.
 
-        OAuth2 Client parameters (WILL BE) stored in some persistent fashion.
-        This is to enable requests for deferred credentials.
+        OAuth2 Client parameters are stored in `self.oauth_clients` under the
+        generated `state` as the key.
 
-        TODO: Docs
+        ### Parameters:
+        - credential_configuration_id: The selected credential configuration.
+
+        ONLY ONE of the following must be provided:
+        - credential_offer_uri(`str | None`): A URL linking to a credential offer
+        object.
+        - credential_offer(`str`): A URL-encoded credential offer object. 
+        
+        ### Returns
+        - `str`: The issuer authorization URL to redirect the end user to
         """
 
         offer = await self.get_credential_offer(
@@ -216,11 +234,11 @@ class IdentityOwner:
         wallet_metadata = await self.register_client(
             auth_metadata.registration_endpoint, issuer_metadata.credential_issuer
             )
-        
+
         # Create an OAuth2 session.
         # Use as context so the session closes at the end of the function call
         with OAuth2Session(
-            client_id=wallet_metadata.client_id, 
+            client_id=wallet_metadata.client_id,
             client=WebApplicationClient,
             redirect_uri=wallet_metadata.redirect_uris[0]) as oauth2_client:
 
@@ -238,27 +256,43 @@ class IdentityOwner:
 
             # Store OAuth2 client details
             (
-                authorization_url, 
+                authorization_url,
                 state
             ) = oauth2_client.authorization_url(
-                auth_metadata.authorization_endpoint, 
+                auth_metadata.authorization_endpoint,
                 **auth_details
                 )
 
             self.oauth_clients[state] = wallet_metadata
             return authorization_url
 
-    async def get_access_token_and_credentials_from_callback(self, 
-                        code: str, 
+    async def get_access_token_and_credentials_from_callback(self,
+                        code: str,
                         state: str,
-                        ):
+                        ) -> list[Credential | DeferredCredential]:
         """
-        Gets OAuth2 Access token
+        Retrieves an OAuth2 Access token from a successful authorization response, and
+        then attempts to retrieve one or more credentials from the issuer, depending
+        on what the end user authorized the wallet to access.
+
+        The retrieved credentials are only saved if every credential request was 
+        successful. (TODO: Might change this behaviour later)
+
+        ### Parameters:
+        - code(`str`): The authorization code, to be used in the token request.
+        - state(`str`): An opaque string used to identify the context of the 
+        authorization response. In addition to the benefits of this parameter in
+        OAuth2, the state identifies the issuer from where the response originated,
+        and is used to identify the client registered for this response.
+
+        ### Returns:
+        - (`List[Credential | DeferredCredential]`): A list containing the
+        credential(s) retrieved from the issuer using the acquired access token.
         """
         oauth_client_info = self.oauth_clients.get(state, None)
         if not oauth_client_info:
             raise Exception("Bad Authorization Redirect")
-        
+
         # Don't save any new credentials until everything is done.
         # Should avoid malformed credentials this way.
         new_credentials = []
@@ -266,13 +300,17 @@ class IdentityOwner:
         issuer_uri = oauth_client_info.issuer_uri
 
         with OAuth2Session(
-            client_id=oauth_client_info.client_id, 
+            client_id=oauth_client_info.client_id,
+            # Should be this by default, included anyway for clarity
             client=WebApplicationClient,
             redirect_uri=oauth_client_info.redirect_uris[0],
             state=state
             ) as oauth2_client:
 
-            basic_auth = HTTPBasicAuth(oauth_client_info.client_id, oauth_client_info.client_secret)
+            basic_auth = HTTPBasicAuth(
+                oauth_client_info.client_id,
+                oauth_client_info.client_secret
+                )
             auth_metadata = self.auth_metadata_store.get(issuer_uri, None)
             if not auth_metadata:
                 auth_metadata = AuthorizationMetadata.model_validate(
@@ -280,7 +318,7 @@ class IdentityOwner:
                         issuer_uri,
                         path="/.well-known/oauth-authorization-server")
                         )
-                
+
             token_endpoint = auth_metadata.token_endpoint
             headers = {
                 "Accept": "application/json",
@@ -297,7 +335,7 @@ class IdentityOwner:
                 headers=headers)
             r.raise_for_status()
             oauth2_client
-            
+
             access_token_res = OAuthTokenResponse.model_validate_json(r.content)
             # Update session
             oauth2_client.token(access_token_res.model_dump())
@@ -311,6 +349,10 @@ class IdentityOwner:
 
             for detail in access_token_res.authorization_details:
                 cred_type = detail.type
+                # Check if type is supported by wallet, skip if not
+                if cred_type not in self.client_metadata.authorization_details_types:
+                    continue
+
                 config_id = detail.credential_configuration_id
                 for identifier in detail.credential_identifiers:
                     body = { "credential_identifier": identifier }
@@ -322,13 +364,13 @@ class IdentityOwner:
                     cred_response.raise_for_status()
                     # Determine if immediate or deferred
                     if cred_response.status_code == 200:
-                        # Immediate
+                        # Immediate - load right away
                         new = cred_response.json().get("credential", None)
                         if not new:
                             err = "Invalid credential response from issuer: "
                             err += "Value 'credential' missing from response."
                             raise Exception(err)
-                        
+
                         new_credential = Credential(
                             issuer_url=issuer_uri,
                             credential_configuration_id=config_id,
@@ -337,10 +379,11 @@ class IdentityOwner:
                             received_at=datetime.now().isoformat(),
                             raw_sdjwtvc=new,
                             )
-                        
+
                         new_credentials.append(new_credential)
 
                     elif cred_response.status_code == 202:
+                        # Deferred - store tx id, access token, etc. to retrieve later.
                         tx_id = cred_response.json().get("transaction_id", None)
                         if not tx_id:
                             err = "Invalid credential response from issuer: "
@@ -362,7 +405,7 @@ class IdentityOwner:
                             access_token=token,
                             last_request=datetime.now().isoformat(),
                         )
-                        
+
                         new_credentials.append(new_credential)
 
                     else:
@@ -381,9 +424,9 @@ class IdentityOwner:
             body = res.json()
         return body
 
-    async def register_client(self, 
-                              registration_url, 
-                              issuer_uri, 
+    async def register_client(self,
+                              registration_url,
+                              issuer_uri,
                               wallet_metadata=None
                               ) -> RegisteredClientMetadata:
         metadata = wallet_metadata
@@ -396,22 +439,34 @@ class IdentityOwner:
             body["issuer_uri"] = issuer_uri
             registered = RegisteredClientMetadata.model_validate(body)
         return registered
-    
+
     ###
     ### Internal
     ###
 
-    def get_credential(self, cred_id: str, refresh: bool = True):
+    async def _get_credential(
+            self,
+            cred_id: str,
+            refresh: bool = True
+            ) -> Credential | DeferredCredential:
         """
-        Gets a credential, given an ID
+        Gets a credential by ID, if one exists
+
+        ### Parameters
+        - cred_id(`str`): The ID of the credential, as kept by the owner
+        - refresh(`bool = True`): Whether or not to refresh the credential, if 
+        currently deferred. `True` by default.
+
+        ### Returns
+        - `Credential | DeferredCredential`: The requested credential, if it exists.
         """
         if refresh:
-            return self.refresh_credential(cred_id)
-        
+            return await self.refresh_credential(cred_id)
+
         credential = self.credentials.get(cred_id, None)
         if not credential:
             raise Exception(f"Credential of ID {cred_id} not found.")
-        
+
         return credential
 
     def get_deferred_credentials(self) -> list[Credential]:
@@ -422,7 +477,10 @@ class IdentityOwner:
         """
         return [cred for cred in self.credentials.values() if cred.is_deferred]
 
-    async def refresh_credential(self, cred_id: str):
+    async def refresh_credential(
+            self,
+            cred_id: str
+            ) -> Credential | DeferredCredential:
         """
         Refreshes a credential.
 
@@ -456,14 +514,14 @@ class IdentityOwner:
                 cred.last_request = datetime.now().isoformat()
                 self.store_credential(cred)
                 return cred
-            
+
             elif refresh.status_code == 200:
                 new = refresh.json().get("credential", None)
                 if not new:
                     err = "Invalid credential response from issuer: "
                     err += "Value 'credential' missing from response."
                     raise Exception(err)
-                
+
                 new_credential = Credential(
                     id=cred_id,
                     issuer_url=cred.issuer_url,
@@ -481,11 +539,14 @@ class IdentityOwner:
                 raise Exception("Invalid credential response")
 
     async def refresh_all_deferred_credentials(self) -> list[str]:
-        """Polls the issuer for updates on all outstanding credential requests.
+        """
+        Polls the issuer for updates on all outstanding credential requests.
 
         ### Returns
-        - `list[str]` A list of credential IDs belonging to credentials that were
-        updated.
+        - `list[str]` A list of credential IDs that a refresh was attempted on. Note
+        that the IDs all credentials that were deferred before calling this method will
+        be returned; even if the credential is still deferred, because the 
+        `last_request` attribute will be updated.
         """
         updated = []
         for cred in self.get_deferred_credentials():

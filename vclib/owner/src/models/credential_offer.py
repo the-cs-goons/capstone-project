@@ -1,7 +1,6 @@
 
 from pydantic import BaseModel
 
-from .issuer_metadata import IssuerMetadata, AuthorizationMetadata
 
 class CredentialOffer(BaseModel):
     """

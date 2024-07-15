@@ -1,10 +1,12 @@
-from typing import Any, List, Optional
+from typing import Any
+
 from pydantic import BaseModel
+
 
 class AuthorizationDetails(BaseModel):
     type: str
     credential_configuration_id: str
-    credential_identifiers: List[str]
+    credential_identifiers: list[str]
 
 class AccessToken(BaseModel):
     access_token: str
@@ -12,6 +14,6 @@ class AccessToken(BaseModel):
     expires_in: int
 
 class OAuthTokenResponse(AccessToken):
-    c_nonce: Optional[Any]
-    c_nonce_expires_in: Optional[Any]
-    authorization_details: List[AuthorizationDetails]
+    c_nonce: Any | None
+    c_nonce_expires_in: Any | None
+    authorization_details: list[AuthorizationDetails]
