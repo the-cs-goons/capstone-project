@@ -121,6 +121,6 @@ identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     response_types_supported=["code"],
     grant_types_supported=["authorization_code"],
     authorization_details_types_supported=["openid_credential"],
-    pre_authorized_supported=False,
+    **{"pre-authorized_grant_anonymous_access_supported": False}
 )
 identity_owner_server = identity_owner.get_server()
