@@ -62,10 +62,10 @@ class WebIdentityOwner(IdentityOwner):
     def get_server(self) -> FastAPI:
         router = FastAPI()
 
-        router.get("/credential/{cred_id}")(self.get_credential)
+        router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh-all")(self.refresh_all_deferred_credentials)
+        router.get("/refresh")(self.refresh_all_deferred_credentials)
         router.get("/presentation/init")(self.get_auth_request)
         router.post("/presentation/")(self.present_selection)
 
@@ -177,12 +177,16 @@ class WebIdentityOwner(IdentityOwner):
                 # make sure we keep creds with previously found fields
                 for cred in valid_credentials:
                     if cred not in new_valid_creds:
-                        new_valid_creds.pop(cred)
-                # add the new disclosures to the old disclosures
+                        valid_credentials.pop(cred)
                 for cred in new_valid_creds:
-                    new_valid_creds[cred] += valid_credentials[cred]
-                # cull old creds that don't have all of the fields
-                valid_credentials = new_valid_creds
+                    if cred not in valid_credentials:
+                        new_valid_creds.pop(cred)
+
+                # valid credentials should equal new_valid_creds now
+
+                # add the new disclosures to the old disclosures
+                for cred in valid_credentials:
+                    valid_credentials[cred] += new_valid_creds[cred]
 
                 # no valid credentials found
                 if valid_credentials == {}:
@@ -271,7 +275,7 @@ class WebIdentityOwner(IdentityOwner):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                # f"http://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
+                # f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
                 f"{request_uri}",
                 data={
                     "wallet_nonce": "nonce",  # replace this data with actual stuff

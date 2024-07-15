@@ -62,7 +62,7 @@ over_18_mock_auth_req = {
             }
         ],
     },
-    "response_uri": "http://example.com/cb",
+    "response_uri": "https://example.com/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",
@@ -100,7 +100,7 @@ MOCK_STORE = {
 }
 
 EXAMPLE_ISSUER = "https://example.com"
-OWNER_HOST = "http://localhost"
+OWNER_HOST = "https://localhost"
 OWNER_PORT = "8080"
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
@@ -111,20 +111,19 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 @pytest.mark.asyncio()
 async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     httpx_mock.add_response(
-        url="http://example.com/request/over_18", json=over_18_mock_auth_req
+        url="https://example.com/request/over_18", json=over_18_mock_auth_req
     )
     identity_owner: DefaultWebIdentityOwner
-    identity_owner.vc_credentials.append(
-        "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~"
-    )
+    identity_owner.credentials['xyz'] = "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~"
+
     resp = await identity_owner.get_auth_request(
-        "http://example.com/request/over_18", "some did", "did", "post"
+        "https://example.com/request/over_18", "some did", "did", "post"
     )
 
     assert resp == over_18_mock_auth_req
 
     httpx_mock.add_response(
-        url="http://example.com/cb", json={"status": "OK"}, method="post"
+        url="https://example.com/cb", json={"status": "OK"}, method="post"
     )
 
     resp = await identity_owner.present_selection(over_18_mock_field_selection)

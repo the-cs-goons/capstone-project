@@ -81,7 +81,7 @@ age_request_data = {
     "client_id_scheme": "did",
     "client_metadata": {"data": "metadata in this object"},
     "presentation_definition": verify_over_18_pd_object,
-    "response_uri": f"http://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
+    "response_uri": f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",

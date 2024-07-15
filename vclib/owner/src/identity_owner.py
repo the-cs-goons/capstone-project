@@ -59,8 +59,6 @@ class IdentityOwner:
         self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
         self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
         self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
-
-        self.vc_credentials: list[str] = []
         # Currently unused
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
@@ -105,11 +103,12 @@ class IdentityOwner:
         paths: list[str],  # list of jsonpath strings
     ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
-
+        sdjwts = [credential.raw_sdjwtvc for credential in
+                  self.credentials.values() if type(credential) == Credential]
         matched_credentials = {}
         for path in paths:
             expr = jsonpath_ng.parse(path)
-            for credential in self.vc_credentials:
+            for credential in sdjwts:
                 payload = self._get_decoded_credential_payload(credential)
                 matches = expr.find(payload)
                 if matches not in ([], None):
