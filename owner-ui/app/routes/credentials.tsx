@@ -1,4 +1,12 @@
-import { Card, Typography, Unstable_Grid2 as Grid } from "@mui/material";
+import { Add as AddIcon } from "@mui/icons-material";
+import {
+  Typography,
+  Unstable_Grid2 as Grid,
+  AppBar,
+  Toolbar,
+  Tooltip,
+  IconButton,
+} from "@mui/material";
 import type { LoaderFunction } from "@remix-run/node";
 import {
   isRouteErrorResponse,
@@ -6,6 +14,7 @@ import {
   useLoaderData,
   type MetaFunction,
 } from "@remix-run/react";
+import { CredentialCard } from "~/components/CredentialCard";
 import { CredentialsGridContainer } from "~/components/CredentialsGridContainer";
 import { FlexContainer } from "~/components/FlexContainer";
 
@@ -44,45 +53,47 @@ export default function Credentials() {
   const credentials: Array<CredentialDataField> = useLoaderData();
 
   return (
-    <FlexContainer component="main" maxWidth="xl" disableGutters={true}>
-      <CredentialsGridContainer>
-        <Grid
-          container
-          columns={{ xs: 4, sm: 8, md: 12 }}
-          spacing={{ xs: 2, sm: 3 }}
-          sx={{ mt: { xs: 1, md: 1.5 } }}
-        >
-          {credentials.map((credential) => {
-            return (
-              <Grid
-                key={credential.id}
-                sx={{ display: "flex" }}
-                justifyContent={"center"}
-                size={4}
-              >
-                <Card>
-                  <Typography variant="h4">{credential.type}</Typography>
-                  <Typography variant="h6">{credential.issuer_name}</Typography>
-                  {credential.token
-                    ? Object.entries(
-                        JSON.parse(atob(credential.token)) as [
-                          string,
-                          string,
-                        ][],
-                      ).map(([key, value]) => {
-                        return (
-                          <Typography variant="body1" key={key}>
-                            {value}
-                          </Typography>
-                        );
-                      })
-                    : "Pending approval"}
-                </Card>
-              </Grid>
-            );
-          })}
-        </Grid>
-      </CredentialsGridContainer>
-    </FlexContainer>
+    <>
+      <AppBar position="sticky">
+        <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end" }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            id="credentials-appbar-title"
+            flexGrow={1}
+          >
+            Credentials
+          </Typography>
+          <Tooltip id="add-credential-tooltip" title="Add new credential">
+            <IconButton color="inherit" aria-label="Add new credential">
+              <AddIcon />
+            </IconButton>
+          </Tooltip>
+        </Toolbar>
+      </AppBar>
+      <FlexContainer component="main" maxWidth="xl" disableGutters={true}>
+        <CredentialsGridContainer>
+          <Grid
+            container
+            columns={{ xs: 4, sm: 8, md: 12 }}
+            spacing={{ xs: 2, sm: 3 }}
+            sx={{ mt: { xs: 1, md: 1.5 } }}
+          >
+            {credentials.map((credential) => {
+              return (
+                <Grid
+                  key={credential.id}
+                  sx={{ display: "flex" }}
+                  justifyContent={"center"}
+                  size={4}
+                >
+                  <CredentialCard credential={credential} />
+                </Grid>
+              );
+            })}
+          </Grid>
+        </CredentialsGridContainer>
+      </FlexContainer>
+    </>
   );
 }
