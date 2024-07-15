@@ -34,38 +34,41 @@ MOCK_STORE = {
         "access_token": {
             "access_token": "exampletoken",
             "token_type": "bearer",
-            "expires_in": 99999999999
-        }
+            "expires_in": 99999999999,
+        },
     },
 }
 
 EXAMPLE_ISSUER = "https://example.com"
-OWNER_HOST = environ.get('CS3900_OWNER_AGENT_HOST', "http://localhost")
-OWNER_PORT = environ.get('CS3900_OWNER_AGENT_PORT', '8080')
+OWNER_HOST = environ.get("CS3900_OWNER_AGENT_HOST", "http://localhost")
+OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8080")
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
+
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
     def __init__(
-            self,
-            redirect_uris,
-            cred_offer_endpoint,
-            *,
-            mock_uri = OWNER_URI,
-            oauth_client_options = {},
-            mock_data = {},
-            dev_mode=False):
+        self,
+        redirect_uris,
+        cred_offer_endpoint,
+        *,
+        mock_uri=OWNER_URI,
+        oauth_client_options={},
+        mock_data={},
+        dev_mode=False,
+    ):
         self.MOCK_STORE: dict = mock_data
         self.mock_uri = mock_uri
         super().__init__(
             redirect_uris,
             cred_offer_endpoint,
             oauth_client_options=oauth_client_options,
-            dev_mode=dev_mode)
+            dev_mode=dev_mode,
+        )
 
     @override
     def load_all_credentials_from_storage(
-        self
-        ) -> list[Credential | DeferredCredential]:
+        self,
+    ) -> list[Credential | DeferredCredential]:
         creds = []
         cred: dict
         for cred in self.MOCK_STORE.values():
@@ -86,46 +89,38 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
         self.MOCK_STORE[cred.id] = cred
 
     @override
-    async def register_client(self,
-                              registration_url,
-                              issuer_uri,
-                              wallet_metadata=None
-                              ) -> RegisteredClientMetadata:
+    async def register_client(
+        self, registration_url, issuer_uri, wallet_metadata=None
+    ) -> RegisteredClientMetadata:
         if registration_url == "https://example.com/oauth2/register":
             return RegisteredClientMetadata(
                 redirect_uris=[f"{self.mock_uri}/add"],
                 credential_offer_endpoint=f"{self.mock_uri}/offer",
                 issuer_uri=issuer_uri,
                 client_id="example_client_id",
-                client_secret="example_client_secret"
+                client_secret="example_client_secret",
             )
         return super().register_client(
-            registration_url,
-            issuer_uri,
-            wallet_metadata = wallet_metadata
-            )
+            registration_url, issuer_uri, wallet_metadata=wallet_metadata
+        )
 
 
 identity_owner = DefaultWebIdentityOwner(
-    [f"{OWNER_URI}/add"],
-    f"{OWNER_URI}/offer",
-    mock_data=MOCK_STORE
-    )
+    [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", mock_data=MOCK_STORE
+)
 identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
-    credential_issuer = EXAMPLE_ISSUER,
-    credential_configurations_supported = {
-        "ExampleCredential": {}
-        },
-    credential_endpoint = EXAMPLE_ISSUER + "/get_credential",
+    credential_issuer=EXAMPLE_ISSUER,
+    credential_configurations_supported={"ExampleCredential": {}},
+    credential_endpoint=EXAMPLE_ISSUER + "/get_credential",
 )
 identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
-    issuer = EXAMPLE_ISSUER,
-    authorization_endpoint = EXAMPLE_ISSUER + "/oauth2/authorize",
-    registration_endpoint = EXAMPLE_ISSUER + "/oauth2/register",
-    token_endpoint = EXAMPLE_ISSUER + "/oauth2/token",
-    response_types_supported = ["code"],
-    grant_types_supported = ["authorization_code"],
-    authorization_details_types_supported = ["openid_credential"],
-    pre_authorized_supported = False
+    issuer=EXAMPLE_ISSUER,
+    authorization_endpoint=EXAMPLE_ISSUER + "/oauth2/authorize",
+    registration_endpoint=EXAMPLE_ISSUER + "/oauth2/register",
+    token_endpoint=EXAMPLE_ISSUER + "/oauth2/token",
+    response_types_supported=["code"],
+    grant_types_supported=["authorization_code"],
+    authorization_details_types_supported=["openid_credential"],
+    pre_authorized_supported=False,
 )
 identity_owner_server = identity_owner.get_server()

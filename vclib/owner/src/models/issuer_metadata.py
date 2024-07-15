@@ -13,6 +13,7 @@ class IssuerMetadata(BaseModel):
     credential_identifiers_supported: bool | None = Field(default=None)
     display: Any | None = Field(default=None)
 
+
 class AuthorizationMetadata(BaseModel):
     issuer: str
     authorization_endpoint: str
@@ -23,4 +24,5 @@ class AuthorizationMetadata(BaseModel):
     grant_types_supported: list[str]
     authorization_details_types_supported: list[str]
     pre_authorized_supported: bool = Field(
-        serialization_alias="pre-authorized_grant_anonymous_access_supported")
+        serialization_alias="pre-authorized_grant_anonymous_access_supported"
+    )

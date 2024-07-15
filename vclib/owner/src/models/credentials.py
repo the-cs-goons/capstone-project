@@ -14,14 +14,14 @@ class BaseCredential(BaseModel):
     is_deferred: bool
     c_type: str
 
+
 class DeferredCredential(BaseCredential):
     transaction_id: str
     deferred_credential_endpoint: str
     last_request: str
     access_token: AccessToken
 
+
 class Credential(BaseCredential):
     raw_sdjwtvc: str
     received_at: str
-
-

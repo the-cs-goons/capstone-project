@@ -26,29 +26,29 @@ MOCK_STORE = {
         "access_token": {
             "access_token": "exampletoken",
             "token_type": "bearer",
-            "expires_in": 99999999999
-        }
+            "expires_in": 99999999999,
+        },
     },
 }
+
 
 @pytest.fixture()
 def credential_obj():
     return MOCK_STORE["example1"]
 
+
 @pytest.fixture()
 def deferred_credential_obj():
     return MOCK_STORE["example2"]
+
 
 def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj):
     credential = Credential.model_validate(credential_obj)
     deferred = DeferredCredential.model_validate(deferred_credential_obj)
 
     id_owner = IdentityOwner(
-        {
-            "redirect_uris": ["example"],
-            "credential_offer_endpoint": "example"
-            }
-        )
+        {"redirect_uris": ["example"], "credential_offer_endpoint": "example"}
+    )
     store = id_owner.serialise(credential)
     deferred_store = id_owner.serialise(deferred)
     credential2 = id_owner.load_from_serial(store)
@@ -64,7 +64,6 @@ def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj)
     assert credential.issuer_url == credential2.issuer_url
     assert credential.c_type == credential2.c_type
     assert credential.raw_sdjwtvc == credential2.raw_sdjwtvc
-
 
     assert deferred.id == deferred2.id
     assert deferred.issuer_url == deferred2.issuer_url

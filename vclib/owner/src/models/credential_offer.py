@@ -1,5 +1,3 @@
-
-
 from pydantic import BaseModel, Field
 
 
@@ -18,8 +16,7 @@ class CredentialOffer(BaseModel):
     Authorization Server accepts for this credential offer, plus extra parameters to
     use.
     """
+
     credential_issuer: str
     credential_configuration_ids: list[str]
     grants: dict | None = Field(default=None)
-
-

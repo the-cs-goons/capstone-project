@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel, Field
 
 
@@ -14,6 +13,7 @@ class WalletClientMetadata(BaseModel):
     client_name: str | None = Field(default=None)
     client_uri: str | None = Field(default=None)
     logo_uri: str | None = Field(default=None)
+
 
 class RegisteredClientMetadata(WalletClientMetadata):
     client_id: str

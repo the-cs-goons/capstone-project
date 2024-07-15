@@ -13,12 +13,15 @@ class WebIdentityOwner(IdentityOwner):
     """
     IdentityOwner that implements a HTTP API interface.
     """
-    def __init__(self,
-                 redirect_uris: list[str],
-                 cred_offer_endpoint: str,
-                 *,
-                 oauth_client_options: dict[str, Any] = {},
-                 dev_mode: bool = False):
+
+    def __init__(
+        self,
+        redirect_uris: list[str],
+        cred_offer_endpoint: str,
+        *,
+        oauth_client_options: dict[str, Any] = {},
+        dev_mode: bool = False,
+    ):
         """
         Create a new Identity Owner
 
@@ -44,16 +47,11 @@ class WebIdentityOwner(IdentityOwner):
         oauth_client_info = oauth_client_options
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
-        super().__init__(
-            oauth_client_info,
-            dev_mode=dev_mode
-            )
+        super().__init__(oauth_client_info, dev_mode=dev_mode)
 
     async def get_credential(
-            self,
-            cred_id: str,
-            refresh: int = 1
-            ) -> Credential | DeferredCredential:
+        self, cred_id: str, refresh: int = 1
+    ) -> Credential | DeferredCredential:
         """
         Gets a credential by ID, if one exists
 
@@ -72,8 +70,8 @@ class WebIdentityOwner(IdentityOwner):
             return await super()._get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
-                status_code=400,
-                detail=f"Credential with ID {cred_id} not found.")
+                status_code=400, detail=f"Credential with ID {cred_id} not found."
+            )
 
     async def get_credentials(self) -> list[Credential | DeferredCredential]:
         """
@@ -85,9 +83,9 @@ class WebIdentityOwner(IdentityOwner):
         """
         return self.credentials.values()
 
-    async def request_authorization(self,
-                                    credential_selection: CredentialSelection
-                                    ) -> RedirectResponse:
+    async def request_authorization(
+        self, credential_selection: CredentialSelection
+    ) -> RedirectResponse:
         """
         Redirects the user to authorize.
         """
@@ -96,23 +94,23 @@ class WebIdentityOwner(IdentityOwner):
             if credential_selection.issuer_uri:
                 raise HTTPException(
                     status_code=400,
-                    detail="Can't provide both issuer_uri and credential_offer."
-                    )
+                    detail="Can't provide both issuer_uri and credential_offer.",
+                )
             redirect_url = await self.get_auth_redirect_from_offer(
-                                    credential_selection.credential_configuration_id,
-                                    credential_selection.credential_offer
-                                    )
+                credential_selection.credential_configuration_id,
+                credential_selection.credential_offer,
+            )
         elif credential_selection.issuer_uri:
             redirect_url = await self.get_auth_redirect(
                 credential_selection.credential_configuration_id,
-                credential_selection.issuer_uri
-                )
+                credential_selection.issuer_uri,
+            )
 
         else:
             raise HTTPException(
-                    status_code=400,
-                    detail="Please provide either issuer_uri or credential_offer."
-                    )
+                status_code=400,
+                detail="Please provide either issuer_uri or credential_offer.",
+            )
         return RedirectResponse(redirect_url, status_code=302)
 
     def get_server(self) -> FastAPI:
