@@ -87,9 +87,9 @@ class IdentityOwner:
     ) -> Credential | DeferredCredential:
         """# NOT YET IMPLEMENTED IN FULL
         TODO: Implement decryption in accordance with implementation in
-        `serialise_and_encrypt`
+        `serialise`
 
-        Static method that loads a credential from encrypted & serialised string
+        Static method that loads a credential from serialised bytes.
 
         ### Parameters
         - dump(`str` | `bytes` | `bytearray`): the serialised credential
@@ -559,7 +559,7 @@ class IdentityOwner:
         - cred(`Credential`): A `Credential`
 
         IMPORTANT: Do not store unsecured credentials in a production environment.
-        Use `self.serialise_and_encrypt` to convert the `Credential` to
+        Use `self.serialise` to convert the `Credential` to
         something that can be stored.
         """
         return
