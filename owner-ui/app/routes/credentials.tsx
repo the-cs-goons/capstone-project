@@ -54,7 +54,7 @@ interface CredentialDataField {
 
 export const loader: LoaderFunction = async () => {
   const resp = await fetch(
-    `http://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`,
+    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`,
     { method: "GET" },
   );
   const data: Array<CredentialDataField> = await resp.json();
