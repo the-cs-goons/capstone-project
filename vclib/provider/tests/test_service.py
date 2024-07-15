@@ -14,9 +14,11 @@ async def test_server_exists():
     sp_server = sp.get_server()
     assert isinstance(sp_server, FastAPI)
 
+
 @pytest.fixture
 def service_provider():
     return ServiceProvider()
+
 
 def test_fetch_did_document_success(service_provider):
     with patch("requests.get") as mock_get:

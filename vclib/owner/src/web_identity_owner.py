@@ -69,9 +69,6 @@ class WebIdentityOwner(IdentityOwner):
         router.get("/presentation/init")(self.get_auth_request)
         router.post("/presentation/")(self.present_selection)
 
-
-
-
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
         router.post(self._credential_offer_endpoint)(self.request_authorization)
@@ -145,7 +142,6 @@ class WebIdentityOwner(IdentityOwner):
                 detail="Please provide either issuer_uri or credential_offer.",
             )
         return RedirectResponse(redirect_url, status_code=302)
-
 
     async def present_selection(
         self, field_selections: FieldSelectionObject = Body(...)

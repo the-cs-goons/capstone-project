@@ -29,9 +29,10 @@ class Filter(BaseModel):
     # exclusive min/max denote whether the min or max should be included in the range
     # can be used on dates
     minimum: int | None = None
-    exclusiveMinimum: bool | None = None # noqa: N815
+    exclusiveMinimum: bool | None = None  # noqa: N815
     maximum: int | None = None
-    exclusiveMaximum: bool | None = None # noqa: N815
+    exclusiveMaximum: bool | None = None  # noqa: N815
+
 
 class Field(BaseModel):
     """Each Field MUST contain a "path" property.\n
