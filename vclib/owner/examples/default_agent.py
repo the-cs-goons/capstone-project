@@ -1,3 +1,4 @@
+from os import environ
 from typing import override
 
 from vclib.owner import (
@@ -39,6 +40,9 @@ MOCK_STORE = {
 }
 
 EXAMPLE_ISSUER = "https://example.com"
+OWNER_HOST = environ.get('CS3900_OWNER_AGENT_HOST', "http://localhost")
+OWNER_PORT = environ.get('CS3900_OWNER_AGENT_PORT', '8080')
+OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
     def __init__(
@@ -83,8 +87,8 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
                               ) -> RegisteredClientMetadata:
         if registration_url == "https://example.com/oauth2/register":
             return RegisteredClientMetadata(
-                redirect_uris=["http://localhost:8091/add"],
-                credential_offer_endpoint="http://localhost:8091/offer",
+                redirect_uris=[f"{OWNER_URI}/add"],
+                credential_offer_endpoint=f"{OWNER_URI}/offer",
                 issuer_uri=issuer_uri,
                 client_id="example_client_id",
                 client_secret="example_client_secret"
@@ -97,8 +101,8 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
 
 
 identity_owner = DefaultWebIdentityOwner(
-    ["http://localhost:8091/add"],
-    "http://localhost:8091/offer",
+    [f"{OWNER_URI}/add"],
+    f"{OWNER_URI}/offer",
     mock_data=MOCK_STORE
     )
 identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
