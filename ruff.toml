@@ -9,5 +9,3 @@ ignore = ["W191"]
 [format]
 docstring-code-format = true
 line-ending = "lf"
-
-exclude = ["**/__init__.py"]
