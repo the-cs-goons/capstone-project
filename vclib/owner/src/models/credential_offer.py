@@ -1,5 +1,6 @@
 
-from pydantic import BaseModel
+
+from pydantic import BaseModel, Field
 
 
 class CredentialOffer(BaseModel):
@@ -19,6 +20,6 @@ class CredentialOffer(BaseModel):
     """
     credential_issuer: str
     credential_configuration_ids: list[str]
-    grants: dict | None
+    grants: dict | None = Field(default=None)
 
 

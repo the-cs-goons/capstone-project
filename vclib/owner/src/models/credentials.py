@@ -7,10 +7,10 @@ from .oauth import AccessToken
 
 class BaseCredential(BaseModel):
     id: str = Field(default_factory=lambda: uuid4().bytes.decode("utf-8"))
-    issuer_name: str | None
+    issuer_name: str | None = Field(default=None)
     issuer_url: str
     credential_configuration_id: str
-    credential_configuration_name: str | None
+    credential_configuration_name: str | None = Field(default=None)
     is_deferred: bool
     c_type: str
 

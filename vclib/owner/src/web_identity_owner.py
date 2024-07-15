@@ -2,9 +2,11 @@ from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import RedirectResponse
 
-from . import IdentityOwner
+from .identity_owner import IdentityOwner
 from .models.credentials import Credential, DeferredCredential
+from .models.request_body import CredentialSelection
 
 
 class WebIdentityOwner(IdentityOwner):
@@ -73,7 +75,7 @@ class WebIdentityOwner(IdentityOwner):
                 status_code=400,
                 detail=f"Credential with ID {cred_id} not found.")
 
-    async def get_credentials(self) -> list[Credential]:
+    async def get_credentials(self) -> list[Credential | DeferredCredential]:
         """
         Gets all credentials
         TODO: Adjust when storage implemented
@@ -82,6 +84,36 @@ class WebIdentityOwner(IdentityOwner):
         - `list[Credential]`: A list of credentials
         """
         return self.credentials.values()
+
+    async def request_authorization(self,
+                                    credential_selection: CredentialSelection
+                                    ) -> RedirectResponse:
+        """
+        Redirects the user to authorize.
+        """
+        redirect_url: str
+        if credential_selection.credential_offer:
+            if credential_selection.issuer_uri:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Can't provide both issuer_uri and credential_offer."
+                    )
+            redirect_url = await self.auth_redirect_from_offer(
+                                    credential_selection.credential_configuration_id,
+                                    credential_selection.credential_offer
+                                    )
+        elif credential_selection.issuer_uri:
+            redirect_url = await self.get_auth_redirect(
+                credential_selection.credential_configuration_id,
+                credential_selection.issuer_uri
+                )
+
+        else:
+            raise HTTPException(
+                    status_code=400,
+                    detail="Please provide either issuer_uri or credential_offer."
+                    )
+        return RedirectResponse(redirect_url, status_code=302)
 
     def get_server(self) -> FastAPI:
         """
@@ -97,7 +129,7 @@ class WebIdentityOwner(IdentityOwner):
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
-        router.post(self._credential_offer_endpoint)(self.get_offer_oauth_url)
+        router.post(self._credential_offer_endpoint)(self.request_authorization)
         # Might change this later from /add to something else
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
 
