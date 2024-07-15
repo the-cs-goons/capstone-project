@@ -3,7 +3,7 @@ import json
 from unittest.mock import patch
 
 import pytest
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 
 from vclib.provider import ServiceProvider
 
@@ -17,7 +17,6 @@ async def test_server_exists():
 @pytest.fixture
 def service_provider():
     return ServiceProvider()
-
 
 def test_fetch_did_document_success(service_provider):
     with patch("requests.get") as mock_get:

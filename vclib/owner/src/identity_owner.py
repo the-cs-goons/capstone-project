@@ -8,9 +8,9 @@ import jsonpath_ng
 import jwt
 from oauthlib.oauth2 import WebApplicationClient
 from requests import Response, Session
-from sd_jwt.common import SDJWTCommon
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
+from sd_jwt.common import SDJWTCommon
 
 from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
 from .models.credential_offer import CredentialOffer

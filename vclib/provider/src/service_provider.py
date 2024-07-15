@@ -1,22 +1,15 @@
 from uuid import uuid4
 
-from cryptography import x509
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.x509 import Certificate
-from cryptography.x509.oid import ObjectIdentifier
-from fastapi import FastAPI, Form, HTTPException
 import jwt
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Form
 
 from .models.authorization_request_object import AuthorizationRequestObject
 
 
 class ServiceProvider:
     def __init__(
-        self
+        self,
     ):
         """Initialise the service provider with a list of CA bundle"""
         self.used_nonces = set()
@@ -24,11 +17,10 @@ class ServiceProvider:
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.post("/request/{request_type}")(self.fetch_authorization_request)
-        router.post("/response")(self.parse_authorization_response)
-        router.post("/cb")(self.accept_authorization_response)
+        router.post("/cb")(self.parse_authorization_response)
         return router
 
-    async def accept_authorization_response(
+    async def parse_authorization_response(
         self,
         vp_token: str | list[str] = Form(...),
         presentation_submission=Form(...),
@@ -51,16 +43,6 @@ class ServiceProvider:
         wallet_metadata: str = Form(...),
         wallet_nonce: str = Form(...),
     ) -> AuthorizationRequestObject:
-        pass
-
-    # parses the attached auth response send by a wallet
-    # should be overridden to fit verifier's needs
-    async def parse_authorization_response(
-        self,
-        presentation_submission=Form(...),
-        vp_token=Form(...),
-        state: str = Form(...),
-    ):
         pass
 
     def generate_nonce(self):
