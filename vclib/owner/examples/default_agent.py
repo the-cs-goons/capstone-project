@@ -60,35 +60,6 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
         router.get("/hello")(hello_world)
         return router
 
-    @override
-    async def get_auth_request(
-        self,
-        request_uri=Body(...),
-        client_id=Body(...),
-        client_id_scheme=Body(...),
-        request_uri_method=Body(...),
-    ):  # -> PresentationDefinition:
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                # f"http://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
-                f"{request_uri}",
-                data={
-                    "wallet_nonce": "nonce",  # replace this data with actual stuff
-                    "wallet_metadata": "metadata",
-                },
-            )
-        # just send the presentation definition to the frontend for now
-        # what the backend sends to the fronend should be up to implementation
-        auth_request = response.json()
-        self.current_transaction = AuthorizationRequestObject(**auth_request)
-        return auth_request
-
 
 identity_owner = DefaultWebIdentityOwner("", mock_data=MOCK_STORE)
 
