@@ -63,14 +63,18 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
             dev_mode=dev_mode)
 
     @override
-    def load_all_credentials_from_storage(self) -> list[Credential]:
+    def load_all_credentials_from_storage(
+        self
+        ) -> list[Credential | DeferredCredential]:
         creds = []
         cred: dict
         for cred in self.MOCK_STORE.values():
+            new: Credential | DeferredCredential
             if cred.get("is_deferred"):
-                creds.append(DeferredCredential.model_validate(cred))
+                new = DeferredCredential.model_validate(cred)
             else:
-                creds.append(Credential.model_validate(cred))
+                new = Credential.model_validate(cred)
+            creds.append(new)
         return creds
 
     @override

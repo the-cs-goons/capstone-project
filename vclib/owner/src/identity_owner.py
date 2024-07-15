@@ -423,7 +423,7 @@ class IdentityOwner:
                         raise Exception("Invalid credential response")
         c: Credential | DeferredCredential
         for c in new_credentials:
-            self.credentials[c.id]
+            self.credentials[c.id] = c
             self.store_credential(c)
 
     async def get_issuer_metadata(self,
@@ -472,6 +472,7 @@ class IdentityOwner:
         ### Returns
         - `Credential | DeferredCredential`: The requested credential, if it exists.
         """
+
         if refresh:
             return await self.refresh_credential(cred_id)
 

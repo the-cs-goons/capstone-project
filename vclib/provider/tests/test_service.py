@@ -23,8 +23,7 @@ from vclib.provider.src.models.presentation_definition import (
 async def test_server_exists():
     sp = ServiceProvider("test_bundle", "test_path")
     sp_server = sp.get_server()
-    assert type(sp_server) == FastAPI
-
+    assert isinstance(sp_server, FastAPI)
 
 @pytest.mark.asyncio()
 async def test_basic_presentation_request():

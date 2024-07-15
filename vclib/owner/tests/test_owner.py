@@ -73,13 +73,12 @@ def identity_owner():
         authorization_details_types_supported = ["openid_credential"],
         pre_authorized_supported = False
     )
-
     return id_owner
 
 @pytest.mark.asyncio
 async def test_get_credential(identity_owner):
     identity_owner: DefaultWebIdentityOwner
-    credential1 = await identity_owner.get_credential("example1")
+    credential1 = await identity_owner.get_credential("example1", refresh=0)
     assert credential1.id == "example1"
 
 @pytest.mark.asyncio

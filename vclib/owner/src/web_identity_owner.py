@@ -69,7 +69,7 @@ class WebIdentityOwner(IdentityOwner):
         """
         r = refresh != 0
         try:
-            return await super()._get_credential(cred_id, r)
+            return await super()._get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
                 status_code=400,
