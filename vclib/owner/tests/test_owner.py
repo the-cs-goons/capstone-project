@@ -7,24 +7,28 @@ MOCK_STORE = {
     "example1": {
         "id": "example1",
         "issuer_url": "https://example.com",
-        "type": "Example",
-        "request_url": "https://example.com/status?token=example1",
-        "token": "qwertyuiop",
-        "status": "ACCEPTED",
-        "status_message": None,
         "issuer_name": "Example Issuer",
-        "received_at": 1719295821397,
+        "credential_configuration_id": "Passport",
+        "is_deferred": False,
+        "c_type": "openid_credential",
+        "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
+        "received_at": "2024-07-15T02:54:13.634808+00:00",
     },
     "example2": {
         "id": "example2",
         "issuer_url": "https://example.com",
-        "type": "Example",
-        "request_url": "https://example.com/status?token=example2",
-        "token": None,
-        "status": "PENDING",
-        "status_message": None,
         "issuer_name": "Example Issuer",
-        "received_at": None,
+        "credential_configuration_id": "Driver's Licence",
+        "is_deferred": True,
+        "c_type": "openid_credential",
+        "transaction_id": "1234567890",
+        "deferred_credential_endpoint": "https://example.com/deferred",
+        "last_request": "2024-07-15T02:54:13.634808+00:00",
+        "access_token": {
+            "access_token": "exampletoken",
+            "token_type": "bearer",
+            "expires_in": 99999999999
+        }
     },
 }
 

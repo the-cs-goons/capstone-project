@@ -1,6 +1,6 @@
-from base64 import b64encode
+from base64 import b64decode, b64encode
 from datetime import UTC, datetime
-from json import dumps
+from json import dumps, loads
 from typing import Any
 
 from oauthlib.oauth2 import WebApplicationClient
@@ -65,14 +65,15 @@ class IdentityOwner:
     ### Storage and persistence
     ###
 
-    def serialise_and_encrypt(self, cred: Credential):
-        """# NOT YET IMPLEMENTED IN FULL
+    def serialise(self, cred: Credential | DeferredCredential):
+        """
+        # NOT YET IMPLEMENTED IN FULL
         TODO: Implement encryption for safe storage using key attr
         Converts the Credential object into some string value that can be stored
         and encrypts it
 
         ### Parameters
-        - cred(`Credential`): Credential to serialise and encrypt
+        - cred(`Credential | DeferredCredential`): Credential to serialise
 
         ### Returns
         - `bytes`: A base64 encoded Credential
@@ -93,9 +94,12 @@ class IdentityOwner:
         - dump(`str` | `bytes` | `bytearray`): the serialised credential
 
         ### Returns
-        - `Credential`: A Credential object
+        - `Credential | DeferredCredential`: A Credential object
         """
-        # return Credential.model_validate(loads(b64decode(dump)))
+        obj: dict = loads(b64decode(dump))
+        if obj.get("is_deferred"):
+            return DeferredCredential.model_validate(obj)
+        return Credential.model_validate(obj)
 
     ###
     ### Credential Issuance (OAuth2)
