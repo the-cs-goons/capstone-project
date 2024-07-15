@@ -120,10 +120,10 @@ class WebIdentityOwner(IdentityOwner):
         """
         router = FastAPI()
 
-        router.get("/credential/{cred_id}")(self.get_credential)
+        router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh-all")(self.refresh_all_deferred_credentials)
+        router.get("/refresh")(self.refresh_all_deferred_credentials)
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
