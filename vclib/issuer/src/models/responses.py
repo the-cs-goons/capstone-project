@@ -8,8 +8,9 @@ class OptionsResponse(BaseModel):
 
 
 class RequestResponse(BaseModel):
-    ticket: int
-    link: str
+    # TODO: REMOVE LATER, TEMPORARY TO ALLOW SYSTEM TO WORK
+    # WITHOUT OAUTH FULLY SET UP
+    access_token: str
 
 
 # In theory used by the frontend to display status page

@@ -22,7 +22,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     SD_JWT_HEADER = "vc+sd-jwt"
     NONDISCLOSABLE_CLAIMS: ClassVar = ["iss", "nbf", "exp", "cnf", "vct", "status"]
-    ENFORCE_KEY_BINDING = True  # For extensibility; True by default, can be disabled
+    ENFORCE_KEY_BINDING = False  # For extensibility; True by default, can be disabled
 
     def __init__(
         self,

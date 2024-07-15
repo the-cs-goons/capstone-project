@@ -1,12 +1,14 @@
 import json
-from base64 import b64encode
-from hashlib import sha256
+from datetime import UTC, datetime
+from time import mktime
 from typing import Annotated, Any
 from uuid import uuid4
 
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, Header, HTTPException, Response, status
+from jwcrypto.jwk import JWK
+from pydantic import ValidationError
+
+from vclib.common import SDJWTVCIssuer
 
 from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
 from .models.responses import (
@@ -40,7 +42,7 @@ class CredentialIssuer:
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
-        private_key_path: str,
+        jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
         metadata_path: str,
@@ -48,17 +50,16 @@ class CredentialIssuer:
     ):
         self.credentials = credentials
         self.ticket = 0
+        self.active_access_tokens = []
         self.mapping = {}
         self.transaction_id_to_ticket = {}
         try:
-            with open(private_key_path, "rb") as key_file:
-                self.private_key = serialization.load_pem_private_key(
-                    key_file.read(), password=None
-                )
+            with open(jwt_path, "rb") as key_file:
+                self.jwt = JWK.from_pem(key_file.read())
         except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find private key: {e}")
+            raise FileNotFoundError(f"Could not find private jwt: {e}")
         except ValueError as e:
-            raise ValueError(f"Invalid private key provided: {e}")
+            raise ValueError(f"Invalid private jwt: {e}")
 
         try:
             with open(diddoc_path, "rb") as diddoc_file:
@@ -129,7 +130,7 @@ class CredentialIssuer:
             )
 
         try:
-            self.check_input_typing(cred_type, information)
+            self._check_input_typing(cred_type, information)
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -137,30 +138,14 @@ class CredentialIssuer:
             )
 
         self.ticket += 1
-        link = str(uuid4())
-        self.mapping[link] = self.ticket
+        access_token = str(uuid4())
+        self.mapping[access_token] = (self.ticket, None)
+        self.active_access_tokens.append(access_token)
 
         self.get_request(self.ticket, cred_type, information)
-        return RequestResponse(ticket=self.ticket, link=link)
+        return RequestResponse(access_token=access_token)
 
-    async def credential_status(self, token: str) -> UpdateResponse:
-        """Returns the current status of an active credential request.
-
-        ### Parameters
-        - token(`str`): Maps to a ticket number through the `mapping` attribute.
-        """
-        ticket = self.mapping[token]
-
-        status = self.get_status(ticket)
-        credential = None
-        if status.information is not None:
-            self.mapping.pop(token)
-            credential = self.create_credential(status.cred_type, status.information)
-        return UpdateResponse(
-            ticket=ticket, status=status.status, credential=credential
-        )
-
-    def check_input_typing(self, cred_type: str, information: dict):
+    def _check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
         Raises `TypeError` if types do not match.
         """
@@ -195,83 +180,105 @@ class CredentialIssuer:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
-    def get_did_json(self) -> DIDJSONResponse:
+    async def get_did_json(self) -> DIDJSONResponse:
         return self.diddoc
 
-    def get_did_config(self) -> DIDConfigResponse:
+    async def get_did_config(self) -> DIDConfigResponse:
         return self.did_config
 
-    def get_issuer_metadata(self) -> MetadataResponse:
+    async def get_issuer_metadata(self) -> MetadataResponse:
         return self.metadata
 
-    def get_oauth_metadata(self) -> OAuthMetadataResponse:
+    async def get_oauth_metadata(self) -> OAuthMetadataResponse:
         return self.oauth_metadata
 
-    def authorize(self):
+    async def authorize(self):
         pass
 
-    def token(self):
+    async def token(self):
         pass
 
-    def get_credential(
+    def _check_access_token(self, access_token: str) -> str:
+        # TODO: Errors for incorrect/missing auth code
+        if access_token is not None and access_token.startswith("Bearer "):
+            ac = access_token.split(" ")[1]
+            if ac in self.active_access_tokens:
+                return ac
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid or missing authorization code",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    async def get_credential(
         self,
         response: Response,
-        request: CredentialRequestBody,
+        request: dict[Any, Any],
         authorization: Annotated[str | None, Header()] = None,
     ):
-        # TODO: Errors for incorrect/missing auth code
-        if authorization is None or not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or missing authorization code",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+        access_token = self._check_access_token(authorization)
 
-        access_token = authorization.split(" ")[1]
-        ticket = self.mapping[access_token]
+        try:
+            CredentialRequestBody.model_validate(request)
+        except ValidationError:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_credential_request"}
+
+        if request["credential_identifier"] not in self.credentials:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "unsupported_credential_type"}
+
+        if self.mapping[access_token][1] is not None:
+            return {"transaction_id": self.mapping[access_token][1]}
+
+        ticket = self.mapping[access_token][0]
 
         cred_status = self.get_credential_status(ticket)
-        if cred_status.information is not None:
+
+        if cred_status.status == "ACCEPTED":
             self.mapping.pop(access_token)
+            credential = self.create_credential(
+                request["credential_identifier"], cred_status.information
+            )
+            return {"credential": credential}
 
-            if cred_status.status == "ACCEPTED":
-                credential = self.create_credential(
-                    request.credential_identifier, cred_status.information
-                )
-                return {"credential": credential}
-
+        if cred_status.status == "DENIED":
+            # Unsure if we remove access token if denied
+            # self.mapping.pop(access_token)
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "credential_request_denied"}
 
         transaction_id = str(uuid4())
         self.transaction_id_to_ticket[transaction_id] = ticket
+        self.mapping[access_token] = (ticket, transaction_id)
         response.status_code = status.HTTP_202_ACCEPTED
         return {"transaction_id": transaction_id}
 
-    def get_deferred_credential(
+    async def get_deferred_credential(
         self,
         response: Response,
-        request: DeferredCredentialRequestBody,
+        request: dict[Any, Any],
         authorization: Annotated[str | None, Header()] = None,
     ):
-        # TODO: Errors for incorrect/missing auth code
-        if authorization is None or not authorization.startswith("Bearer "):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid or missing authorization code",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
-        if request.transaction_id not in self.transaction_id_to_ticket:
+        access_token = self._check_access_token(authorization)
+
+        try:
+            DeferredCredentialRequestBody.model_validate(request)
+        except ValidationError:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_credential_request"}
+
+        if request["transaction_id"] not in self.transaction_id_to_ticket:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_transaction_id"}
 
-        access_token = authorization.split(" ")[1]
-        ticket = self.transaction_id_to_ticket[request.transaction_id]
+        ticket = self.transaction_id_to_ticket[request["transaction_id"]]
 
         cred_status = self.get_credential_status(ticket)
         if cred_status.information is not None:
-            self.transaction_id_to_ticket.pop(request.transaction_id)
-            self.mapping.pop(access_token)
+            self.transaction_id_to_ticket.pop(request["transaction_id"])
+            self.active_access_tokens.remove(access_token)
             credential = self.create_credential(
                 cred_status.cred_type, cred_status.information
             )
@@ -287,7 +294,6 @@ class CredentialIssuer:
         # todo: replace these
         # router.get("/credentials/")(self.get_credential_options)
         router.post("/request/{cred_type}")(self.receive_credential_request)
-        # router.get("/status/")(self.credential_status)
 
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
@@ -341,42 +347,23 @@ class CredentialIssuer:
         """
         return StatusResponse(status="PENDING", cred_type=None, information=None)
 
-    def create_credential(self, cred_type: str, information: dict) -> str:
+    def create_credential(self, cred_type: str, disclosable_claims: dict) -> str:
         """Function to generate credentials after being accepted.
 
-        Overriding this function is *optional* - default implementation will be
-        SD-JWT-VC, however a temporary mimicking algorithm is used in place for the
-        time being.
+        Overriding this function is *optional* - the default implementation is
+        SD-JWT-VC.
 
         ### Parameters
         - cred_type(`str`):  Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
-        - information(`dict`): Contains information for the credential being
-          constructed.
+        - disclosable_claims(`dict`): Contains disclosable claims for the credential
+          being constructed.
 
         ### Returns
         - `str`: A string containing the new issued credential.
         """
-        items = []
-        disclosures = []
-        for field_name, field_value in information.items():
-            json_rep = json.dumps({field_name: field_value})
-            disclosures.append(json_rep)
-            hashed = sha256(bytes(json_rep, encoding="utf8")).hexdigest()
-            items.append(hashed)
 
-        credential = bytes(json.dumps({"_fields": items, "_type": cred_type}), "utf8")
+        other = {"iat": mktime(datetime.now(UTC).timetuple())}
+        new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwt, None)
 
-        signature = self.private_key.sign(
-            credential,
-            padding.PSS(
-                mgf=padding.MGF1(hashes.SHA256()), salt_length=padding.PSS.MAX_LENGTH
-            ),
-            hashes.SHA256(),
-        )
-
-        cred_string = b64encode(credential) + b"." + b64encode(signature)
-        for i in disclosures:
-            cred_string += b"~" + b64encode(bytes(json.dumps(i), "utf-8"))
-
-        return cred_string.decode("utf-8")
+        return new_credential.sd_jwt_issuance

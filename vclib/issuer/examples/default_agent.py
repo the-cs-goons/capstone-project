@@ -22,7 +22,7 @@ class DefaultIssuer(CredentialIssuer):
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
-        private_key_path: str,
+        jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
         metadata_path: str,
@@ -30,7 +30,7 @@ class DefaultIssuer(CredentialIssuer):
     ):
         super().__init__(
             credentials,
-            private_key_path,
+            jwt_path,
             diddoc_path,
             did_config_path,
             metadata_path,
@@ -54,11 +54,6 @@ class DefaultIssuer(CredentialIssuer):
         return StatusResponse(
             status="ACCEPTED", cred_type=cred_type, information=information
         )
-
-    # @override
-    # def get_deferred_credential(self, transaction_id: str) -> StatusResponse:
-
-    #     return super().get_deferred_credential(ticket, transaction_id)
 
     @override
     def get_server(self) -> FastAPI:
@@ -85,7 +80,7 @@ credentials = {
 
 credential_issuer = DefaultIssuer(
     credentials,
-    "/usr/src/app/examples/example_private_key.pem",
+    "/usr/src/app/examples/example_jwk_private.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",
     "/usr/src/app/examples/example_metadata.json",
