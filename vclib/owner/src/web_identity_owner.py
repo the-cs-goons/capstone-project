@@ -200,7 +200,7 @@ class WebIdentityOwner(IdentityOwner):
             for disclosure in disclosures:
                 vp_token += f"{disclosure}~"
 
-            id_vp_tokens.append(input_descriptor_id, vp_token)
+            id_vp_tokens.append((input_descriptor_id, vp_token))
 
         final_vp_token = None
         descriptor_maps = []
@@ -253,7 +253,7 @@ class WebIdentityOwner(IdentityOwner):
             )
 
         self.current_transaction = None
-        return response
+        return response.json()
 
 
     async def get_auth_request(

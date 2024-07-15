@@ -39,6 +39,8 @@ class ServiceProvider:
             vp_token: str | list[str] = Form(...),
             presentation_submission = Form(...),
             state = Form(...)):
+        # TODO: verify the auth_response and tell the wallet whether or not
+        # it has been successful or not
         return {
             "vp_token": vp_token,
             "presentation_submission": presentation_submission,

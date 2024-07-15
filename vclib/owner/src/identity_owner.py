@@ -44,7 +44,7 @@ class IdentityOwner:
         - dev_mode(`bool`): An optional parameter (CURRENTLY UNUSED)
 
         """
-        self.vc_credentials = []
+        self.vc_credentials:list[str] = []
         self.storage_key = storage_key
         self.dev_mode = dev_mode
         self.credentials: dict[str, Credential] = {}
@@ -55,7 +55,7 @@ class IdentityOwner:
         return sd_jwt_vc.split("~")[0]
 
     def _get_decoded_credential_payload(self, sd_jwt_vc: str):
-        payload = self._get_credential_payload
+        payload = self._get_credential_payload(sd_jwt_vc)
         return jwt.decode(payload, options={"verify_signature": False})
 
     def _get_decoded_credential_disclosures(self, sd_jwt_vc: str):
@@ -66,7 +66,7 @@ class IdentityOwner:
         if sd_jwt_vc[-1] != "~":
             has_kb = True
         parts = sd_jwt_vc.split("~")
-        disclosures = parts[1:]
+        disclosures = parts[1:-1]
         kb = None
         if has_kb:
             kb = disclosures.pop()
@@ -76,8 +76,9 @@ class IdentityOwner:
         for disclosure in disclosures:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
             decoded_disclosure_str = decoded_disclosure_bytes.decode('utf-8')
-            # decoded_disclosure_list = json.loads(decoded_disclosure_str)
-            encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_str
+            decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            decoded_disclosure_claim = {decoded_disclosure_list[1]: decoded_disclosure_list[2]}
+            encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
     def _get_credentials_with_field(
@@ -88,9 +89,9 @@ class IdentityOwner:
 
         matched_credentials = {}
         for path in paths:
+            expr = jsonpath_ng.parse(path)
             for credential in self.vc_credentials:
                 payload = self._get_decoded_credential_payload(credential)
-                expr = jsonpath_ng.parse(path)
                 matches = expr.find(payload)
                 if matches not in ([], None):
                     matched_credentials[credential] = []
@@ -101,9 +102,9 @@ class IdentityOwner:
                 for disclosure in disclosures:
                     matches = expr.find(disclosure)
                     if matches not in ([], None):
-                        disclosure_idx = disclosures.index(disclosure)
+                        disclosure_idx = list(disclosures).index(disclosure)
                         encoded_disclosures = encoded_to_decoded_disclosures.keys()
-                        encoded_disclosure = encoded_disclosures[disclosure_idx]
+                        encoded_disclosure = list(encoded_disclosures)[disclosure_idx]
                         matched_credentials[credential] = [encoded_disclosure]
 
         return matched_credentials
