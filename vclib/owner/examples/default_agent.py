@@ -40,8 +40,8 @@ MOCK_STORE = {
 }
 
 EXAMPLE_ISSUER = "https://example.com"
-OWNER_HOST = environ.get("CS3900_OWNER_AGENT_HOST", "http://localhost")
-OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8080")
+OWNER_HOST = environ.get("CS3900_OWNER_AGENT_HOST", "https://localhost")
+OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8081")
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 
@@ -121,6 +121,6 @@ identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     response_types_supported=["code"],
     grant_types_supported=["authorization_code"],
     authorization_details_types_supported=["openid_credential"],
-    pre_authorized_supported=False,
+    **{"pre-authorized_grant_anonymous_access_supported": False}
 )
 identity_owner_server = identity_owner.get_server()
