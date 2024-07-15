@@ -9,6 +9,7 @@ sd-jwt = "*"
 fastapi = "*"
 requests = "*"
 pyjwt = "*"
+requests-oauthlib = "*"
 
 [dev-packages]
 pytest = "*"
