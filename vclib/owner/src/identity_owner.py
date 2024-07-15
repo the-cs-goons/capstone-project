@@ -334,7 +334,6 @@ class IdentityOwner:
                 token_endpoint, code=code, auth=basic_auth, headers=headers
             )
             r.raise_for_status()
-            oauth2_client
 
             access_token_res = OAuthTokenResponse.model_validate_json(r.content)
             # Update session
