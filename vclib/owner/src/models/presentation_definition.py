@@ -52,8 +52,10 @@ class Constraint(BaseModel):
     limit_disclosure: Literal["required", "preferred"] | None = None
 
 class InputDescriptor(BaseModel):
-    '''Each input_descriptor MUST contain an "id" and a "constraints" property.\n
-    Each input_descriptor MAY contain "name", "purpose", and "format" properties'''
+    '''
+    Each input_descriptor describes fields required from 1 type of credential.
+    Each input_descriptor MUST contain an "id" and a "constraints" property.\n
+    Each input_descriptor MAY contain "name", "purpose", and "format" properties\n'''
 
     id: str
     constraints: Constraint

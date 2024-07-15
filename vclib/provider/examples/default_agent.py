@@ -57,13 +57,13 @@ class ExampleServiceProvider(ServiceProvider):
 
 service_provider = ExampleServiceProvider([], "test")
 
-age_request_pd_data = {
-    "id": "age-verification",
+verify_over_18_pd = {
+    "id": "verify_over_18",
     "input_descriptors": [
         {
-            "id": "age_descriptor",
-            "name": "Age Verification",
-            "purpose": "To verify if the individual is over 18 years old",
+            "id": "over_18_descriptor",
+            "name": "Over 18 Verification",
+            "purpose": "To verify that the individual is over 18 years old",
             "schema": [
                 {
                     "uri": "https://example.com/credentials/age"
@@ -72,10 +72,10 @@ age_request_pd_data = {
             "constraints": {
                 "fields": [
                     {
-                        "path": ["$.credentialSubject.age"],
+                        "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
                         "filter": {
-                            "type": "number",
-                            "minimum": 18
+                            "type": "string",
+                            "enum": ["true"]
                         }
                     }
                 ]
@@ -84,14 +84,14 @@ age_request_pd_data = {
     ]
 }
 
-age_request_pd = PresentationDefinition(**age_request_pd_data)
+verify_over_18_pd_object = PresentationDefinition(**verify_over_18_pd)
 
 age_request_data = {
     "client_id": "some did",
     "client_id_scheme": "did",
     "client_metadata": {"data" : "metadata in this object"},
-    "presentation_definition": age_request_pd,
-    "redirect_uri": f"http://owner-lib:{os.getenv('CS3900_OWNER_AGENT_PORT')}/cb",
+    "presentation_definition": verify_over_18_pd_object,
+    "response_uri": f"http://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",

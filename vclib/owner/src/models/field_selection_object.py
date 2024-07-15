@@ -1,14 +1,12 @@
 from pydantic import BaseModel
 
-from .presentation_definition import Filter
+from .presentation_definition import Field
+
 
 class FieldRequest(BaseModel):
-    path: list[str]
-    approved: bool
-    id: str | None = None
-    name: str | None = None
-    filter: Filter | None = None
-    optional: bool | None = False
+    field: Field
+    input_descriptor_id: str
+    approved: bool = False
 
 class FieldSelectionObject(BaseModel):
-    fields: list[FieldRequest]
+    field_requests: list[FieldRequest]

@@ -1,23 +1,29 @@
+import jsonpath_ng
+import uuid
 from typing import override
 
-from fastapi import FastAPI, HTTPException, Form
+from fastapi import FastAPI, Form, HTTPException, Body
 import httpx
 
 from . import IdentityOwner
 from .models.credentials import Credential
-from .models.field_selection_object import FieldSelectionObject
 from .models.exceptions import (
     BadIssuerRequestError,
     CredentialIssuerError,
     IssuerTypeNotFoundError,
     IssuerURLNotFoundError,
 )
+from .models.field_selection_object import FieldSelectionObject
+from .models.presentation_submission_object import PresentationSubmissionObject, DescriptorMapObject
+from .models.authorization_request_object import AuthorizationRequestObject
+from .models.authorization_response_object import AuthorizationResponseObject
 from .models.responses import SchemaResponse
 
 
 class WebIdentityOwner(IdentityOwner):
     def __init__(self, storage_key, *, dev_mode=False):
         super().__init__(storage_key, dev_mode=dev_mode)
+        self.current_transaction: AuthorizationRequestObject | None = None
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -29,7 +35,7 @@ class WebIdentityOwner(IdentityOwner):
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh/all")(self.refresh_all_pending_credentials)
         router.get("/presentation/init")(self.get_auth_request)
-        router.post("/presentation/present_selection")(self.present_selection)
+        router.post("/presentation/")(self.present_selection)
 
         return router
 
@@ -144,9 +150,111 @@ class WebIdentityOwner(IdentityOwner):
 
     async def present_selection(
             self,
-            fields: FieldSelectionObject
-        ):
-        pass
+            field_selections:FieldSelectionObject = Body(...)
+            ):
+        # find which attributes in which credentials fit the presentation definition
+        # mark which credential and attribute for disclosure
+
+        # list[Field]
+        approved_fields = [x.field for x in field_selections.field_requests if x.approved]
+        pd = self.current_transaction.presentation_definition
+        ids = pd.input_descriptors
+
+        # list[tuple[input_descriptor_id, vp_token]]
+        id_vp_tokens: list[tuple[str, str]] = []
+
+        for id_object in ids:
+            input_descriptor_id = id_object.id
+            # dict[credential, [list[encoded disclosures]]]
+            valid_credentials = {}
+            ordered_approved_fields = [x for x in id_object.constraints.fields if x in approved_fields]
+            for field in ordered_approved_fields:
+                paths = field.path
+                # find all credentials with said field
+                new_valid_creds = self._get_credentials_with_field(paths)
+
+                if valid_credentials == {}:
+                    valid_credentials = new_valid_creds
+                    continue
+                # make sure we keep creds with previously found fields
+                for cred in valid_credentials:
+                    if cred not in new_valid_creds:
+                        new_valid_creds.pop(cred)
+                # add the new disclosures to the old disclosures
+                for cred in new_valid_creds:
+                    new_valid_creds[cred] += valid_credentials[cred]
+                # cull old creds that don't have all of the fields
+                valid_credentials = new_valid_creds
+
+                # no valid credentials found
+                if valid_credentials == {}:
+                    break
+
+            # if no valid credentials found, go next
+            if valid_credentials == {}:
+                continue
+
+            # create the vp_token
+            credential, disclosures = valid_credentials.popitem()
+            vp_token = f"{self._get_credential_payload(credential)}~"
+            for disclosure in disclosures:
+                vp_token += f"{disclosure}~"
+
+            id_vp_tokens.append(input_descriptor_id, vp_token)
+
+        final_vp_token = None
+        descriptor_maps = []
+        definition_id = self.current_transaction.presentation_definition.id
+        transaction_id = self.current_transaction.state
+
+        if len(id_vp_tokens) == 1:
+            input_descriptor_id, vp_token = id_vp_tokens[0]
+            final_vp_token = vp_token
+
+            descriptor_map = {
+                "id": input_descriptor_id,
+                "format": "vc+sd-jwt",
+                "path": "$"
+            }
+            descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+        elif len(id_vp_tokens) > 1:
+            final_vp_token = []
+            for input_descriptor_id, vp_token in id_vp_tokens:
+                idx = len(final_vp_token)
+                final_vp_token.append(vp_token)
+
+                descriptor_map = {
+                    "id": input_descriptor_id,
+                    "format": "vc+sd-jwt",
+                    "path": f"$[{idx}]"
+                }
+                descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+
+        presentation_submission = {
+            "id": str(uuid.uuid4()),
+            "definition_id": definition_id,
+            "descriptor_map": descriptor_maps
+        }
+        presentation_submission_object = PresentationSubmissionObject(**presentation_submission)
+
+        authorization_response = {
+            "vp_token": final_vp_token,
+            "presentation_submission": presentation_submission_object,
+            "state": transaction_id
+        }
+        authorization_response_object = AuthorizationResponseObject(**authorization_response)
+
+        response_uri = self.current_transaction.response_uri
+        # make sure response_mode is direct_post
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+            f"{response_uri}",
+            data=authorization_response_object.model_dump()
+            )
+
+        self.current_transaction = None
+        return response
+
 
     async def get_auth_request(
             self,

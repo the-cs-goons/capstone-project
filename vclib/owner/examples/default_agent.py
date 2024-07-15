@@ -1,10 +1,14 @@
-from typing import Any, Coroutine, override
-import httpx
-import os
+from typing import override
 
-from fastapi import FastAPI, Form, HTTPException, Body
+import httpx
+from fastapi import Body, FastAPI, HTTPException
+import jsonpath_ng
+
 from vclib.common import hello_world
 from vclib.owner import Credential, WebIdentityOwner
+from vclib.owner.src.models.authorization_request_object import (
+    AuthorizationRequestObject,
+)
 from vclib.owner.src.models.field_selection_object import FieldSelectionObject
 
 MOCK_STORE = {
@@ -39,7 +43,6 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
             mock_data = {}
         self.MOCK_STORE = mock_data
         super().__init__(storage_key, dev_mode=dev_mode)
-        self.current_transaction = None
 
     @override
     def load_all_credentials_from_storage(self) -> list[Credential]:
@@ -81,22 +84,16 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
                     "wallet_nonce": "nonce", # replace this data with actual stuff
                     "wallet_metadata": "metadata"
                 })
-        # just send the presentation definition to the frontend
+        # just send the presentation definition to the frontend for now
+        # what the backend sends to the fronend should be up to implementation
         auth_request = response.json()
-        self.current_transaction = auth_request
+        self.current_transaction = AuthorizationRequestObject(**auth_request)
         return auth_request
 
-    @override
-    async def present_selection(
-            self,
-            field_selections: FieldSelectionObject
-            ):
-
-        # for field in field_selections.fields
-        # if field is approved and exists in presentation submission
-        #
-        return
 
 
 identity_owner = DefaultWebIdentityOwner("", mock_data=MOCK_STORE)
+
+identity_owner.vc_credentials.append("eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~")
+
 identity_owner_server = identity_owner.get_server()

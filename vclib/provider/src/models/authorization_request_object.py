@@ -9,7 +9,7 @@ class AuthorizationRequestObject(BaseModel):
     client_id_scheme: str = "did"
     client_metadata: dict
     presentation_definition: PresentationDefinition
-    redirect_uri: str
+    response_uri: str
     response_type: str = "vp_token"
     response_mode: str = "direct_post"
     nonce: str

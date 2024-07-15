@@ -31,7 +31,19 @@ class ServiceProvider:
         router.post("/verify-certificate/{credential}")(self.try_verify_certificate)
         router.post("/request/{request_type}")(self.fetch_authorization_request)
         router.post("/response")(self.parse_authorization_response)
+        router.post("/cb")(self.accept_authorization_response)
         return router
+
+    async def accept_authorization_response(
+            self,
+            vp_token: str | list[str] = Form(...),
+            presentation_submission = Form(...),
+            state = Form(...)):
+        return {
+            "vp_token": vp_token,
+            "presentation_submission": presentation_submission,
+            "state": state
+        }
 
     # fetches and sends back the requested request object
     # accessed through request_uri embedded in QR code

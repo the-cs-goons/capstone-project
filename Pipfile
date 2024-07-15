@@ -8,6 +8,8 @@ jwcrypto = "*"
 sd-jwt = "*"
 fastapi = "*"
 requests = "*"
+pyjwt = "*"
+jsonpath-ng = "*"
 
 [dev-packages]
 pytest = "*"
