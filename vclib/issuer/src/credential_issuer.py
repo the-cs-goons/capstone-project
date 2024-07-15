@@ -9,6 +9,8 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from fastapi import FastAPI, HTTPException
 
 from .models.responses import (
+    MetadataResponse,
+    OAuthMetadataResponse,
     OptionsResponse,
     RequestResponse,
     StatusResponse,
@@ -148,17 +150,53 @@ class CredentialIssuer:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
+    def authorize(self):
+        pass
+
+    def token(self):
+        pass
+
+    def get_credential(self):
+        pass
+
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
         router = FastAPI()
+
+        # todo: replace these
         router.get("/credentials/")(self.get_credential_options)
         router.post("/request/{cred_type}")(self.receive_credential_request)
         router.get("/status/")(self.credential_status)
+
+        router.get("/.well-known/did.json")(self.did_json)
+        router.get("/.well-known/did-configuration")(self.did_config)
+        router.get("/.well-known/openid-credential-issuer")(self.issuer_metadata)
+        router.get("/.well-known/oauth-authorization-server")(self.oauth_metadata)
+
+        """OAuth endpoints"""
+        router.post("/authorize")(self.authorize)
+        router.post("/token")(self.token)
+
+        router.post("/credentials")(self.get_credential)
+        # router.post("/deferred")(self.deferred_credential)
+
         return router
 
     ###
     ### User-defined functions, designed to be overwritten
     ###
+    def did_json(self):
+        pass
+
+    def did_config(self):
+        pass
+
+    def issuer_metadata(self) -> MetadataResponse:
+        pass
+
+    def oauth_metadata(self) -> OAuthMetadataResponse:
+        pass
+
     def get_request(self, _ticket: int, _cred_type: str, _information: dict):
         """## !!! This function must be `@override`n !!!
 

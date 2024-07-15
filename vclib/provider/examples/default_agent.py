@@ -19,8 +19,8 @@ class ExampleServiceProvider(ServiceProvider):
     # send/request etc. their presentations etc.
     # For now, I will move forward using request URIs for the wallet
     # to fetch the authorization request
-    def __init__(self, ca_bundle, ca_path):
-        super().__init__(ca_bundle, ca_path)
+    def __init__(self):
+        super().__init__()
         self.current_transactions = {}
 
         # mapping of req name to req
@@ -52,7 +52,7 @@ class ExampleServiceProvider(ServiceProvider):
         pass
 
 
-service_provider = ExampleServiceProvider([], "test")
+service_provider = ExampleServiceProvider()
 
 verify_over_18_pd = {
     "id": "verify_over_18",

@@ -11,6 +11,7 @@ requests = "*"
 pyjwt = "*"
 jsonpath-ng = "*"
 pytest-httpx = "*"
+requests-oauthlib = "*"
 
 [dev-packages]
 pytest = "*"
