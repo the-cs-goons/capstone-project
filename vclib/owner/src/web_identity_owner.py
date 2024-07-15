@@ -29,7 +29,7 @@ class WebIdentityOwner(IdentityOwner):
         - redirect_uris(`list[str]`): A list of redirect URIs to register with issuers.
         It is the caller's responsibility to ensure these match with the API.
         - cred_offer_endpoint(`str`): The credential offer URI, e.g.
-        "https://example.com/offer". The routes for recieving credential offers, and
+        "https://example.com/offer". The routes for receiving credential offers, and
         redirecting the user to authorise based on a credential offer, are dynamically
         determined by parsing this URI with `urllib.parse.urlparse` and retrieving the
         path.
