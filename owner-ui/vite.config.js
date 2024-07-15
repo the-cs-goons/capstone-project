@@ -1,15 +1,16 @@
 /// <reference types="vitest" />
 import { vitePlugin as remix } from "@remix-run/dev";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import { defineConfig } from "vite";
-import mkcert from "vite-plugin-mkcert";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { coverageConfigDefaults } from "vitest/config";
 
 export default defineConfig({
-  plugins: [!process.env.VITEST && remix(), tsconfigPaths(), mkcert()],
+  plugins: [!process.env.VITEST && remix(), tsconfigPaths(), basicSsl()],
   server: {
     port: process.env.CS3900_OWNER_UI_PORT,
     host: true,
+    proxy: {},
   },
   test: {
     globals: true,
