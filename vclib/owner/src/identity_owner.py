@@ -142,7 +142,6 @@ class IdentityOwner:
                 res.raise_for_status()
                 offer = CredentialOffer.model_validate_json(res.content)
         else:
-            print(credential_offer)
             offer = CredentialOffer.model_validate_json(credential_offer)
 
         return offer
