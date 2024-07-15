@@ -7,6 +7,10 @@ class OptionsResponse(BaseModel):
     options: dict[str, dict[str, dict[str, Any]]]
 
 
+class FormResponse(BaseModel):
+    form: dict[str, dict[str, Any]]
+
+
 class RequestResponse(BaseModel):
     # TODO: REMOVE LATER, TEMPORARY TO ALLOW SYSTEM TO WORK
     # WITHOUT OAUTH FULLY SET UP

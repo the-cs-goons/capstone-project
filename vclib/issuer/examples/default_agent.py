@@ -22,6 +22,7 @@ class DefaultIssuer(CredentialIssuer):
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
+        uri: str,
         jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
@@ -30,6 +31,7 @@ class DefaultIssuer(CredentialIssuer):
     ):
         super().__init__(
             credentials,
+            uri,
             jwt_path,
             diddoc_path,
             did_config_path,
@@ -80,6 +82,7 @@ credentials = {
 
 credential_issuer = DefaultIssuer(
     credentials,
+    "https://issuer-lib:8082",
     "/usr/src/app/examples/example_jwk_private.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",

@@ -1,25 +1,32 @@
 import json
+from base64 import urlsafe_b64decode
 from datetime import UTC, datetime
 from time import mktime
 from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import FastAPI, Header, HTTPException, Response, status
+from fastapi.responses import RedirectResponse
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
 
 from vclib.common import SDJWTVCIssuer
+from vclib.issuer.src.models.oauth import (
+    AuthorizationDetails,
+    OAuthTokenResponse,
+    RegisteredClientMetadata,
+    WalletClientMetadata,
+)
 
 from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
 from .models.responses import (
     DIDConfigResponse,
     DIDJSONResponse,
+    FormResponse,
     MetadataResponse,
     OAuthMetadataResponse,
     OptionsResponse,
-    RequestResponse,
     StatusResponse,
-    UpdateResponse,
 )
 
 
@@ -35,6 +42,7 @@ class CredentialIssuer:
 
 
     TODO
+    uri
     paths
 
     """
@@ -42,6 +50,7 @@ class CredentialIssuer:
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
+        uri: str,
         jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
@@ -49,10 +58,8 @@ class CredentialIssuer:
         oauth_metadata_path: str,
     ):
         self.credentials = credentials
-        self.ticket = 0
-        self.active_access_tokens = []
-        self.mapping = {}
-        self.transaction_id_to_ticket = {}
+        self.uri = uri
+
         try:
             with open(jwt_path, "rb") as key_file:
                 self.jwt = JWK.from_pem(key_file.read())
@@ -93,15 +100,85 @@ class CredentialIssuer:
         except ValueError as e:
             raise ValueError(f"Invalid OAuth metadata json provided: {e}")
 
+        self.client_ids = {}
+
+        self.auth_codes = {}
+
+        self.ticket = 0
+        self.active_access_tokens = []
+        self.auths_to_ids = {}
+        self.access_to_ids = {}
+        self.id_to_ticket = {}
+        self.transaction_id_to_ticket = {}
+
     async def get_credential_options(self) -> OptionsResponse:
         """Retrieves available credentials that can be issued,
         along with required fields and types.
         """
         return OptionsResponse(options=self.credentials)
 
+    async def get_did_json(self) -> DIDJSONResponse:
+        return self.diddoc
+
+    async def get_did_config(self) -> DIDConfigResponse:
+        return self.did_config
+
+    async def get_issuer_metadata(self) -> MetadataResponse:
+        return self.metadata
+
+    async def get_oauth_metadata(self) -> OAuthMetadataResponse:
+        return self.oauth_metadata
+
+    async def register(
+        self, response: Response, request: WalletClientMetadata
+    ) -> RegisteredClientMetadata:
+        # TODO: Error handling
+
+        client_id = str(uuid4())
+        client_secret = str(uuid4())
+        self.client_ids[client_id] = client_secret
+
+        response.status_code = status.HTTP_201_CREATED
+
+        return RegisteredClientMetadata(
+            redirect_uris=request.redirect_uris,
+            credential_offer_endpoint=request.credential_offer_endpoint,
+            token_endpoint_auth_method=request.token_endpoint_auth_method,
+            grant_types=request.grant_types,
+            response_types=request.response_types,
+            authorization_details_types=request.authorization_details_types,
+            client_name=request.client_name,
+            client_uri=request.client_uri,
+            logo_uri=request.logo_uri,
+            client_id=client_id,
+            client_secret=client_secret,
+            issuer_uri=self.uri,
+        )
+
+    async def authorize(
+        self,
+        response_type: str,
+        client_id: str,
+        redirect_uri: str,
+        state: str,
+        authorization_details: str,
+    ):
+        # TODO: Error checking
+
+        cred_id = json.loads(authorization_details)[0]["credential_configuration_id"]
+        form = self.credentials[cred_id]
+
+        return FormResponse(form=form)
+
     async def receive_credential_request(
-        self, cred_type: str, information: dict | None = None
-    ) -> RequestResponse:
+        self,
+        response_type: str,
+        client_id: str,
+        redirect_uri: str,
+        state: str,
+        authorization_details: str,
+        information: dict | None = None,
+    ) -> RedirectResponse:
         """Receives a request for credentials.
 
         ### Parameters
@@ -123,6 +200,8 @@ class CredentialIssuer:
         Valid credential formats and required fields can be accessed through
         `get_credential_options()`.
         """
+        cred_type = json.loads(authorization_details)[0]["credential_configuration_id"]
+
         if cred_type not in self.credentials:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -138,12 +217,164 @@ class CredentialIssuer:
             )
 
         self.ticket += 1
-        access_token = str(uuid4())
-        self.mapping[access_token] = (self.ticket, None)
-        self.active_access_tokens.append(access_token)
+        auth_code = str(uuid4())
+        self.auth_codes[auth_code] = client_id
+
+        cred_id = f"{cred_type}_{uuid4()!s}"
+        self.auths_to_ids[auth_code] = [(cred_type, cred_id, redirect_uri)]
+        self.id_to_ticket[cred_id] = self.ticket
 
         self.get_request(self.ticket, cred_type, information)
-        return RequestResponse(access_token=access_token)
+
+        return RedirectResponse(
+            url=f"{redirect_uri}?code={auth_code}&state={state}",
+            status_code=status.HTTP_302_FOUND,
+        )
+
+    async def token(
+        self,
+        grant_type: str,
+        code: str,
+        redirect_uri: str,
+        authorization: Annotated[str | None, Header()] = None,
+    ):
+        # TODO: Error checking, proper authentication
+
+        client_id, client_secret = (
+            urlsafe_b64decode(authorization.split(" ")[1].encode("utf-8") + b"==")
+            .decode("utf-8")
+            .split(":")
+        )
+        if (
+            self.auth_codes[code] == client_id
+            and self.client_ids[client_id] == client_secret
+        ):
+            cred_type, cred_id, re_uri = self.auths_to_ids[code][0]
+            if re_uri == redirect_uri:
+                access_token = str(uuid4())
+                self.active_access_tokens.append(access_token)
+                self.access_to_ids[access_token] = (cred_id, None)
+
+                auth_details = AuthorizationDetails(
+                    type="openid_credential",
+                    credential_configuration_id=cred_type,
+                    credential_identifiers=[cred_id],
+                )
+
+                return OAuthTokenResponse(
+                    access_token=access_token,
+                    token_type="bearer",
+                    expires_in=7200,
+                    c_nonce=None,
+                    c_nonce_expires_in=None,
+                    authorization_details=[auth_details],
+                )
+
+            return {re_uri: redirect_uri}
+
+        return {client_id: client_secret}
+
+    async def get_credential(
+        self,
+        response: Response,
+        request: dict[Any, Any],
+        authorization: Annotated[str | None, Header()] = None,
+    ):
+        access_token = self._check_access_token(authorization)
+
+        try:
+            CredentialRequestBody.model_validate(request)
+        except ValidationError:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_credential_request"}
+
+        if request["credential_identifier"] not in self.credentials:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "unsupported_credential_type"}
+
+        if self.access_to_ids[access_token][1] is not None:
+            return {"transaction_id": self.access_to_ids[access_token][1]}
+
+        ticket = self.id_to_ticket[self.access_to_ids[access_token][0]]
+
+        cred_status = self.get_credential_status(ticket)
+
+        if cred_status.status == "ACCEPTED":
+            self.access_to_ids.pop(access_token)
+            self.active_access_tokens.pop(access_token)
+            credential = self.create_credential(
+                request["credential_identifier"], cred_status.information
+            )
+            return {"credential": credential}
+
+        if cred_status.status == "DENIED":
+            # Unsure if we remove access token if denied
+            # self.auths_to_ids.pop(access_token)
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "credential_request_denied"}
+
+        transaction_id = str(uuid4())
+        self.transaction_id_to_ticket[transaction_id] = ticket
+        self.access_to_ids[access_token] = (ticket, transaction_id)
+        response.status_code = status.HTTP_202_ACCEPTED
+        return {"transaction_id": transaction_id}
+
+    async def get_deferred_credential(
+        self,
+        response: Response,
+        request: dict[Any, Any],
+        authorization: Annotated[str | None, Header()] = None,
+    ):
+        access_token = self._check_access_token(authorization)
+
+        try:
+            DeferredCredentialRequestBody.model_validate(request)
+        except ValidationError:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_credential_request"}
+
+        if request["transaction_id"] not in self.transaction_id_to_ticket:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": "invalid_transaction_id"}
+
+        ticket = self.transaction_id_to_ticket[request["transaction_id"]]
+
+        cred_status = self.get_credential_status(ticket)
+        if cred_status.information is not None:
+            self.transaction_id_to_ticket.pop(request["transaction_id"])
+            self.access_to_ids.pop(access_token)
+            self.active_access_tokens.remove(access_token)
+            credential = self.create_credential(
+                cred_status.cred_type, cred_status.information
+            )
+            return {"credential": credential}
+
+        response.status_code = status.HTTP_400_BAD_REQUEST
+        return {"error": "issuance_pending"}
+
+    def get_server(self) -> FastAPI:
+        """Gets the server for the issuer."""
+        router = FastAPI()
+
+        # TODO: Allow customising endpoints using passed in metadata
+        # router.get("/credentials/")(self.get_credential_options)
+        router.post("/request/{cred_type}")(self.receive_credential_request)
+
+        router.get("/.well-known/did.json")(self.get_did_json)
+        router.get("/.well-known/did-configuration")(self.get_did_config)
+        router.get("/.well-known/openid-credential-issuer")(self.get_issuer_metadata)
+        router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
+
+        """OAuth2 endpoints"""
+        router.post("/oauth2/register")(self.register)
+        router.get("/oauth2/authorize")(self.authorize)
+        router.post("/oauth2/authorize")(self.receive_credential_request)
+        router.post("/oauth2/token")(self.token)
+
+        router.post("/credentials")(self.get_credential)
+        router.post("/deferred")(self.get_deferred_credential)
+
+        return router
 
     def _check_input_typing(self, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
@@ -180,24 +411,6 @@ class CredentialIssuer:
             if field_name not in self.credentials[cred_type]:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
-    async def get_did_json(self) -> DIDJSONResponse:
-        return self.diddoc
-
-    async def get_did_config(self) -> DIDConfigResponse:
-        return self.did_config
-
-    async def get_issuer_metadata(self) -> MetadataResponse:
-        return self.metadata
-
-    async def get_oauth_metadata(self) -> OAuthMetadataResponse:
-        return self.oauth_metadata
-
-    async def authorize(self):
-        pass
-
-    async def token(self):
-        pass
-
     def _check_access_token(self, access_token: str) -> str:
         # TODO: Errors for incorrect/missing auth code
         if access_token is not None and access_token.startswith("Bearer "):
@@ -210,104 +423,6 @@ class CredentialIssuer:
             detail="Invalid or missing authorization code",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    async def get_credential(
-        self,
-        response: Response,
-        request: dict[Any, Any],
-        authorization: Annotated[str | None, Header()] = None,
-    ):
-        access_token = self._check_access_token(authorization)
-
-        try:
-            CredentialRequestBody.model_validate(request)
-        except ValidationError:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"error": "invalid_credential_request"}
-
-        if request["credential_identifier"] not in self.credentials:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"error": "unsupported_credential_type"}
-
-        if self.mapping[access_token][1] is not None:
-            return {"transaction_id": self.mapping[access_token][1]}
-
-        ticket = self.mapping[access_token][0]
-
-        cred_status = self.get_credential_status(ticket)
-
-        if cred_status.status == "ACCEPTED":
-            self.mapping.pop(access_token)
-            credential = self.create_credential(
-                request["credential_identifier"], cred_status.information
-            )
-            return {"credential": credential}
-
-        if cred_status.status == "DENIED":
-            # Unsure if we remove access token if denied
-            # self.mapping.pop(access_token)
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"error": "credential_request_denied"}
-
-        transaction_id = str(uuid4())
-        self.transaction_id_to_ticket[transaction_id] = ticket
-        self.mapping[access_token] = (ticket, transaction_id)
-        response.status_code = status.HTTP_202_ACCEPTED
-        return {"transaction_id": transaction_id}
-
-    async def get_deferred_credential(
-        self,
-        response: Response,
-        request: dict[Any, Any],
-        authorization: Annotated[str | None, Header()] = None,
-    ):
-        access_token = self._check_access_token(authorization)
-
-        try:
-            DeferredCredentialRequestBody.model_validate(request)
-        except ValidationError:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"error": "invalid_credential_request"}
-
-        if request["transaction_id"] not in self.transaction_id_to_ticket:
-            response.status_code = status.HTTP_400_BAD_REQUEST
-            return {"error": "invalid_transaction_id"}
-
-        ticket = self.transaction_id_to_ticket[request["transaction_id"]]
-
-        cred_status = self.get_credential_status(ticket)
-        if cred_status.information is not None:
-            self.transaction_id_to_ticket.pop(request["transaction_id"])
-            self.active_access_tokens.remove(access_token)
-            credential = self.create_credential(
-                cred_status.cred_type, cred_status.information
-            )
-            return {"credential": credential}
-
-        response.status_code = status.HTTP_400_BAD_REQUEST
-        return {"error": "issuance_pending"}
-
-    def get_server(self) -> FastAPI:
-        """Gets the server for the issuer."""
-        router = FastAPI()
-
-        # todo: replace these
-        # router.get("/credentials/")(self.get_credential_options)
-        router.post("/request/{cred_type}")(self.receive_credential_request)
-
-        router.get("/.well-known/did.json")(self.get_did_json)
-        router.get("/.well-known/did-configuration")(self.get_did_config)
-        router.get("/.well-known/openid-credential-issuer")(self.get_issuer_metadata)
-        router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
-
-        """OAuth endpoints"""
-        router.post("/authorize")(self.authorize)
-        router.post("/token")(self.token)
-
-        router.post("/credentials")(self.get_credential)
-        router.post("/deferred")(self.get_deferred_credential)
-
-        return router
 
     ###
     ### User-defined functions, designed to be overwritten
