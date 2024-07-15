@@ -8,5 +8,6 @@ class FieldRequest(BaseModel):
     input_descriptor_id: str
     approved: bool = False
 
+
 class FieldSelectionObject(BaseModel):
     field_requests: list[FieldRequest]

@@ -1,11 +1,11 @@
-import jsonpath_ng
 import uuid
-from typing import override
+from typing import TYPE_CHECKING, override
 
-from fastapi import FastAPI, Form, HTTPException, Body
 import httpx
+from fastapi import Body, FastAPI, Form, HTTPException
 
 from . import IdentityOwner
+from .models.authorization_response_object import AuthorizationResponseObject
 from .models.credentials import Credential
 from .models.exceptions import (
     BadIssuerRequestError,
@@ -14,11 +14,14 @@ from .models.exceptions import (
     IssuerURLNotFoundError,
 )
 from .models.field_selection_object import FieldSelectionObject
-from .models.presentation_submission_object import PresentationSubmissionObject, DescriptorMapObject
-from .models.authorization_request_object import AuthorizationRequestObject
-from .models.authorization_response_object import AuthorizationResponseObject
+from .models.presentation_submission_object import (
+    DescriptorMapObject,
+    PresentationSubmissionObject,
+)
 from .models.responses import SchemaResponse
 
+if TYPE_CHECKING:
+    from .models.authorization_request_object import AuthorizationRequestObject
 
 class WebIdentityOwner(IdentityOwner):
     def __init__(self, storage_key, *, dev_mode=False):
@@ -149,14 +152,15 @@ class WebIdentityOwner(IdentityOwner):
         return self.credentials.values()
 
     async def present_selection(
-            self,
-            field_selections:FieldSelectionObject = Body(...)
-            ):
+        self, field_selections: FieldSelectionObject = Body(...)
+    ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
 
         # list[Field]
-        approved_fields = [x.field for x in field_selections.field_requests if x.approved]
+        approved_fields = [
+            x.field for x in field_selections.field_requests if x.approved
+        ]
         pd = self.current_transaction.presentation_definition
         ids = pd.input_descriptors
 
@@ -167,7 +171,9 @@ class WebIdentityOwner(IdentityOwner):
             input_descriptor_id = id_object.id
             # dict[credential, [list[encoded disclosures]]]
             valid_credentials = {}
-            ordered_approved_fields = [x for x in id_object.constraints.fields if x in approved_fields]
+            ordered_approved_fields = [
+                x for x in id_object.constraints.fields if x in approved_fields
+            ]
             for field in ordered_approved_fields:
                 paths = field.path
                 # find all credentials with said field
@@ -214,7 +220,7 @@ class WebIdentityOwner(IdentityOwner):
             descriptor_map = {
                 "id": input_descriptor_id,
                 "format": "vc+sd-jwt",
-                "path": "$"
+                "path": "$",
             }
             descriptor_maps.append(DescriptorMapObject(**descriptor_map))
         elif len(id_vp_tokens) > 1:
@@ -226,39 +232,38 @@ class WebIdentityOwner(IdentityOwner):
                 descriptor_map = {
                     "id": input_descriptor_id,
                     "format": "vc+sd-jwt",
-                    "path": f"$[{idx}]"
+                    "path": f"$[{idx}]",
                 }
                 descriptor_maps.append(DescriptorMapObject(**descriptor_map))
 
         presentation_submission = {
             "id": str(uuid.uuid4()),
             "definition_id": definition_id,
-            "descriptor_map": descriptor_maps
+            "descriptor_map": descriptor_maps,
         }
-        presentation_submission_object = PresentationSubmissionObject(**presentation_submission)
+        presentation_submission_object = PresentationSubmissionObject(
+            **presentation_submission
+        )
 
         authorization_response = {
             "vp_token": final_vp_token,
             "presentation_submission": presentation_submission_object,
-            "state": transaction_id
+            "state": transaction_id,
         }
-        authorization_response_object = AuthorizationResponseObject(**authorization_response)
+        authorization_response_object = AuthorizationResponseObject(
+            **authorization_response
+        )
 
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
             response = await client.post(
-            f"{response_uri}",
-            data=authorization_response_object.model_dump()
+                f"{response_uri}", data=authorization_response_object.model_dump()
             )
 
         self.current_transaction = None
         return response.json()
 
-
-    async def get_auth_request(
-            self,
-            request_URI = Form(...)
-        ):
+    async def get_auth_request(self, request_uri=Form(...)):
         ## retreive auth_request object
         pass

@@ -1,16 +1,12 @@
+import json
 from base64 import b64decode, b64encode
 from json import loads
 from uuid import uuid4
 
-from sd_jwt.common import SDJWTCommon
-
 import jsonpath_ng
-
-import json
-
 import jwt
-
 from requests import Response, Session
+from sd_jwt.common import SDJWTCommon
 
 from .models import Credential
 from .models.exceptions import (
@@ -44,7 +40,7 @@ class IdentityOwner:
         - dev_mode(`bool`): An optional parameter (CURRENTLY UNUSED)
 
         """
-        self.vc_credentials:list[str] = []
+        self.vc_credentials: list[str] = []
         self.storage_key = storage_key
         self.dev_mode = dev_mode
         self.credentials: dict[str, Credential] = {}
@@ -62,29 +58,31 @@ class IdentityOwner:
         """Takes an SD-JWT Verifiable Credential (string) and returns its
         decoded disclosures (the disclosures between the first and last tilde)
         """
-        has_kb = False
-        if sd_jwt_vc[-1] != "~":
-            has_kb = True
+        # has_kb = False
+        # if sd_jwt_vc[-1] != "~":
+        #     has_kb = True
         parts = sd_jwt_vc.split("~")
         disclosures = parts[1:-1]
-        kb = None
-        if has_kb:
-            kb = disclosures.pop()
+        # kb = None
+        # if has_kb:
+        #     kb = disclosures.pop()
 
         # dict[encoded_disclosure, decoded_disclosure]
         encoded_to_decoded_disclosures = {}
         for disclosure in disclosures:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
-            decoded_disclosure_str = decoded_disclosure_bytes.decode('utf-8')
+            decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
             decoded_disclosure_list = json.loads(decoded_disclosure_str)
-            decoded_disclosure_claim = {decoded_disclosure_list[1]: decoded_disclosure_list[2]}
+            decoded_disclosure_claim = {
+                decoded_disclosure_list[1]: decoded_disclosure_list[2]
+            }
             encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
     def _get_credentials_with_field(
-            self,
-            paths: list[str], # list of jsonpath strings
-            ) -> dict[str, list[str]]:
+        self,
+        paths: list[str],  # list of jsonpath strings
+    ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
 
         matched_credentials = {}
@@ -97,7 +95,9 @@ class IdentityOwner:
                     matched_credentials[credential] = []
                     continue
 
-                encoded_to_decoded_disclosures = self._get_decoded_credential_disclosures(credential)
+                encoded_to_decoded_disclosures = (
+                    self._get_decoded_credential_disclosures(credential)
+                )
                 disclosures = encoded_to_decoded_disclosures.values()
                 for disclosure in disclosures:
                     matches = expr.find(disclosure)
@@ -108,7 +108,6 @@ class IdentityOwner:
                         matched_credentials[credential] = [encoded_disclosure]
 
         return matched_credentials
-
 
     def serialise_and_encrypt(self, cred: Credential):
         """# NOT YET IMPLEMENTED IN FULL

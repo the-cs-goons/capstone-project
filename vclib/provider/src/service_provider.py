@@ -13,11 +13,11 @@ from .models.authorization_request_object import AuthorizationRequestObject
 
 class ServiceProvider:
     def __init__(
-            self,
-            ca_bundle,
-            ca_path: str,
-            # presentation_definitions: dict[str, PresentationRequestResponse] = {}
-            ):
+        self,
+        ca_bundle,
+        ca_path: str,
+        # presentation_definitions: dict[str, PresentationRequestResponse] = {}
+    ):
         """
         initialise the service provider with a list of CA bundle
         """
@@ -35,37 +35,38 @@ class ServiceProvider:
         return router
 
     async def accept_authorization_response(
-            self,
-            vp_token: str | list[str] = Form(...),
-            presentation_submission = Form(...),
-            state = Form(...)):
+        self,
+        vp_token: str | list[str] = Form(...),
+        presentation_submission=Form(...),
+        state=Form(...),
+    ):
         # TODO: verify the auth_response and tell the wallet whether or not
         # it has been successful or not
         return {
             "vp_token": vp_token,
             "presentation_submission": presentation_submission,
-            "state": state
+            "state": state,
         }
 
     # fetches and sends back the requested request object
     # accessed through request_uri embedded in QR code
     # should be overridden to fit verifier's needs
     async def fetch_authorization_request(
-            self,
-            request_type: str,
-            wallet_metadata: str = Form(...),
-            wallet_nonce: str = Form(...)
-            ) -> AuthorizationRequestObject:
+        self,
+        request_type: str,
+        wallet_metadata: str = Form(...),
+        wallet_nonce: str = Form(...),
+    ) -> AuthorizationRequestObject:
         pass
 
     # parses the attached auth response send by a wallet
     # should be overridden to fit verifier's needs
     async def parse_authorization_response(
-            self,
-            presentation_submission = Form(...),
-            vp_token = Form(...),
-            state: str = Form(...)
-            ):
+        self,
+        presentation_submission=Form(...),
+        vp_token=Form(...),
+        state: str = Form(...),
+    ):
         pass
 
     def load_ca_bundle(self, path: str):
@@ -74,32 +75,29 @@ class ServiceProvider:
         """
         ca_certs = []
         try:
-            with open(path, 'rb') as bundle_file:
+            with open(path, "rb") as bundle_file:
                 certs = bundle_file.read()
-                for cert in certs.split(b'-----END CERTIFICATE-----\n'):
+                for cert in certs.split(b"-----END CERTIFICATE-----\n"):
                     if cert:
-                        cert += b'-----END CERTIFICATE-----\n'
-                        ca_certs.append(x509.load_pem_x509_certificate(
-                            cert
-                        ))
+                        cert += b"-----END CERTIFICATE-----\n"
+                        ca_certs.append(x509.load_pem_x509_certificate(cert))
         except FileNotFoundError as e:
             raise FileNotFoundError(f"CA bundle file not found: {e}")
         return ca_certs
 
     def verify_certificate(
-        self,
-        cert_pem: bytes,
-        nonce: str,
-        timestamp: float) -> bytes:
+        self, cert_pem: bytes, nonce: str, timestamp: float
+    ) -> bytes:
         """
         Verify the @credential take from owner
         """
         current_time = datetime.datetime.now(datetime.UTC)
-        timestamp_datetime = datetime.datetime.fromtimestamp(
-                                timestamp, datetime.UTC)
+        timestamp_datetime = datetime.datetime.fromtimestamp(timestamp, datetime.UTC)
         # Check if the nonce has been used or expired
-        if (nonce in self.used_nonces or
-            (current_time - timestamp_datetime).total_seconds() > 300):
+        if (
+            nonce in self.used_nonces
+            or (current_time - timestamp_datetime).total_seconds() > 300
+        ):
             raise Exception("Certificate is being replayed")
 
         certificate = x509.load_pem_x509_certificate(cert_pem)
@@ -112,27 +110,29 @@ class ServiceProvider:
                     certificate.signature,
                     certificate.tbs_certificate_bytes,
                     padding.PKCS1v15(),
-                    hashes.SHA256()
+                    hashes.SHA256(),
                 )
                 # return True
                 not_valid_before = certificate.not_valid_before.replace(
-                                        tzinfo=datetime.UTC)
+                    tzinfo=datetime.UTC
+                )
                 not_valid_after = certificate.not_valid_after.replace(
-                                        tzinfo=datetime.UTC)
+                    tzinfo=datetime.UTC
+                )
                 # Check the validity period of the certificate
                 if not_valid_before <= current_time <= not_valid_after:
-                    self.used_nonces.add(nonce)     # Mark nonce as used
+                    self.used_nonces.add(nonce)  # Mark nonce as used
                     # Print the issuer's details and return issuer's DID
                     return self.get_issuer_detail(ca_cert)
-                else:
+                else: # noqa: RET505
                     raise Exception("Certificate expired")
             except InvalidSignature:
                 print("Signature is invalid.")
                 continue
             except Exception as e:
                 print(f"the erroris : {e}")
-                continue    # Try next CA
-        raise Exception("Failed to find certificate")     # No CA certificates matched
+                continue  # Try next CA
+        raise Exception("Failed to find certificate")  # No CA certificates matched
 
     def get_issuer_detail(self, issuer: Certificate) -> bytes:
         """
@@ -159,8 +159,10 @@ class ServiceProvider:
         print("\nExtensions:")
         for ext in issuer.extensions:
             if isinstance(ext.value, x509.SubjectAlternativeName):
-                print("Subject Alternative Name:",
-                    ext.value.get_values_for_type(x509.DNSName))
+                print(
+                    "Subject Alternative Name:",
+                    ext.value.get_values_for_type(x509.DNSName),
+                )
             elif isinstance(ext.oid, ObjectIdentifier):
                 did = ext.value.value
                 print("Custom DID Extension:", ext.value)
@@ -170,12 +172,9 @@ class ServiceProvider:
 
         return did
 
-
     async def try_verify_certificate(
-        self,
-        certificate: bytes,
-        nonce: str,
-        timestamp: float):
+        self, certificate: bytes, nonce: str, timestamp: float
+    ):
         if not self.verify_certificate(certificate, nonce, timestamp):
             raise HTTPException(
                 status_code=400, detail="Certificate verification failed"

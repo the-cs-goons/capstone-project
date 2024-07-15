@@ -16,12 +16,11 @@ from vclib.provider import ServiceProvider
 async def test_server_exists():
     sp = ServiceProvider("test_bundle", "test_path")
     sp_server = sp.get_server()
-    assert type(sp_server) == FastAPI
+    assert type(sp_server) is FastAPI
 
 ###################
 ### TESTING VPs ###
 ###################
-
 
 
 ############################

@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 from .presentation_definition import PresentationDefinition
