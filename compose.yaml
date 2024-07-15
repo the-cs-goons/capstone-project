@@ -11,6 +11,10 @@ services:
       - type: bind
         source: owner-ui/app
         target: /usr/src/app/app
+      - type: bind
+        source: ./vclib/owner/examples/example_ssl_certfile.crt
+        target: /usr/src/app/example_ssl_ca_bundle.crt
+        read_only: true
     env_file:
       - path: example.env
         required: true
@@ -32,7 +36,6 @@ services:
       - type: bind
         source: vclib/owner/src
         target: /usr/src/app/vclib/owner/src
-        read_only: true
       - type: bind
         source: vclib/common/src
         target: /usr/src/app/vclib/common/src
@@ -56,7 +59,6 @@ services:
       - type: bind
         source: vclib/issuer/src
         target: /usr/src/app/vclib/issuer/src
-        read_only: true
       - type: bind
         source: vclib/common/src
         target: /usr/src/app/vclib/common/src
@@ -80,7 +82,6 @@ services:
       - type: bind
         source: vclib/provider/src
         target: /usr/src/app/vclib/provider/src
-        read_only: true
       - type: bind
         source: vclib/common/src
         target: /usr/src/app/vclib/common/src
