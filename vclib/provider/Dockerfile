@@ -51,4 +51,7 @@ COPY . .
 EXPOSE ${CS3900_SERVICE_AGENT_PORT}
 
 # Run the application.
-CMD uvicorn examples.default_agent:service_provider_server --host=0.0.0.0 --port="$CS3900_SERVICE_AGENT_PORT" --log-level "debug" --reload
+CMD uvicorn examples.default_agent:service_provider_server --reload \
+    --host=0.0.0.0 --port="$CS3900_SERVICE_AGENT_PORT" --log-level "debug" \
+    --ssl-certfile=examples/example_ssl_certfile.crt \
+    --ssl-keyfile=examples/example_ssl_keyfile.key

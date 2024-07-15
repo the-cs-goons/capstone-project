@@ -1,11 +1,12 @@
 /// <reference types="vitest" />
 import { vitePlugin as remix } from "@remix-run/dev";
 import { defineConfig } from "vite";
+import mkcert from "vite-plugin-mkcert";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { coverageConfigDefaults } from "vitest/config";
 
 export default defineConfig({
-  plugins: [!process.env.VITEST && remix(), tsconfigPaths()],
+  plugins: [!process.env.VITEST && remix(), tsconfigPaths(), mkcert()],
   server: {
     port: process.env.CS3900_OWNER_UI_PORT,
     host: true,
