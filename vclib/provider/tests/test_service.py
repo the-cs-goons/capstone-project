@@ -1,12 +1,9 @@
-import datetime
-import time
-from datetime import timedelta
+
+import base64
+import json
+from unittest.mock import patch
 
 import pytest
-from cryptography import x509
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import rsa
-from cryptography.x509.oid import NameOID, ObjectIdentifier
 from fastapi import FastAPI, HTTPException
 
 from vclib.provider import ServiceProvider
@@ -21,13 +18,13 @@ from vclib.provider.src.models.presentation_definition import (
 
 @pytest.mark.asyncio()
 async def test_server_exists():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
     sp_server = sp.get_server()
     assert isinstance(sp_server, FastAPI)
 
 @pytest.mark.asyncio()
 async def test_basic_presentation_request():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(id="test1", input_descriptors=[])
 
@@ -41,7 +38,7 @@ async def test_basic_presentation_request():
 
 @pytest.mark.asyncio()
 async def test_multiple_presentation_requests():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd1 = PresentationDefinition(id="test1", input_descriptors=[])
 
@@ -68,7 +65,7 @@ async def test_multiple_presentation_requests():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_limit_disclosure():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="test_limit_disclosure_1",
@@ -94,7 +91,7 @@ async def test_presentation_request_limit_disclosure():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_two_fields_optional():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="name_age_presentation_1",
@@ -142,7 +139,7 @@ async def test_presentation_request_two_fields_optional():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_not_found():
-    service_provider = ServiceProvider("test_bundle", "test_path")
+    service_provider = ServiceProvider()
 
     with pytest.raises(HTTPException):
         await service_provider.get_presentation_request(
@@ -152,7 +149,7 @@ async def test_presentation_request_not_found():
 
 @pytest.mark.asyncio()
 async def test_presentation_request_filter():
-    sp = ServiceProvider("test_bundle", "test_path")
+    sp = ServiceProvider()
 
     pd = PresentationDefinition(
         id="test_filter",
@@ -179,64 +176,68 @@ async def test_presentation_request_filter():
     assert constraints.fields[0].filter.type == "string"
     assert constraints.fields[0].filter.pattern == "creditCard"
 
-
-def create_dummy_certificate(private_key, public_key):
-    did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
-    subject = issuer = x509.Name(
-        [
-            x509.NameAttribute(NameOID.COUNTRY_NAME, "US"),
-            x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, "California"),
-            x509.NameAttribute(NameOID.LOCALITY_NAME, "San Diego"),
-            x509.NameAttribute(NameOID.ORGANIZATION_NAME, "My Org"),
-            x509.NameAttribute(NameOID.COMMON_NAME, "example.com"),
-        ]
-    )
-    return (
-        x509.CertificateBuilder()
-        .subject_name(subject)
-        .issuer_name(issuer)
-        .public_key(public_key)
-        .serial_number(x509.random_serial_number())
-        .not_valid_before(datetime.datetime.now(datetime.UTC))
-        .not_valid_after(datetime.datetime.now(datetime.UTC) + timedelta(days=1))
-        .add_extension(
-            x509.SubjectAlternativeName([x509.DNSName("localhost")]), critical=False
-        )
-        .add_extension(
-            x509.UnrecognizedExtension(
-                did_oid, b"My DID: did:example:123456789abcdefghi"
-            ),
-            critical=False,
-        )
-        .sign(private_key=private_key, algorithm=hashes.SHA256())
-    )
-
-
-@pytest.fixture()
+@pytest.fixture
 def service_provider():
-    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
-    public_key = private_key.public_key()
-    dummy_cert = create_dummy_certificate(private_key, public_key)
-    cert_pem = dummy_cert.public_bytes(serialization.Encoding.PEM)
+    return ServiceProvider()
 
-    ca_bundle = [dummy_cert]
-    sp = ServiceProvider(ca_bundle=ca_bundle, ca_path="dummy_path")
-    return sp, cert_pem
+def test_fetch_did_document_success(service_provider):
+    with patch('requests.get') as mock_get:
 
+        example_did_document = {
+            "@context": ["https://www.w3.org/ns/did/v1"],
+            "id": "did:web:example.com",
+            "verificationMethod": [{
+                "id": "did:web:example.com#key-1",
+                "type": "JsonWebKey2020",
+                "controller": "did:web:example.com",
+                "publicKeyJwk": {"kty": "EC", "crv": "P-256", "x": "abc", "y": "def"}
+            }]
+        }
+        mock_get.return_value.status_code = 200
+        mock_get.return_value.json.return_value = example_did_document
 
-@pytest.mark.asyncio()
-async def test_verify_certificate_valid(service_provider):
-    sp, cert_pem = service_provider
-    nonce = "unique_nonce"
-    timestamp = time.time()
-    did = None
-    did_oid = ObjectIdentifier("1.3.6.1.4.1.99999.1")
+        result = service_provider.fetch_did_document("https://example.com")
 
-    for ext in x509.load_pem_x509_certificate(cert_pem).extensions:
-        if isinstance(ext.oid, ObjectIdentifier) and ext.oid == did_oid:
-            did = ext.value.value
+        assert result == example_did_document
 
-    assert (
-        sp.verify_certificate(cert_pem=cert_pem, nonce=nonce, timestamp=timestamp)
-        == did
-    )
+def base64url_encode(data):
+    """Encode data in a base64url-safe manner, without padding."""
+    base64_encoded = base64.urlsafe_b64encode(data.encode()).decode('utf-8')
+    return base64_encoded.rstrip('=')
+
+def create_test_jwt():
+    header = {"kid": "did:web:example.com#key-1", "alg": "ES256"}
+    payload = {"sub": "123", "nonce": "nonce-value"}
+
+    encoded_header = base64url_encode(json.dumps(header))
+    encoded_payload = base64url_encode(json.dumps(payload))
+
+    signature = base64url_encode('signature-placeholder')
+
+    return f"{encoded_header}.{encoded_payload}.{signature}"
+
+def test_verify_jwt_success(service_provider):
+    with patch.object(service_provider, 'fetch_did_document') as mock_fetch, \
+         patch('jwt.decode') as mock_decode, \
+         patch('jwt.algorithms.ECAlgorithm.from_jwk') as mock_from_jwk:
+
+        example_did_document = {
+            "@context": "https://www.w3.org/ns/did/v1",
+            "id": "did:web:example.com",
+            "verificationMethod": [{
+                "id": "did:web:example.com#key-1",
+                "type": "JsonWebKey2020",
+                "controller": "did:web:example.com",
+                "publicKeyJwk": {"kty": "EC", "crv": "P-256", "x": "abc", "y": "def"}
+            }]
+        }
+        mock_fetch.return_value = example_did_document
+        mock_decode.return_value = {'sub': '123'}
+        fake_token = create_test_jwt()
+        fake_did_url = 'https://example.com'
+
+        result = service_provider.verify_jwt(fake_token, fake_did_url, 'nonce-value')
+
+        mock_from_jwk.assert_called_once_with(example_did_document['verificationMethod'][0]['publicKeyJwk'])
+        mock_decode.assert_called_once()
+        assert result == {'sub': '123'}
