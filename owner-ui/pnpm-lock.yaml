@@ -75,6 +75,9 @@ importers:
       '@types/react-dom':
         specifier: ^18.3.0
         version: 18.3.0
+      '@vitejs/plugin-basic-ssl':
+        specifier: ^1.1.0
+        version: 1.1.0(vite@5.3.3(@types/node@20.14.10))
       '@vitest/coverage-v8':
         specifier: ^2.0.2
         version: 2.0.2(vitest@2.0.2(@types/node@20.14.10)(jsdom@20.0.3))
@@ -1187,6 +1190,12 @@ packages:
 
   '@vanilla-extract/private@1.0.5':
     resolution: {integrity: sha512-6YXeOEKYTA3UV+RC8DeAjFk+/okoNz/h88R+McnzA2zpaVqTR/Ep+vszkWYlGBcMNO7vEkqbq5nT/JMMvhi+tw==}
+
+  '@vitejs/plugin-basic-ssl@1.1.0':
+    resolution: {integrity: sha512-wO4Dk/rm8u7RNhOf95ZzcEmC9rYOncYgvq4z3duaJrCgjN8BxAnDVyndanfcJZ0O6XZzHz6Q0hTimxTg8Y9g/A==}
+    engines: {node: '>=14.6.0'}
+    peerDependencies:
+      vite: ^3.0.0 || ^4.0.0 || ^5.0.0
 
   '@vitest/coverage-v8@2.0.2':
     resolution: {integrity: sha512-iA8eb4PMid3bMc++gfQSTvYE1QL//fC8pz+rKsTUDBFjdDiy/gH45hvpqyDu5K7FHhvgG0GNNCJzTMMSFKhoxg==}
@@ -5240,6 +5249,10 @@ snapshots:
       - terser
 
   '@vanilla-extract/private@1.0.5': {}
+
+  '@vitejs/plugin-basic-ssl@1.1.0(vite@5.3.3(@types/node@20.14.10))':
+    dependencies:
+      vite: 5.3.3(@types/node@20.14.10)
 
   '@vitest/coverage-v8@2.0.2(vitest@2.0.2(@types/node@20.14.10)(jsdom@20.0.3))':
     dependencies:
