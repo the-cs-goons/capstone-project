@@ -91,6 +91,6 @@ age_request_data = {
 
 age_request = AuthorizationRequestObject(**age_request_data)
 
-service_provider.auth_requests["age_verification"] = age_request
+service_provider.auth_requests["over_18"] = age_request
 
 service_provider_server = service_provider.get_server()

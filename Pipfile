@@ -10,6 +10,7 @@ fastapi = "*"
 requests = "*"
 pyjwt = "*"
 jsonpath-ng = "*"
+pytest-httpx = "*"
 
 [dev-packages]
 pytest = "*"

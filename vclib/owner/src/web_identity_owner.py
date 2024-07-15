@@ -1,10 +1,11 @@
 import uuid
-from typing import TYPE_CHECKING, override
+from typing import override
 
 import httpx
-from fastapi import Body, FastAPI, Form, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 
 from . import IdentityOwner
+from .models.authorization_request_object import AuthorizationRequestObject
 from .models.authorization_response_object import AuthorizationResponseObject
 from .models.credentials import Credential
 from .models.exceptions import (
@@ -20,8 +21,6 @@ from .models.presentation_submission_object import (
 )
 from .models.responses import SchemaResponse
 
-if TYPE_CHECKING:
-    from .models.authorization_request_object import AuthorizationRequestObject
 
 class WebIdentityOwner(IdentityOwner):
     def __init__(self, storage_key, *, dev_mode=False):

@@ -1,13 +1,9 @@
 from typing import override
 
-import httpx
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import FastAPI
 
 from vclib.common import hello_world
 from vclib.owner import Credential, WebIdentityOwner
-from vclib.owner.src.models.authorization_request_object import (
-    AuthorizationRequestObject,
-)
 
 MOCK_STORE = {
     "example1": {
