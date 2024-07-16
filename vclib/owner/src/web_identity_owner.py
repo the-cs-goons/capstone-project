@@ -77,8 +77,6 @@ class WebIdentityOwner(IdentityOwner):
 
         return router
 
-        return router
-
     async def get_credential(
         self, cred_id: str, refresh: int = 1
     ) -> Credential | DeferredCredential:
@@ -115,7 +113,7 @@ class WebIdentityOwner(IdentityOwner):
 
     async def request_authorization(
         self, credential_selection: CredentialSelection
-    ) -> RedirectResponse:
+    ):  # -> RedirectResponse:
         """
         Redirects the user to authorize.
         """
@@ -141,7 +139,12 @@ class WebIdentityOwner(IdentityOwner):
                 status_code=400,
                 detail="Please provide either issuer_uri or credential_offer.",
             )
-        return RedirectResponse(redirect_url, status_code=302)
+        # return RedirectResponse(redirect_url, status_code=302)
+
+        # TODO: Remove this, very temporary fix
+        return RedirectResponse(
+            redirect_url.replace("issuer-lib", "localhost"), status_code=302
+        )
 
     async def present_selection(
         self, field_selections: FieldSelectionObject = Body(...)
