@@ -2,40 +2,48 @@ from uuid import uuid4
 
 import jwt
 import requests
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Form
 
-from .models.presentation_definition import PresentationDefinition
-from .models.presentation_request_response import PresentationRequestResponse
+from .models.authorization_request_object import AuthorizationRequestObject
 
 
 class ServiceProvider:
     def __init__(
         self,
-        presentation_definitions: dict[str, PresentationRequestResponse] = {},
     ):
         """Initialise the service provider with a list of CA bundle"""
-        self.presentation_definitions = presentation_definitions
         self.used_nonces = set()
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
-        router.get("/request/{request_type}")(self.get_presentation_request)
+        router.post("/request/{request_type}")(self.fetch_authorization_request)
+        router.post("/cb")(self.parse_authorization_response)
         return router
 
-    def add_presentation_definition(
-        self, request_type: str, presentation_definition: PresentationDefinition
-    ) -> None:
-        self.presentation_definitions[request_type] = presentation_definition
+    async def parse_authorization_response(
+        self,
+        vp_token: str | list[str] = Form(...),
+        presentation_submission=Form(...),
+        state=Form(...),
+    ):
+        # TODO: verify the auth_response and tell the wallet whether or not
+        # it has been successful or not
+        return {
+            "vp_token": vp_token,
+            "presentation_submission": presentation_submission,
+            "state": state,
+        }
 
-    async def get_presentation_request(
-        self, request_type: str, client_id: str
-    ) -> PresentationRequestResponse:
-        if request_type not in self.presentation_definitions:
-            raise HTTPException(status_code=404, detail="Request type not found")
-
-        return PresentationRequestResponse(
-            client_id, self.presentation_definitions[request_type]
-        )
+    # fetches and sends back the requested request object
+    # accessed through request_uri embedded in QR code
+    # should be overridden to fit verifier's needs
+    async def fetch_authorization_request(
+        self,
+        request_type: str,
+        wallet_metadata: str = Form(...),
+        wallet_nonce: str = Form(...),
+    ) -> AuthorizationRequestObject:
+        pass
 
     def generate_nonce(self):
         return str(uuid4())

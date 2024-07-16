@@ -1,12 +1,17 @@
+import json
 from base64 import b64decode, b64encode
 from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
 from urllib.parse import urlencode
 
+import jsonpath_ng
+import jwt
+from oauthlib.oauth2 import WebApplicationClient
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
+from sd_jwt.common import SDJWTCommon
 
 from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
 from .models.credential_offer import CredentialOffer
@@ -55,13 +60,79 @@ class IdentityOwner:
         self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
         self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
         self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
-
         # Currently unused
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
+        # dict[credential id, credential]
         self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
+
+    def _get_credential_payload(self, sd_jwt_vc: str):
+        return sd_jwt_vc.split("~")[0]
+
+    def _get_decoded_credential_payload(self, sd_jwt_vc: str):
+        payload = self._get_credential_payload(sd_jwt_vc)
+        return jwt.decode(payload, options={"verify_signature": False})
+
+    def _get_decoded_credential_disclosures(self, sd_jwt_vc: str):
+        """Takes an SD-JWT Verifiable Credential (string) and returns its
+        decoded disclosures (the disclosures between the first and last tilde)
+        """
+        # has_kb = False
+        # if sd_jwt_vc[-1] != "~":
+        #     has_kb = True
+        parts = sd_jwt_vc.split("~")
+        disclosures = parts[1:-1]
+        # kb = None
+        # if has_kb:
+        #     kb = disclosures.pop()
+
+        # dict[encoded_disclosure, decoded_disclosure]
+        encoded_to_decoded_disclosures = {}
+        for disclosure in disclosures:
+            decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
+            decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
+            decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            decoded_disclosure_claim = {
+                decoded_disclosure_list[1]: decoded_disclosure_list[2]
+            }
+            encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
+        return encoded_to_decoded_disclosures
+
+    def _get_credentials_with_field(
+        self,
+        paths: list[str],  # list of jsonpath strings
+    ) -> dict[str, list[str]]:
+        """returns list(credential, [encoded disclosure])"""
+        sdjwts = [credential.raw_sdjwtvc for credential in
+                  list(self.credentials.values()) if type(credential) is Credential
+                  and "." in credential.raw_sdjwtvc] # dying because some of the example
+                                                     # raw sdjwts aren't sdjwts?
+                                                     # will ask mack l8r
+        matched_credentials = {}
+        for path in paths:
+            expr = jsonpath_ng.parse(path)
+            for credential in sdjwts:
+                payload = self._get_decoded_credential_payload(credential)
+                matches = expr.find(payload)
+                if matches not in ([], None):
+                    matched_credentials[credential] = []
+                    continue
+
+                encoded_to_decoded_disclosures = (
+                    self._get_decoded_credential_disclosures(credential)
+                )
+                disclosures = encoded_to_decoded_disclosures.values()
+                for disclosure in disclosures:
+                    matches = expr.find(disclosure)
+                    if matches not in ([], None):
+                        disclosure_idx = list(disclosures).index(disclosure)
+                        encoded_disclosures = encoded_to_decoded_disclosures.keys()
+                        encoded_disclosure = list(encoded_disclosures)[disclosure_idx]
+                        matched_credentials[credential] = [encoded_disclosure]
+
+        return matched_credentials
 
     ###
     ### Storage and persistence
