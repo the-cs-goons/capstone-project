@@ -121,6 +121,18 @@ identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     response_types_supported=["code"],
     grant_types_supported=["authorization_code"],
     authorization_details_types_supported=["openid_credential"],
-    **{"pre-authorized_grant_anonymous_access_supported": False}
+    **{"pre-authorized_grant_anonymous_access_supported": False},
 )
+
+cred = Credential(
+        id = "yalo",
+        raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",
+        issuer_url="https://example.com",
+        credential_configuration_id="sd+jwt_vc",
+        is_deferred=False,
+        received_at="12345",
+        c_type="sd_jwt"
+        )
+identity_owner.credentials['yalo'] = cred
+
 identity_owner_server = identity_owner.get_server()
