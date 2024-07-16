@@ -17,6 +17,7 @@ import {
 import { CredentialCard } from "~/components/CredentialCard";
 import { CredentialsGridContainer } from "~/components/CredentialsGridContainer";
 import { FlexContainer } from "~/components/FlexContainer";
+import { BaseCredential } from "~/interfaces/Credential/BaseCredential";
 
 export const meta: MetaFunction = ({ error }) => {
   let title = "Credentials - SSI Wallet";
@@ -33,24 +34,17 @@ export const meta: MetaFunction = ({ error }) => {
   ];
 };
 
-interface CredentialDataField {
-  id: string;
-  type: string;
-  issuer_name: string | null;
-  token: string | null;
-}
-
 export const loader: LoaderFunction = async () => {
   const resp = await fetch(
     `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`,
     { method: "GET" },
   );
-  const data: Array<CredentialDataField> = await resp.json();
+  const data: Array<BaseCredential> = await resp.json();
   return json(data);
 };
 
 export default function Credentials() {
-  const credentials: Array<CredentialDataField> = useLoaderData();
+  const credentials: Array<BaseCredential> = useLoaderData();
 
   return (
     <>

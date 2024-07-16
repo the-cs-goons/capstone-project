@@ -1,21 +1,17 @@
-import { Card, CardActionArea, CardContent, CardHeader } from "@mui/material";
+import {
+  Card,
+  CardActionArea,
+  CardContent,
+  CardHeader,
+  Divider,
+} from "@mui/material";
 import { Link } from "@remix-run/react";
-
-interface CredentialDataField {
-  id: string;
-  issuer_name: string | null;
-  issuer_url: string;
-  credential_configuration_id: string;
-  credential_configuration_name: string | null;
-  is_deferred: boolean;
-  c_type: string;
-  raw_sdjwtvc?: string;
-}
+import { BaseCredential } from "~/interfaces/Credential/BaseCredential";
 
 export function CredentialCard({
   credential,
 }: Readonly<{
-  credential: CredentialDataField;
+  credential: BaseCredential;
 }>) {
   return (
     <Card
@@ -24,18 +20,21 @@ export function CredentialCard({
     >
       <CardActionArea
         component={Link}
-        // TODO - change this
-        to={credential.credential_configuration_id ?? "error"}
+        to={credential.id}
         sx={{ height: "100%" }}
       >
         <CardHeader
-          title={credential.credential_configuration_id ?? "Pending credential"}
+          title={
+            credential.credential_configuration_name ??
+            credential.credential_configuration_id
+          }
           titleTypographyProps={{ component: "h2", noWrap: true }}
-          subheader={credential.issuer_name}
+          subheader={credential.issuer_name ?? credential.issuer_url}
           subheaderTypographyProps={{ variant: "subtitle1" }}
         />
+        <Divider />
         <CardContent>
-          {credential.raw_sdjwtvc ? "Real credential" : "Pending approval"}
+          {"raw_sdjwtvc" in credential ? "Real credential" : "Pending approval"}
         </CardContent>
       </CardActionArea>
     </Card>
