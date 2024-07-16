@@ -77,8 +77,6 @@ class WebIdentityOwner(IdentityOwner):
 
         return router
 
-        return router
-
     async def get_credential(
         self, cred_id: str, refresh: int = 1
     ) -> Credential | DeferredCredential:

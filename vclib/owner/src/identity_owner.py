@@ -7,7 +7,6 @@ from urllib.parse import urlencode
 
 import jsonpath_ng
 import jwt
-from oauthlib.oauth2 import WebApplicationClient
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
