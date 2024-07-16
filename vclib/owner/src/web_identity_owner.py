@@ -278,7 +278,6 @@ class WebIdentityOwner(IdentityOwner):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                # f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
                 f"{request_uri}",
                 data={
                     "wallet_nonce": "nonce",  # replace this data with actual stuff

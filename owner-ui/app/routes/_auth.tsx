@@ -8,7 +8,7 @@ import {
   BottomNavigationAction,
   Paper,
   Slide,
-  SlideProps,
+  type SlideProps,
   useScrollTrigger,
 } from "@mui/material";
 import { Link, Outlet, useMatches } from "@remix-run/react";
@@ -26,6 +26,7 @@ function HideOnScroll({ children }: Readonly<SlideProps>) {
 
 export default function Auth() {
   const matches = useMatches();
+  // TODO: make this work in individual credential screens
   const [value, setValue] = useState(
     matches.at(-1)?.pathname === "/credentials" ? 0 : 1,
   );

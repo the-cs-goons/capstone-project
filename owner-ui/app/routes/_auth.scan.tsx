@@ -7,7 +7,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { isRouteErrorResponse, MetaFunction } from "@remix-run/react";
+import { isRouteErrorResponse, type MetaFunction } from "@remix-run/react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { FlexContainer } from "~/components/FlexContainer";
 
