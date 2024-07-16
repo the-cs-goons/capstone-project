@@ -62,6 +62,7 @@ class IdentityOwner:
         # Currently unused
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
+        # dict[credential id, credential]
         self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred

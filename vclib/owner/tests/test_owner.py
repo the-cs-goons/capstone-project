@@ -128,7 +128,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
         received_at="12345",
         c_type="sd_jwt"
         )
-    identity_owner.credentials['xyz'] = cred
+    identity_owner.credentials['yalo'] = cred
 
     resp = await identity_owner.get_auth_request(
         "https://example.com/request/over_18", "some did", "did", "post"

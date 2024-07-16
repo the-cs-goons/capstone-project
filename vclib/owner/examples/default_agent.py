@@ -133,6 +133,6 @@ cred = Credential(
         received_at="12345",
         c_type="sd_jwt"
         )
-identity_owner.credentials['xyz'] = cred
+identity_owner.credentials['yalo'] = cred
 
 identity_owner_server = identity_owner.get_server()
