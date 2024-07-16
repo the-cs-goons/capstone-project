@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -47,7 +47,7 @@ class Field(BaseModel):
     optional: bool | None = False
 
 
-class Constraint(BaseModel):
+class Constraints(BaseModel):
     """Each Constraint MAY have a "fields" property,
     and a "limit_disclosure" property"""
 
@@ -60,10 +60,10 @@ class InputDescriptor(BaseModel):
     Each input_descriptor MAY contain "name", "purpose", and "format" properties"""
 
     id: str
-    constraints: Constraint
+    constraints: Constraints
     name: str | None = None
     purpose: str | None = None
-    format: str | None = None
+    format: Any | None = None # TODO ??
 
 
 class PresentationDefinition(BaseModel):
