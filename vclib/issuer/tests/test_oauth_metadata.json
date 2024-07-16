@@ -1,0 +1,19 @@
+{
+    "issuer": "https://issuer-lib:8082",
+    "authorization_endpoint": "https://issuer-lib:8082/oauth2/authorize",
+    "token_endpoint": "https://issuer-lib:8082/oauth2/token",
+    "registration_endpoint": "https://issuer-lib:8082/oauth2/register",
+    "scopes_supported": [
+        "ID"
+    ],
+    "response_types_supported": [
+        "code"
+    ],
+    "grant_types_supported": [
+        "authorization_code"
+    ],
+    "authorization_details_types_supported": [
+        "openid_credential"
+    ],
+    "pre-authorized_grant_anonymous_access_supported": false
+}

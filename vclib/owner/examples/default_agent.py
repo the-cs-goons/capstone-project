@@ -21,22 +21,22 @@ MOCK_STORE = {
         "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
         "received_at": "2024-07-15T02:54:13.634808+00:00",
     },
-    "example2": {
-        "id": "example2",
-        "issuer_url": "https://example.com",
-        "issuer_name": "Example Issuer",
-        "credential_configuration_id": "Driver's Licence",
-        "is_deferred": True,
-        "c_type": "openid_credential",
-        "transaction_id": "1234567890",
-        "deferred_credential_endpoint": "https://example.com/deferred",
-        "last_request": "2024-07-15T02:54:13.634808+00:00",
-        "access_token": {
-            "access_token": "exampletoken",
-            "token_type": "bearer",
-            "expires_in": 99999999999,
-        },
-    },
+    # "example2": {
+    #     "id": "example2",
+    #     "issuer_url": "https://example.com",
+    #     "issuer_name": "Example Issuer",
+    #     "credential_configuration_id": "Driver's Licence",
+    #     "is_deferred": True,
+    #     "c_type": "openid_credential",
+    #     "transaction_id": "1234567890",
+    #     "deferred_credential_endpoint": "https://example.com/deferred",
+    #     "last_request": "2024-07-15T02:54:13.634808+00:00",
+    #     "access_token": {
+    #         "access_token": "exampletoken",
+    #         "token_type": "bearer",
+    #         "expires_in": 99999999999,
+    #     },
+    # },
 }
 
 EXAMPLE_ISSUER = "https://example.com"
@@ -100,7 +100,7 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
                 client_id="example_client_id",
                 client_secret="example_client_secret",
             )
-        return super().register_client(
+        return await super().register_client(
             registration_url, issuer_uri, wallet_metadata=wallet_metadata
         )
 
