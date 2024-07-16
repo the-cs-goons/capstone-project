@@ -272,7 +272,7 @@ class IdentityOwner:
         self,
         code: str,
         state: str,
-    ):
+    ) -> list[Credential | DeferredCredential]:
         """
         Retrieves an OAuth2 Access token from a successful authorization response, and
         then attempts to retrieve one or more credentials from the issuer, depending
@@ -417,6 +417,8 @@ class IdentityOwner:
         for c in new_credentials:
             self.credentials[c.id] = c
             self.store_credential(c)
+
+        return new_credentials
 
     async def get_issuer_metadata(
         self, issuer_uri, path="/.well-known/openid-credential-issuer"

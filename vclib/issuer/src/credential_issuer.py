@@ -19,14 +19,15 @@ from vclib.issuer.src.models.oauth import (
     WalletClientMetadata,
 )
 
-from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
-from .models.responses import (
+from .models.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
-    FormResponse,
     MetadataResponse,
     OAuthMetadataResponse,
-    OptionsResponse,
+)
+from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
+from .models.responses import (
+    FormResponse,
     StatusResponse,
 )
 
@@ -34,18 +35,15 @@ from .models.responses import (
 class CredentialIssuer:
     """Base class used for the credential issuer agent.
 
-    ### Attributes
+    ### Parameters
     - credentials(`dict`): A dictionary of available credentials that can be issued,
       with required fields and types
-    - ticket(`int`): Internal tracking of current ticket number
-    - mapping(`dict[str, int]`): Mapping of links to tickets
-    - private_key: Private key used to sign credentials
-
-
-    TODO
-    uri
-    paths
-
+    - uri(`str`): Issuer's URI, used by the wallet agent to access endpoints
+    - jwt_path(`str`): Path to PEM-encoded private JWT.
+    - diddoc_path(`str`): Path to DIDDoc JSON object.
+    - did_config_path(`str`): Path to DID configuraton JSON object.
+    - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
+    - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
     """
 
     def __init__(
@@ -112,12 +110,6 @@ class CredentialIssuer:
         self.id_to_ticket = {}
         self.transaction_id_to_ticket = {}
 
-    async def get_credential_options(self) -> OptionsResponse:
-        """Retrieves available credentials that can be issued,
-        along with required fields and types.
-        """
-        return OptionsResponse(options=self.credentials)
-
     async def get_did_json(self) -> DIDJSONResponse:
         return self.diddoc
 
@@ -133,6 +125,15 @@ class CredentialIssuer:
     async def register(
         self, response: Response, request: WalletClientMetadata
     ) -> RegisteredClientMetadata:
+        """Receives a request to register a new client.
+
+        ### Parameters
+        - request(`WalletClientMetadata`): Expected metadata provided by the wallet, to
+          be used in registering a new client.
+
+        Returns a `RegisteredClientMetadata` object, containing all provided wallet
+        metadata as well as the new client id, secret and the issuer's URI.
+        """
         # TODO: Error handling
 
         client_id = str(uuid4())
@@ -164,6 +165,27 @@ class CredentialIssuer:
         state: str,
         authorization_details: str,
     ):
+        """Receives requests to authorize the wallet.
+
+        This is the first half of the authorization flow and is called when the wallet
+        posts a `GET` request to the authorization endpoint.
+
+        ### Parameters
+        - response_type(`str`): Expected to be `"code"`.
+        - client_id(`str`): Client ID as assigned by the issuer by registration.
+        - redirect-uri(`str`): URI to redirect the wallet to after successful
+          authorization.
+        - state(`str`): A string used to verify the state of the request. It MUST remain
+          the same throughout the authorization process and be returned to the wallet at
+          the end of the process.
+        - authorization_details(`str`): A string representing a list of JSON objects.
+          Each object MUST have the two fields in order as follows:
+           - `"type"`: Expected to be `"openid_credential"`.
+           - `"credential_configuration_id"`: Contains the ID of a credential type taken
+             from the issuer's metadata endpoint.
+
+        Returns the schema of the `credential_configuration_id` given.
+        """
         # TODO: Error checking
 
         cred_id = json.loads(authorization_details)[0]["credential_configuration_id"]
@@ -180,27 +202,34 @@ class CredentialIssuer:
         authorization_details: str,
         information: dict | None = None,
     ) -> RedirectResponse:
-        """Receives a request for credentials.
+        """Receives requests to authorize the wallet.
+
+        This is the second half of the authorization flow and is called when the wallet
+        posts a `POST` request to the authorization endpoint, with the information
+        needed to issue a credential in the body.
 
         ### Parameters
-        - cred_type(`str`): Type of credential being requested.
-          This parameter is taken from the endpoint that was visited.
+        - response_type(`str`): Expected to be `"code"`.
+        - client_id(`str`): Client ID as assigned by the issuer by registration.
+        - redirect-uri(`str`): URI to redirect the wallet to after successful
+          authorization.
+        - state(`str`): A string used to verify the state of the request. It MUST remain
+          the same throughout the authorization process and be returned to the wallet at
+          the end of the process.
+        - authorization_details(`str`): A string representing a list of JSON objects.
+          Each object MUST have the two fields in order as follows:
+          - `"type"`: Expected to be `"openid_credential"`.
+          - `"credential_configuration_id"`: Contains the ID of a credential type taken
+             from the issuer's metadata endpoint.
         - information(`dict`): Request body, containing information for the
           credential being requested.
 
-        ### `POST`-ing requests
-        Requests must:
-        - Come from an endpoint corresponding to a valid credential type;
-          e.g. `/request/drivers_license`
-        - Contain fields in the request body matching those of the credential
-          being applied for
-        - Contain the correct data types in said fields.
-
-        A `HTTPException` will be thrown if any of these are not met.
-
-        Valid credential formats and required fields can be accessed through
-        `get_credential_options()`.
+        ### Return Values
+        Returns a `RedirectResponse`, with the following query parameters:
+        - code: The authorization code to be used at the access token endpoint.
+        - state: The state value given to the endpoint.
         """
+        # TODO: Error checking
         cred_type = json.loads(authorization_details)[0]["credential_configuration_id"]
 
         if cred_type not in self.credentials:
@@ -238,7 +267,20 @@ class CredentialIssuer:
         code: str,
         redirect_uri: str,
         authorization: Annotated[str | None, Header()] = None,
-    ):
+    ) -> OAuthTokenResponse:
+        """Receives requests for access tokens.
+
+        ### Parameters
+        - grant_type(`str`): Expected to be `"authorization_code"`.
+        - code(`str`): Authorization code given by the authorization endpoint.
+        - redirect_uri(`str`): MUST be the same `redirect_uri` given to the
+          authorization endpoint.
+        - authorization(`str`): A Base64 encoded string containing
+          `Basic client_id:client_secret`.
+
+        Returns an `OAuthTokenResponse`.
+        """
+
         # TODO: Error checking, proper authentication
 
         client_id, client_secret = (
@@ -282,6 +324,22 @@ class CredentialIssuer:
         request: dict[Any, Any],
         authorization: Annotated[str | None, Header()] = None,
     ):
+        """Receives requests to retrieve a credential.
+
+        ### Parameters
+        - request(`dict[Any, Any]`): Request body. Expected to conform to
+          `CredentialRequestBody`.
+        - authorization(`str`): A string containing `"Bearer access_code"`.
+
+        ### Return Values
+        - If the credential is ACCEPTED:
+          - Return the credential in the form `{"credential": credential}`.
+        - If the credential is PENDING:
+          - Return a transaction ID to be used at the deferred endpoint, in
+            the form `{"transaction_id": transaction_id}`.
+        - If the credential is DENIED:
+          - Return a 400, with `{"error": "credential_request_denied"}`.
+        """
         access_token = self._check_access_token(authorization)
 
         try:
@@ -327,6 +385,21 @@ class CredentialIssuer:
         request: dict[Any, Any],
         authorization: Annotated[str | None, Header()] = None,
     ):
+        """Receives requests to retrieve a deferred credential.
+
+        ### Parameters
+        - request(`dict[Any, Any]`): Request body. Expected to conform to
+          `DeferredCredentialRequestBody`.
+        - authorization(`str`): A string containing `"Bearer access_code"`.
+
+        ### Return Values
+        - If the credential is ACCEPTED:
+          - Return the credential in the form `{"credential": credential}`.
+        - If the credential is PENDING:
+          - Return a 400, with `{"error": "issuance_pending"}`.
+        - If the credential is DENIED:
+          - Return a 400, with `{"error": "credential_request_denied"}`.
+        """
         access_token = self._check_access_token(authorization)
 
         try:
@@ -342,7 +415,7 @@ class CredentialIssuer:
         ticket = self.transaction_id_to_ticket[request["transaction_id"]]
 
         cred_status = self.get_credential_status(ticket)
-        if cred_status.information is not None:
+        if cred_status.status == "ACCEPTED":
             self.transaction_id_to_ticket.pop(request["transaction_id"])
             self.access_to_ids.pop(access_token)
             self.active_access_tokens.remove(access_token)
@@ -352,6 +425,12 @@ class CredentialIssuer:
             return {"credential": credential}
 
         response.status_code = status.HTTP_400_BAD_REQUEST
+
+        if cred_status.status == "DENIED":
+            # Unsure if we remove access token if denied
+            # self.auths_to_ids.pop(access_token)
+            return {"error": "credential_request_denied"}
+
         return {"error": "issuance_pending"}
 
     def get_server(self) -> FastAPI:
@@ -359,8 +438,6 @@ class CredentialIssuer:
         router = FastAPI()
 
         # TODO: Allow customising endpoints using passed in metadata
-        # router.get("/credentials/")(self.get_credential_options)
-        # router.post("/request/{cred_type}")(self.receive_credential_request)
 
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
@@ -454,13 +531,11 @@ class CredentialIssuer:
 
         ### Returns
         A `StatusResponse` object is returned, with the following fields:
-        - `status`: A string representing the status of the application.
+        - `status`: A string representing the status of the application. Expected to be
+           one of ACCEPTED, PENDING or DENIED.
         - `cred_type`: The type of credential that was requested.
         - `information`: Fields to be used in the new credential, once approved. Set as
           `None` otherwise.
-
-        IMPORTANT: The `status` return value can be read by anyone with the link to
-        specified ticket, and must not have any sensitive information contained.
         """
         return StatusResponse(status="PENDING", cred_type=None, information=None)
 
