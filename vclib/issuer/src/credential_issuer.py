@@ -251,29 +251,30 @@ class CredentialIssuer:
             and self.client_ids[client_id] == client_secret
         ):
             cred_type, cred_id, re_uri = self.auths_to_ids[code][0]
-            if re_uri == redirect_uri:
-                access_token = str(uuid4())
-                self.active_access_tokens.append(access_token)
-                self.access_to_ids[access_token] = (cred_id, None)
+            # if re_uri == redirect_uri:
+            access_token = str(uuid4())
+            self.active_access_tokens.append(access_token)
+            self.access_to_ids[access_token] = (cred_id, None)
 
-                auth_details = AuthorizationDetails(
-                    type="openid_credential",
-                    credential_configuration_id=cred_type,
-                    credential_identifiers=[cred_id],
-                )
+            auth_details = AuthorizationDetails(
+                type="openid_credential",
+                credential_configuration_id=cred_type,
+                credential_identifiers=[cred_id],
+            )
 
-                return OAuthTokenResponse(
-                    access_token=access_token,
-                    token_type="bearer",
-                    expires_in=7200,
-                    c_nonce=None,
-                    c_nonce_expires_in=None,
-                    authorization_details=[auth_details],
-                )
+            return OAuthTokenResponse(
+                access_token=access_token,
+                token_type="bearer",
+                expires_in=7200,
+                c_nonce=None,
+                c_nonce_expires_in=None,
+                authorization_details=[auth_details],
+            )
 
-            return {re_uri: redirect_uri}
+            # TODO: Incorrect redirect uri error
 
-        return {client_id: client_secret}
+        # TODO: Incorrect client id/secret error
+        return None
 
     async def get_credential(
         self,
@@ -289,7 +290,7 @@ class CredentialIssuer:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_credential_request"}
 
-        if request["credential_identifier"] not in self.credentials:
+        if self.access_to_ids[access_token][0] != request["credential_identifier"]:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "unsupported_credential_type"}
 
@@ -302,7 +303,7 @@ class CredentialIssuer:
 
         if cred_status.status == "ACCEPTED":
             self.access_to_ids.pop(access_token)
-            self.active_access_tokens.pop(access_token)
+            self.active_access_tokens.remove(access_token)
             credential = self.create_credential(
                 request["credential_identifier"], cred_status.information
             )

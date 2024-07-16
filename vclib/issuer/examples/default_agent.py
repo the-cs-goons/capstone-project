@@ -93,7 +93,7 @@ credentials = {
 
 credential_issuer = DefaultIssuer(
     credentials,
-    "http://issuer-lib:8082",
+    "https://issuer-lib:8082",
     "/usr/src/app/examples/example_jwk_private.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",

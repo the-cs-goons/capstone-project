@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
 
-from oauthlib.oauth2 import WebApplicationClient
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
@@ -273,7 +272,7 @@ class IdentityOwner:
         self,
         code: str,
         state: str,
-    ) -> list[Credential | DeferredCredential]:
+    ):
         """
         Retrieves an OAuth2 Access token from a successful authorization response, and
         then attempts to retrieve one or more credentials from the issuer, depending
@@ -305,8 +304,6 @@ class IdentityOwner:
 
         with OAuth2Session(
             client_id=oauth_client_info.client_id,
-            # Should be this by default, included anyway for clarity
-            client=WebApplicationClient,
             redirect_uri=oauth_client_info.redirect_uris[0],
             state=state,
         ) as oauth2_client:
@@ -328,16 +325,22 @@ class IdentityOwner:
             }
             # TODO: Extra args for verifying
 
+            params = {
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": "aa",  # TODO: CHANGE TO ACTUAL URI
+            }
+
             # Note - using post instead of fetch_token because fetch_token doesn't
             # return the full request body
             r: Response = oauth2_client.post(
-                token_endpoint, code=code, auth=basic_auth, headers=headers
+                token_endpoint, params=params, auth=basic_auth, headers=headers
             )
             r.raise_for_status()
 
             access_token_res = OAuthTokenResponse.model_validate_json(r.content)
             # Update session
-            oauth2_client.token(access_token_res.model_dump())
+            oauth2_client.token = access_token_res.model_dump()
 
             # Make requests for credentials
             issuer_metadata = self.issuer_metadata_store.get(issuer_uri, None)
@@ -355,6 +358,9 @@ class IdentityOwner:
                 config_id = detail.credential_configuration_id
                 for identifier in detail.credential_identifiers:
                     body = {"credential_identifier": identifier}
+                    headers = {
+                        "Authorization": f"Bearer {oauth2_client.token["access_token"]}",  # noqa e501
+                    }
                     cred_response: Response = oauth2_client.request(
                         "POST", issuer_metadata.credential_endpoint, json=body
                     )
@@ -492,17 +498,25 @@ class IdentityOwner:
             return cred
 
         token = cred.access_token.model_dump()
+        headers = {
+            "Authorization": f"Bearer {cred.access_token.access_token}",
+        }
         body = {"transaction_id": cred.transaction_id}
         with OAuth2Session(token=token) as s:
             refresh: Response = s.request(
-                "POST", cred.deferred_credential_endpoint, json=body
+                "POST", cred.deferred_credential_endpoint, headers=headers, json=body
             )
-            refresh.raise_for_status()
 
-            if refresh.status_code == 202:
+            if (
+                refresh.status_code == 400
+                and refresh.json()["error"] == "issuance_pending"
+            ):
                 cred.last_request = datetime.now(tz=UTC).isoformat()
                 self.store_credential(cred)
                 return cred
+
+            # Pending credentials also use 400
+            refresh.raise_for_status()
 
             if refresh.status_code == 200:
                 new = refresh.json().get("credential", None)

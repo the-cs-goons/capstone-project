@@ -21,22 +21,22 @@ MOCK_STORE = {
         "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
         "received_at": "2024-07-15T02:54:13.634808+00:00",
     },
-    "example2": {
-        "id": "example2",
-        "issuer_url": "https://example.com",
-        "issuer_name": "Example Issuer",
-        "credential_configuration_id": "Driver's Licence",
-        "is_deferred": True,
-        "c_type": "openid_credential",
-        "transaction_id": "1234567890",
-        "deferred_credential_endpoint": "https://example.com/deferred",
-        "last_request": "2024-07-15T02:54:13.634808+00:00",
-        "access_token": {
-            "access_token": "exampletoken",
-            "token_type": "bearer",
-            "expires_in": 99999999999,
-        },
-    },
+    # "example2": {
+    #     "id": "example2",
+    #     "issuer_url": "https://example.com",
+    #     "issuer_name": "Example Issuer",
+    #     "credential_configuration_id": "Driver's Licence",
+    #     "is_deferred": True,
+    #     "c_type": "openid_credential",
+    #     "transaction_id": "1234567890",
+    #     "deferred_credential_endpoint": "https://example.com/deferred",
+    #     "last_request": "2024-07-15T02:54:13.634808+00:00",
+    #     "access_token": {
+    #         "access_token": "exampletoken",
+    #         "token_type": "bearer",
+    #         "expires_in": 99999999999,
+    #     },
+    # },
 }
 
 EXAMPLE_ISSUER = "https://example.com"
@@ -121,6 +121,6 @@ identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     response_types_supported=["code"],
     grant_types_supported=["authorization_code"],
     authorization_details_types_supported=["openid_credential"],
-    **{"pre-authorized_grant_anonymous_access_supported": False}
+    **{"pre-authorized_grant_anonymous_access_supported": False},
 )
 identity_owner_server = identity_owner.get_server()

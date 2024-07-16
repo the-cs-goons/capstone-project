@@ -85,7 +85,7 @@ class WebIdentityOwner(IdentityOwner):
 
     async def request_authorization(
         self, credential_selection: CredentialSelection
-    ) -> RedirectResponse:
+    ):  # -> RedirectResponse:
         """
         Redirects the user to authorize.
         """
@@ -111,7 +111,12 @@ class WebIdentityOwner(IdentityOwner):
                 status_code=400,
                 detail="Please provide either issuer_uri or credential_offer.",
             )
-        return RedirectResponse(redirect_url, status_code=302)
+        # return RedirectResponse(redirect_url, status_code=302)
+
+        # TODO: Remove this, very temporary fix
+        return RedirectResponse(
+            redirect_url.replace("issuer-lib", "localhost"), status_code=302
+        )
 
     def get_server(self) -> FastAPI:
         """

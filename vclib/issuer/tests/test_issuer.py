@@ -106,10 +106,15 @@ async def test_request_credential(credential_issuer):
         "authorization_code", auth_code, "aaa", "Basic " + authorization
     )
 
-    req = {"credential_identifier": "default"}
+    req = {
+        "credential_identifier": response1.authorization_details[
+            0
+        ].credential_identifiers[0]
+    }
     response = await credential_issuer.get_credential(
         Response(), req, "Bearer " + response1.access_token
     )
+    print(response)
     assert response["transaction_id"]
 
     # info_2 = {"string": "letters", "number": 20, "boolean": False, "optional": "None"}
