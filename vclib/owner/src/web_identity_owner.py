@@ -1,11 +1,20 @@
+import uuid
 from typing import Any
 from urllib.parse import urlparse
 
-from fastapi import FastAPI, HTTPException
+import httpx
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
 from .identity_owner import IdentityOwner
+from .models.authorization_request_object import AuthorizationRequestObject
+from .models.authorization_response_object import AuthorizationResponseObject
 from .models.credentials import Credential, DeferredCredential
+from .models.field_selection_object import FieldSelectionObject
+from .models.presentation_submission_object import (
+    DescriptorMapObject,
+    PresentationSubmissionObject,
+)
 from .models.request_body import CredentialSelection
 
 
@@ -48,6 +57,25 @@ class WebIdentityOwner(IdentityOwner):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, dev_mode=dev_mode)
+        self.current_transaction: AuthorizationRequestObject | None = None
+
+    def get_server(self) -> FastAPI:
+        router = FastAPI()
+
+        router.get("/credentials/{cred_id}")(self.get_credential)
+        router.get("/credentials")(self.get_credentials)
+        router.get("/refresh/{cred_id}")(self.refresh_credential)
+        router.get("/refresh")(self.refresh_all_deferred_credentials)
+        router.get("/presentation/init")(self.get_auth_request)
+        router.post("/presentation/")(self.present_selection)
+
+        # Issuance (offer) endpoints
+        router.get(self._credential_offer_endpoint)(self.get_credential_offer)
+        router.post(self._credential_offer_endpoint)(self.request_authorization)
+        # Might change this later from /add to something else
+        router.get("/add")(self.get_access_token_and_credentials_from_callback)
+
+        return router
 
     async def get_credential(
         self, cred_id: str, refresh: int = 1
@@ -85,7 +113,7 @@ class WebIdentityOwner(IdentityOwner):
 
     async def request_authorization(
         self, credential_selection: CredentialSelection
-    ) -> RedirectResponse:
+    ):  # -> RedirectResponse:
         """
         Redirects the user to authorize.
         """
@@ -111,24 +139,156 @@ class WebIdentityOwner(IdentityOwner):
                 status_code=400,
                 detail="Please provide either issuer_uri or credential_offer.",
             )
-        return RedirectResponse(redirect_url, status_code=302)
+        # return RedirectResponse(redirect_url, status_code=302)
 
-    def get_server(self) -> FastAPI:
-        """
-        Returns a FastAPI App instance.
-        CAN be overriden to replace or add to the API interface.
-        """
-        router = FastAPI()
+        # TODO: Remove this, very temporary fix
+        return RedirectResponse(
+            redirect_url.replace("issuer-lib", "localhost"), status_code=302
+        )
 
-        router.get("/credentials/{cred_id}")(self.get_credential)
-        router.get("/credentials")(self.get_credentials)
-        router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh")(self.refresh_all_deferred_credentials)
+    async def present_selection(
+        self, field_selections: FieldSelectionObject = Body(...)
+    ):
+        # find which attributes in which credentials fit the presentation definition
+        # mark which credential and attribute for disclosure
 
-        # Issuance (offer) endpoints
-        router.get(self._credential_offer_endpoint)(self.get_credential_offer)
-        router.post(self._credential_offer_endpoint)(self.request_authorization)
-        # Might change this later from /add to something else
-        router.get("/add")(self.get_access_token_and_credentials_from_callback)
+        # list[Field]
+        approved_fields = [
+            x.field for x in field_selections.field_requests if x.approved
+        ]
+        pd = self.current_transaction.presentation_definition
+        ids = pd.input_descriptors
 
-        return router
+        # list[tuple[input_descriptor_id, vp_token]]
+        id_vp_tokens: list[tuple[str, str]] = []
+
+        for id_object in ids:
+            input_descriptor_id = id_object.id
+            # dict[credential, [list[encoded disclosures]]]
+            valid_credentials = {}
+            ordered_approved_fields = [
+                x for x in id_object.constraints.fields if x in approved_fields
+            ]
+            for field in ordered_approved_fields:
+                paths = field.path
+                # find all credentials with said field
+                new_valid_creds = self._get_credentials_with_field(paths)
+
+                if valid_credentials == {}:
+                    valid_credentials = new_valid_creds
+                    continue
+                # make sure we keep creds with previously found fields
+                for cred in valid_credentials:
+                    if cred not in new_valid_creds:
+                        valid_credentials.pop(cred)
+                for cred in new_valid_creds:
+                    if cred not in valid_credentials:
+                        new_valid_creds.pop(cred)
+
+                # valid credentials should equal new_valid_creds now
+
+                # add the new disclosures to the old disclosures
+                for cred in valid_credentials:
+                    valid_credentials[cred] += new_valid_creds[cred]
+
+                # no valid credentials found
+                if valid_credentials == {}:
+                    break
+
+            # if no valid credentials found, go next
+            if valid_credentials == {}:
+                continue
+
+            # create the vp_token
+            credential, disclosures = valid_credentials.popitem()
+            vp_token = f"{self._get_credential_payload(credential)}~"
+            for disclosure in disclosures:
+                vp_token += f"{disclosure}~"
+
+            id_vp_tokens.append((input_descriptor_id, vp_token))
+
+        final_vp_token = None
+        descriptor_maps = []
+        definition_id = self.current_transaction.presentation_definition.id
+        transaction_id = self.current_transaction.state
+
+        if len(id_vp_tokens) == 1:
+            input_descriptor_id, vp_token = id_vp_tokens[0]
+            final_vp_token = vp_token
+
+            descriptor_map = {
+                "id": input_descriptor_id,
+                "format": "vc+sd-jwt",
+                "path": "$",
+            }
+            descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+        elif len(id_vp_tokens) > 1:
+            final_vp_token = []
+            for input_descriptor_id, vp_token in id_vp_tokens:
+                idx = len(final_vp_token)
+                final_vp_token.append(vp_token)
+
+                descriptor_map = {
+                    "id": input_descriptor_id,
+                    "format": "vc+sd-jwt",
+                    "path": f"$[{idx}]",
+                }
+                descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+
+        presentation_submission = {
+            "id": str(uuid.uuid4()),
+            "definition_id": definition_id,
+            "descriptor_map": descriptor_maps,
+        }
+        presentation_submission_object = PresentationSubmissionObject(
+            **presentation_submission
+        )
+
+        authorization_response = {
+            "vp_token": final_vp_token,
+            "presentation_submission": presentation_submission_object,
+            "state": transaction_id,
+        }
+        authorization_response_object = AuthorizationResponseObject(
+            **authorization_response
+        )
+
+        response_uri = self.current_transaction.response_uri
+        # make sure response_mode is direct_post
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{response_uri}", data=authorization_response_object.model_dump()
+            )
+
+        self.current_transaction = None
+        return response.json()
+
+    async def get_auth_request(
+        self,
+        request_uri=Body(...),
+        client_id=Body(...),
+        client_id_scheme=Body(...),
+        request_uri_method=Body(...),
+    ):  # -> PresentationDefinition:
+        if client_id_scheme != "did":
+            raise HTTPException(
+                status_code=400,
+                detail=f"client_id_scheme {client_id_scheme} not supported",
+            )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                # f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
+                f"{request_uri}",
+                data={
+                    "wallet_nonce": "nonce",  # replace this data with actual stuff
+                    "wallet_metadata": "metadata",
+                },
+            )
+        # just send the auth request to the frontend for now
+        # what the backend sends to the fronend should be up to implementation
+        # although it shouldn't include sensitive info unless the user has
+        # opted to share that information
+        auth_request = response.json()
+        self.current_transaction = AuthorizationRequestObject(**auth_request)
+        return auth_request

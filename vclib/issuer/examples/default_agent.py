@@ -1,4 +1,5 @@
 import datetime
+import json
 from typing import Any, override
 
 from fastapi import FastAPI
@@ -20,9 +21,24 @@ class DefaultIssuer(CredentialIssuer):
 
     @override
     def __init__(
-        self, credentials: dict[str, dict[str, dict[str, Any]]], private_key_path: str
+        self,
+        credentials: dict[str, dict[str, dict[str, Any]]],
+        uri: str,
+        jwt_path: str,
+        diddoc_path: str,
+        did_config_path: str,
+        metadata_path: str,
+        oauth_metadata_path: str,
     ):
-        super().__init__(credentials, private_key_path)
+        super().__init__(
+            credentials,
+            uri,
+            jwt_path,
+            diddoc_path,
+            did_config_path,
+            metadata_path,
+            oauth_metadata_path,
+        )
         self.statuses = {}
 
     @override
@@ -31,7 +47,7 @@ class DefaultIssuer(CredentialIssuer):
         self.time = datetime.datetime.now(tz=datetime.UTC)
 
     @override
-    def get_status(self, ticket: int) -> StatusResponse:
+    def get_credential_status(self, ticket: str) -> StatusResponse:
         cred_type, information = self.statuses[ticket]
 
         curr_time = datetime.datetime.now(tz=datetime.UTC)
@@ -42,41 +58,46 @@ class DefaultIssuer(CredentialIssuer):
             status="ACCEPTED", cred_type=cred_type, information=information
         )
 
+    async def credential_offer(self):
+        cred_offer = {
+            "credential_issuer": "https://issuer-lib:8082",
+            "credential_configuration_ids": ["ID"],
+        }
+        await self.offer_credential(
+            "https://owner-lib:8081/offer", json.dumps(cred_offer)
+        )
+
     @override
     def get_server(self) -> FastAPI:
         router = super().get_server()
+        router.get("/offer")(self.credential_offer)
         router.get("/hello")(hello_world)
         return router
 
 
 credentials = {
-    "id": {
-        "name": {
-            "type": "string",
-            "optional": False,
+    "ID": {
+        "given_name": {"mandatory": True, "value_type": "string"},
+        "family_name": {"mandatory": True, "value_type": "string"},
+        "email": {"value_type": "string"},
+        "phone_number": {"value_type": "number"},
+        "address": {
+            "street_address": {"value_type": "string"},
+            "state": {"value_type": "string"},
+            "country": {"value_type": "string"},
         },
-        "age": {
-            "type": "number",
-            "optional": False,
-        },
-    },
-    "id2": {
-        "firstname": {
-            "type": "string",
-            "optional": False,
-        },
-        "lastname": {
-            "type": "string",
-            "optional": True,
-        },
-        "adult": {
-            "type": "boolean",
-            "optional": False,
-        },
-    },
+        "birthdate": {"mandatory": True, "value_type": "number"},
+        "is_over_18": {"mandatory": True, "value_type": "string"},
+    }
 }
 
 credential_issuer = DefaultIssuer(
-    credentials, "/usr/src/app/examples/example_private_key.pem"
+    credentials,
+    "https://issuer-lib:8082",
+    "/usr/src/app/examples/example_jwk_private.pem",
+    "/usr/src/app/examples/example_diddoc.json",
+    "/usr/src/app/examples/example_didconf.json",
+    "/usr/src/app/examples/example_metadata.json",
+    "/usr/src/app/examples/example_oauth_metadata.json",
 )
 credential_issuer_server = credential_issuer.get_server()
