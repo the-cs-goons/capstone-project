@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { isRouteErrorResponse, type MetaFunction } from "@remix-run/react";
-import { Scanner } from "@yudiel/react-qr-scanner";
+import { type IDetectedBarcode, Scanner } from "@yudiel/react-qr-scanner";
 import { FlexContainer } from "~/components/FlexContainer";
 
 export const meta: MetaFunction = ({ error }) => {
@@ -25,6 +25,18 @@ export const meta: MetaFunction = ({ error }) => {
     { name: "description", content: "View and manage credentials" },
   ];
 };
+
+// TODO: error handling
+async function handleScan(result: IDetectedBarcode[]) {
+  const scan = result[0];
+  const resp = await fetch(
+    `https://owner-lib:8081/presentation/init?${scan.rawValue}`,
+    {
+      method: "GET",
+    },
+  );
+  console.log(resp);
+}
 
 export default function Scan() {
   return (
@@ -57,7 +69,7 @@ export default function Scan() {
             styles={{
               finderBorder: 50,
             }}
-            onScan={(result) => console.log(result)}
+            onScan={handleScan}
           />
         </Box>
       </FlexContainer>
