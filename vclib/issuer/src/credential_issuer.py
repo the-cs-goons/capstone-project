@@ -11,19 +11,21 @@ from jwcrypto.jwk import JWK
 from pydantic import ValidationError
 from requests import Session
 
-from vclib.common import SDJWTVCIssuer
-from vclib.issuer.src.models.oauth import (
-    AuthorizationDetails,
-    OAuthTokenResponse,
-    RegisteredClientMetadata,
-    WalletClientMetadata,
+from vclib.common import (
+    SDJWTVCIssuer
 )
-
-from .models.metadata import (
+from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
     MetadataResponse,
     OAuthMetadataResponse,
+)
+
+from .models.oauth import (
+    AuthorizationDetails,
+    OAuthTokenResponse,
+    RegisteredClientMetadata,
+    WalletClientMetadata,
 )
 from .models.requests import CredentialRequestBody, DeferredCredentialRequestBody
 from .models.responses import (

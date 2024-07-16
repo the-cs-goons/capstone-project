@@ -13,3 +13,4 @@ from .src.sdjwt_vc.exceptions import (
 )
 from .src.sdjwt_vc.holder import SDJWTVCHolder as SDJWTVCHolder
 from .src.sdjwt_vc.issuer import SDJWTVCIssuer as SDJWTVCIssuer
+from .src.sdjwt_vc.verifier import SDJWTVCVerifier as SDJWTVCVerifier
