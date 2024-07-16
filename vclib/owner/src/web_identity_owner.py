@@ -1,13 +1,16 @@
+from json import loads
 from typing import Any
 from urllib.parse import urlparse
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
+from webauthn import base64url_to_bytes, generate_registration_options, options_to_json, verify_registration_response
+from webauthn.registration.verify_registration_response import VerifiedRegistration
 
 from .identity_owner import IdentityOwner
 from .models.credentials import Credential, DeferredCredential
 from .models.request_body import CredentialSelection
-
+from .models.passkey import NewRegistrationResponse, ParsedClientDataJSON, VerifyRegistrationRequest
 
 class WebIdentityOwner(IdentityOwner):
     """
@@ -43,6 +46,9 @@ class WebIdentityOwner(IdentityOwner):
         # Referenced in `get_server`
         offer_path = urlparse(cred_offer_endpoint).path
         self._credential_offer_endpoint = offer_path
+        self.wallet_uri = "localhost"
+        self.challenges = set()
+        self.passkeys = {}
 
         oauth_client_info = oauth_client_options
         oauth_client_info["redirect_uris"] = redirect_uris
@@ -132,3 +138,33 @@ class WebIdentityOwner(IdentityOwner):
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
 
         return router
+
+    def generate_registration(self, name: str) -> NewRegistrationResponse:
+        registration = generate_registration_options(
+            rp_id=self.wallet_uri,
+            rp_name="Verifiable Credentials Wallet (COMP3900)",
+            user_name=name,
+            user_display_name=name
+        )
+
+        options = options_to_json(registration)
+        self.challenges.add(loads(options)["challenge"])
+        return NewRegistrationResponse.model_validate_json(options)
+
+    def confirm_registration(self, register_response: VerifyRegistrationRequest):
+        cred = register_response.model_dump()
+        client_data = ParsedClientDataJSON.model_validate_json(
+            base64url_to_bytes(register_response.response.clientDataJSON)
+            )
+        expected_challenge = client_data.challenge
+        if expected_challenge not in self.challenges:
+            raise HTTPException(status_code=400, detail="Bad challenge")
+        self.challenges.remove(expected_challenge)
+        passkey: VerifiedRegistration = verify_registration_response(
+            credential=cred,
+            expected_challenge=expected_challenge,
+            expected_rp_id="localhost",
+            expected_origin=self.wallet_uri
+        )
+        self.passkeys[passkey.credential_id] = passkey
+        return 
