@@ -2,6 +2,7 @@ from base64 import b64decode, b64encode
 from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
+from urllib.parse import urlencode
 
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
@@ -334,7 +335,7 @@ class IdentityOwner:
             # Note - using post instead of fetch_token because fetch_token doesn't
             # return the full request body
             r: Response = oauth2_client.post(
-                token_endpoint, params=params, auth=basic_auth, headers=headers
+                token_endpoint, data=urlencode(params), auth=basic_auth, headers=headers
             )
             r.raise_for_status()
 
@@ -505,8 +506,9 @@ class IdentityOwner:
         }
         body = {"transaction_id": cred.transaction_id}
         with OAuth2Session(token=token) as s:
+            s.headers = headers
             refresh: Response = s.request(
-                "POST", cred.deferred_credential_endpoint, headers=headers, json=body
+                "POST", cred.deferred_credential_endpoint, json=body
             )
 
             if (

@@ -5,7 +5,7 @@ from time import mktime
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import FastAPI, Header, HTTPException, Response, status
+from fastapi import FastAPI, Form, Header, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
@@ -33,19 +33,6 @@ from .models.responses import (
 
 
 class CredentialIssuer:
-    """Base class used for the credential issuer agent.
-
-    ### Parameters
-    - credentials(`dict`): A dictionary of available credentials that can be issued,
-      with required fields and types
-    - uri(`str`): Issuer's URI, used by the wallet agent to access endpoints
-    - jwt_path(`str`): Path to PEM-encoded private JWT.
-    - diddoc_path(`str`): Path to DIDDoc JSON object.
-    - did_config_path(`str`): Path to DID configuraton JSON object.
-    - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
-    - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
-    """
-
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
@@ -56,6 +43,18 @@ class CredentialIssuer:
         metadata_path: str,
         oauth_metadata_path: str,
     ):
+        """Base class used for the credential issuer agent.
+
+        ### Parameters
+        - credentials(`dict`): A dictionary of available credentials that can be issued,
+        with required fields and types
+        - uri(`str`): Issuer's URI, used by the wallet agent to access endpoints
+        - jwt_path(`str`): Path to PEM-encoded private JWT.
+        - diddoc_path(`str`): Path to DIDDoc JSON object.
+        - did_config_path(`str`): Path to DID configuraton JSON object.
+        - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
+        - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
+        """
         self.credentials = credentials
         self.uri = uri
 
@@ -263,9 +262,9 @@ class CredentialIssuer:
 
     async def token(
         self,
-        grant_type: str,
-        code: str,
-        redirect_uri: str,
+        grant_type: Annotated[str, Form()],
+        code: Annotated[str, Form()],
+        redirect_uri: Annotated[str, Form()],
         authorization: Annotated[str | None, Header()] = None,
     ) -> OAuthTokenResponse:
         """Receives requests for access tokens.
