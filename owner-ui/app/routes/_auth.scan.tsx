@@ -49,17 +49,12 @@ export default function Scan() {
       <FlexContainer component="main" maxWidth="xl" disableGutters>
         <Box
           sx={{
-            textAlign: "center",
-            width: "100%",
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
+            width: "fit-content",
+            height: "fit-content",
           }}
         >
           <Scanner
             styles={{
-              container: { height: "100%" },
               finderBorder: 50,
             }}
             onScan={(result) => console.log(result)}
