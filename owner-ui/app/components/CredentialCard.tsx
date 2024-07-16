@@ -1,17 +1,15 @@
-import {
-  Card,
-  CardActionArea,
-  CardContent,
-  CardHeader,
-  Typography,
-} from "@mui/material";
+import { Card, CardActionArea, CardContent, CardHeader } from "@mui/material";
 import { Link } from "@remix-run/react";
 
 interface CredentialDataField {
   id: string;
-  type: string;
   issuer_name: string | null;
-  token: string | null;
+  issuer_url: string;
+  credential_configuration_id: string;
+  credential_configuration_name: string | null;
+  is_deferred: boolean;
+  c_type: string;
+  raw_sdjwtvc?: string;
 }
 
 export function CredentialCard({
@@ -24,25 +22,20 @@ export function CredentialCard({
       component="article"
       sx={{ minWidth: 100, width: "100%", aspectRatio: 16 / 9 }}
     >
-      <CardActionArea component={Link} to="test" sx={{ height: "100%" }}>
+      <CardActionArea
+        component={Link}
+        // TODO - change this
+        to={credential.credential_configuration_id ?? "error"}
+        sx={{ height: "100%" }}
+      >
         <CardHeader
-          title={credential.type}
+          title={credential.credential_configuration_id ?? "Pending credential"}
           titleTypographyProps={{ component: "h2", noWrap: true }}
           subheader={credential.issuer_name}
           subheaderTypographyProps={{ variant: "subtitle1" }}
         />
         <CardContent>
-          {credential.token
-            ? Object.entries(
-                JSON.parse(atob(credential.token)) as [string, string][],
-              ).map(([key, value]) => {
-                return (
-                  <Typography variant="body1" key={key}>
-                    {value}
-                  </Typography>
-                );
-              })
-            : "Pending approval"}
+          {credential.raw_sdjwtvc ? "Real credential" : "Pending approval"}
         </CardContent>
       </CardActionArea>
     </Card>
