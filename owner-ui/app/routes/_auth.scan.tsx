@@ -7,8 +7,12 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { isRouteErrorResponse, type MetaFunction } from "@remix-run/react";
-import { type IDetectedBarcode, Scanner } from "@yudiel/react-qr-scanner";
+import {
+  isRouteErrorResponse,
+  useSubmit,
+  type MetaFunction,
+} from "@remix-run/react";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { FlexContainer } from "~/components/FlexContainer";
 
 export const meta: MetaFunction = ({ error }) => {
@@ -26,19 +30,9 @@ export const meta: MetaFunction = ({ error }) => {
   ];
 };
 
-// TODO: error handling
-async function handleScan(result: IDetectedBarcode[]) {
-  const scan = result[0];
-  const resp = await fetch(
-    `https://owner-lib:8081/presentation/init?${scan.rawValue}`,
-    {
-      method: "GET",
-    },
-  );
-  console.log(resp);
-}
-
 export default function Scan() {
+  const submit = useSubmit();
+
   return (
     <>
       <AppBar position="sticky">
@@ -69,7 +63,12 @@ export default function Scan() {
             styles={{
               finderBorder: 50,
             }}
-            onScan={handleScan}
+            onScan={(result) =>
+              submit(
+                { query: result[0].rawValue, intent: "choose-cred" },
+                { action: "/present", method: "post" },
+              )
+            }
           />
         </Box>
       </FlexContainer>

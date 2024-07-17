@@ -265,10 +265,10 @@ class WebIdentityOwner(IdentityOwner):
 
     async def get_auth_request(
         self,
-        request_uri=Body(...),
-        client_id=Body(...),
-        client_id_scheme=Body(...),
-        request_uri_method=Body(...),
+        request_uri,
+        client_id,
+        client_id_scheme,
+        request_uri_method,
     ):  # -> PresentationDefinition:
         if client_id_scheme != "did":
             raise HTTPException(
