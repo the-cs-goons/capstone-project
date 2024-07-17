@@ -167,4 +167,4 @@ class WebIdentityOwner(IdentityOwner):
             expected_origin=self.wallet_uri
         )
         self.passkeys[passkey.credential_id] = passkey
-        return 
+        return True
