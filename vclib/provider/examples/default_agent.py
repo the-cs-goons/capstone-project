@@ -70,7 +70,8 @@ verify_over_18_pd = {
                     }
                 ]
             },
-        }, {
+        },
+        {
             "id": "dob_descriptor",
             "constraints": {
                 "fields": [
@@ -83,7 +84,7 @@ verify_over_18_pd = {
             },
             "name": "Birthdate Verification",
             "purpose": "To verify the individual's year of birth",
-        }
+        },
     ],
 }
 

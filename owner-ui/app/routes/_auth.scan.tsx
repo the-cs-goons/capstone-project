@@ -66,7 +66,11 @@ export default function Scan() {
             onScan={(result) =>
               submit(
                 { query: result[0].rawValue, intent: "choose-cred" },
-                { action: "/present", method: "post" },
+                {
+                  action: "/present",
+                  method: "post",
+                  encType: "application/json",
+                },
               )
             }
           />

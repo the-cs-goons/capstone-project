@@ -132,6 +132,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
 
     assert resp == over_18_mock_auth_req
 
+    # TODO: make this return a redirect_uri
     httpx_mock.add_response(
         url="https://example.com/cb", json={"status": "OK"}, method="post"
     )
