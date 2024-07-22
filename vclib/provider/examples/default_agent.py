@@ -45,8 +45,7 @@ class ExampleServiceProvider(ServiceProvider):
         request.state = transaction_id
         request.wallet_nonce = wallet_nonce
         self.current_transactions[transaction_id] = "age_verification"
-        response = jsonable_encoder(request, exclude_none=True)
-        return JSONResponse(content=response)
+        return request
 
     def __create_request_uri_qr(self, request_type: str):
         pass
