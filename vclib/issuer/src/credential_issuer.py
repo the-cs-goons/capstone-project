@@ -36,7 +36,6 @@ class CredentialIssuer:
     def __init__(
         self,
         credentials: dict[str, dict[str, dict[str, Any]]],
-        uri: str,
         jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
@@ -56,7 +55,6 @@ class CredentialIssuer:
         - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
         """
         self.credentials = credentials
-        self.uri = uri
 
         try:
             with open(jwt_path, "rb") as key_file:
@@ -97,6 +95,8 @@ class CredentialIssuer:
             raise FileNotFoundError(f"Could not find OAuth metadata json: {e}")
         except ValueError as e:
             raise ValueError(f"Invalid OAuth metadata json provided: {e}")
+        
+        self.uri = self.metadata["credential_issuer"]
 
         self.client_ids = {}
 
@@ -438,19 +438,27 @@ class CredentialIssuer:
 
         # TODO: Allow customising endpoints using passed in metadata
 
+        auth_endpoint = self.oauth_metadata["authorization_endpoint"].replace(self.uri, "")
+        token_endpoint = self.oauth_metadata["token_endpoint"].replace(self.uri, "")
+        register_endpoint = self.oauth_metadata["registration_endpoint"].replace(self.uri, "")
+
+        credential_endpoint = self.metadata["credential_endpoint"].replace(self.uri, "")
+        deferred_endpoint = self.metadata["deferred_credential_endpoint"].replace(self.uri, "")
+
+        """Metadata must be hosted at these endpoints"""
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
         router.get("/.well-known/openid-credential-issuer")(self.get_issuer_metadata)
         router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
 
         """OAuth2 endpoints"""
-        router.post("/oauth2/register")(self.register)
-        router.get("/oauth2/authorize")(self.authorize)
-        router.post("/oauth2/authorize")(self.receive_credential_request)
-        router.post("/oauth2/token")(self.token)
+        router.get(auth_endpoint)(self.authorize)
+        router.post(auth_endpoint)(self.receive_credential_request)
+        router.post(token_endpoint)(self.token)
+        router.post(register_endpoint)(self.register)
 
-        router.post("/credentials")(self.get_credential)
-        router.post("/deferred")(self.get_deferred_credential)
+        router.post(credential_endpoint)(self.get_credential)
+        router.post(deferred_endpoint)(self.get_deferred_credential)
 
         return router
 
