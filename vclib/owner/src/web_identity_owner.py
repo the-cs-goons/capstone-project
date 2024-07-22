@@ -152,6 +152,10 @@ class WebIdentityOwner(IdentityOwner):
             self,
             approved:bool = False
             ):
+        if not approved:
+            # TODO: send an empty auth response to the provider
+            return "failed presentation"
+
         response_uri = self.current_vp_request.response_uri
         authorization_response_object = self.current_vp_response
         # make sure response_mode is direct_post
