@@ -3,7 +3,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from .identity_owner import IdentityOwner
@@ -11,6 +11,7 @@ from .models.authorization_request_object import AuthorizationRequestObject
 from .models.authorization_response_object import AuthorizationResponseObject
 from .models.credentials import Credential, DeferredCredential
 from .models.field_selection_object import FieldSelectionObject
+from .models.vp_credential_authorization import VPCredentialAuthorization
 from .models.presentation_submission_object import (
     DescriptorMapObject,
     PresentationSubmissionObject,
@@ -150,10 +151,26 @@ class WebIdentityOwner(IdentityOwner):
 
     async def present_credentials(
             self,
-            approved:bool = False
+            user_approval: VPCredentialAuthorization
             ):
-        if not approved:
+
+        if not self.current_vp_request:
+            raise HTTPException(
+                status_code=400,
+                detail="No ongoign VP exchange has been found"
+            )
+
+        if not self.current_vp_response:
+            raise HTTPException(
+                status_code=400,
+                # TODO: come up with a better error message
+                detail="No VP submission has been created"
+            )
+
+        if not user_approval.approved:
             # TODO: send an empty auth response to the provider
+            self.current_vp_request = None
+            self.current_vp_response = None
             return "failed presentation"
 
         response_uri = self.current_vp_request.response_uri
