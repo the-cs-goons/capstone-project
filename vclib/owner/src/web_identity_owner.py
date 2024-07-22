@@ -279,10 +279,10 @@ class WebIdentityOwner(IdentityOwner):
 
     async def get_auth_request(
         self,
-        request_uri=Body(...),
-        client_id=Body(...),
-        client_id_scheme=Body(...),
-        request_uri_method=Body(...),
+        request_uri,
+        client_id,
+        client_id_scheme,
+        request_uri_method,
     ):  # -> PresentationDefinition:
         if client_id_scheme != "did":
             raise HTTPException(
@@ -292,7 +292,6 @@ class WebIdentityOwner(IdentityOwner):
 
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                # f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/request/age_verification",
                 f"{request_uri}",
                 data={
                     "wallet_nonce": "nonce",  # replace this data with actual stuff

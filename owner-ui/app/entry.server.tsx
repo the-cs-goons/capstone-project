@@ -1,4 +1,3 @@
-import * as React from "react";
 import * as ReactDOMServer from "react-dom/server";
 import { RemixServer } from "@remix-run/react";
 import type { EntryContext } from "@remix-run/node";

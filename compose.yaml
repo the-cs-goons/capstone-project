@@ -81,7 +81,7 @@ services:
         - vclib-root=./vclib
         - root=.
     ports:
-    - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
+      - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
     volumes:
       - type: bind
         source: vclib/provider/src
