@@ -104,11 +104,13 @@ class IdentityOwner:
         paths: list[str],  # list of jsonpath strings
     ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
-        sdjwts = [credential.raw_sdjwtvc for credential in
-                  list(self.credentials.values()) if type(credential) is Credential
-                  and "." in credential.raw_sdjwtvc] # dying because some of the example
-                                                     # raw sdjwts aren't sdjwts?
-                                                     # will ask mack l8r
+        sdjwts = [
+            credential.raw_sdjwtvc
+            for credential in list(self.credentials.values())
+            if type(credential) is Credential and "." in credential.raw_sdjwtvc
+        ]  # dying because some of the example
+        # raw sdjwts aren't sdjwts?
+        # will ask mack l8r
         matched_credentials = {}
         for path in paths:
             expr = jsonpath_ng.parse(path)

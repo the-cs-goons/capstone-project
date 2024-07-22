@@ -59,4 +59,21 @@ class ExampleServiceProvider(ServiceProvider):
 
 service_provider = ExampleServiceProvider()
 
+# age_request_data = {
+#     "client_id": "some did",
+#     "client_id_scheme": "did",
+#     "client_metadata": {"data": "metadata in this object"},
+#     "presentation_definition": verify_over_18_pd_object,
+#     "response_uri": f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
+#     "response_type": "vp_token",
+#     "response_mode": "direct_post",
+#     "nonce": "some nonce",
+#     # wallet nonce will be set when transaction request is initiated
+#     # state will be set when transaction is initiated
+# }
+
+# age_request = AuthorizationRequestObject(**age_request_data)
+
+# service_provider.auth_requests["over_18"] = age_request
+
 service_provider_server = service_provider.get_server()
