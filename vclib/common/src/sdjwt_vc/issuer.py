@@ -22,7 +22,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
 
     SD_JWT_HEADER = "vc+sd-jwt"
     NONDISCLOSABLE_CLAIMS: ClassVar = ["iss", "nbf", "exp", "cnf", "vct", "status"]
-    ENFORCE_KEY_BINDING = True  # For extensibility; True by default, can be disabled
+    ENFORCE_KEY_BINDING = False  # For extensibility; False by default, can be enabled
 
     def __init__(
         self,
@@ -43,7 +43,7 @@ class SDJWTVCIssuer(SDJWTIssuer):
         of this credential should NOT be able to selectively disclose (e.g. the `exp`
         expiry claim.)
         - issuer_key(`JWK`): The issuer's signing key, as a `JWK` (see `jwcrypto.jwk`)
-        - holder_key(`JWK | Nonw`): The holder's public key, as a `JWK`, if required
+        - holder_key(`JWK | None`): The holder's public key, as a `JWK`, if required
         (see `jwcrypto.jwk`). If `ENFORCE_KEY_BINDING` is enabled (default), an error
         will be thrown if `None` is given.
 

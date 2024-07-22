@@ -23,6 +23,7 @@ services:
     environment:
       - PORT=$CS3900_OWNER_UI_PORT
       - NODE_EXTRA_CA_CERTS=/usr/src/app/example_ssl_ca_bundle.crt
+
   owner-lib:
     build:
       context: ./vclib/owner
@@ -45,6 +46,9 @@ services:
         required: true
       - path: .env
         required: false
+    environment:
+      - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
+      - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt
 
   issuer-lib:
     build:
@@ -77,7 +81,7 @@ services:
         - vclib-root=./vclib
         - root=.
     ports:
-    - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
+      - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
     volumes:
       - type: bind
         source: vclib/provider/src

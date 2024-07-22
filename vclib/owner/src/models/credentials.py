@@ -6,7 +6,7 @@ from .oauth import AccessToken
 
 
 class BaseCredential(BaseModel):
-    id: str = Field(default_factory=lambda: uuid4().bytes.decode("utf-8"))
+    id: str = Field(default_factory=lambda: str(uuid4()))
     issuer_name: str | None = Field(default=None)
     issuer_url: str
     credential_configuration_id: str

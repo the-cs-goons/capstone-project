@@ -31,9 +31,11 @@ const hydrate = () => {
   React.startTransition(() => {
     ReactDOM.hydrateRoot(
       document,
-      <ClientCacheProvider>
-        <RemixBrowser />
-      </ClientCacheProvider>,
+      <React.StrictMode>
+        <ClientCacheProvider>
+          <RemixBrowser />
+        </ClientCacheProvider>
+      </React.StrictMode>,
     );
   });
 };

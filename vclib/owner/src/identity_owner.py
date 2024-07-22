@@ -1,12 +1,16 @@
+import json
 from base64 import b64decode, b64encode
 from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
+from urllib.parse import urlencode
 
-from oauthlib.oauth2 import WebApplicationClient
+import jsonpath_ng
+import jwt
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
+from sd_jwt.common import SDJWTCommon
 
 from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
 from .models.credential_offer import CredentialOffer
@@ -55,13 +59,81 @@ class IdentityOwner:
         self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
         self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
         self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
-
         # Currently unused
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
+        # dict[credential id, credential]
         self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
+
+    def _get_credential_payload(self, sd_jwt_vc: str):
+        return sd_jwt_vc.split("~")[0]
+
+    def _get_decoded_credential_payload(self, sd_jwt_vc: str):
+        payload = self._get_credential_payload(sd_jwt_vc)
+        return jwt.decode(payload, options={"verify_signature": False})
+
+    def _get_decoded_credential_disclosures(self, sd_jwt_vc: str):
+        """Takes an SD-JWT Verifiable Credential (string) and returns its
+        decoded disclosures (the disclosures between the first and last tilde)
+        """
+        # has_kb = False
+        # if sd_jwt_vc[-1] != "~":
+        #     has_kb = True
+        parts = sd_jwt_vc.split("~")
+        disclosures = parts[1:-1]
+        # kb = None
+        # if has_kb:
+        #     kb = disclosures.pop()
+
+        # dict[encoded_disclosure, decoded_disclosure]
+        encoded_to_decoded_disclosures = {}
+        for disclosure in disclosures:
+            decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
+            decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
+            decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            decoded_disclosure_claim = {
+                decoded_disclosure_list[1]: decoded_disclosure_list[2]
+            }
+            encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
+        return encoded_to_decoded_disclosures
+
+    def _get_credentials_with_field(
+        self,
+        paths: list[str],  # list of jsonpath strings
+    ) -> dict[str, list[str]]:
+        """returns list(credential, [encoded disclosure])"""
+        sdjwts = [
+            credential.raw_sdjwtvc
+            for credential in list(self.credentials.values())
+            if type(credential) is Credential and "." in credential.raw_sdjwtvc
+        ]  # dying because some of the example
+        # raw sdjwts aren't sdjwts?
+        # will ask mack l8r
+        matched_credentials = {}
+        for path in paths:
+            expr = jsonpath_ng.parse(path)
+            for credential in sdjwts:
+                payload = self._get_decoded_credential_payload(credential)
+                matches = expr.find(payload)
+                if matches not in ([], None):
+                    matched_credentials[credential] = []
+                    continue
+
+                encoded_to_decoded_disclosures = (
+                    self._get_decoded_credential_disclosures(credential)
+                )
+                disclosures = encoded_to_decoded_disclosures.values()
+                for disclosure in disclosures:
+                    matches = expr.find(disclosure)
+                    if matches not in ([], None):
+                        disclosure_idx = list(disclosures).index(disclosure)
+                        encoded_disclosures = encoded_to_decoded_disclosures.keys()
+                        encoded_disclosure = list(encoded_disclosures)[disclosure_idx]
+                        matched_credentials[credential] = [encoded_disclosure]
+
+        return matched_credentials
 
     ###
     ### Storage and persistence
@@ -305,8 +377,6 @@ class IdentityOwner:
 
         with OAuth2Session(
             client_id=oauth_client_info.client_id,
-            # Should be this by default, included anyway for clarity
-            client=WebApplicationClient,
             redirect_uri=oauth_client_info.redirect_uris[0],
             state=state,
         ) as oauth2_client:
@@ -328,16 +398,22 @@ class IdentityOwner:
             }
             # TODO: Extra args for verifying
 
+            params = {
+                "grant_type": "authorization_code",
+                "code": code,
+                "redirect_uri": "aa",  # TODO: CHANGE TO ACTUAL URI
+            }
+
             # Note - using post instead of fetch_token because fetch_token doesn't
             # return the full request body
             r: Response = oauth2_client.post(
-                token_endpoint, code=code, auth=basic_auth, headers=headers
+                token_endpoint, data=urlencode(params), auth=basic_auth, headers=headers
             )
             r.raise_for_status()
 
             access_token_res = OAuthTokenResponse.model_validate_json(r.content)
             # Update session
-            oauth2_client.token(access_token_res.model_dump())
+            oauth2_client.token = access_token_res.model_dump()
 
             # Make requests for credentials
             issuer_metadata = self.issuer_metadata_store.get(issuer_uri, None)
@@ -355,6 +431,9 @@ class IdentityOwner:
                 config_id = detail.credential_configuration_id
                 for identifier in detail.credential_identifiers:
                     body = {"credential_identifier": identifier}
+                    headers = {
+                        "Authorization": f"Bearer {oauth2_client.token["access_token"]}",  # noqa e501
+                    }
                     cred_response: Response = oauth2_client.request(
                         "POST", issuer_metadata.credential_endpoint, json=body
                     )
@@ -411,6 +490,8 @@ class IdentityOwner:
         for c in new_credentials:
             self.credentials[c.id] = c
             self.store_credential(c)
+
+        return new_credentials
 
     async def get_issuer_metadata(
         self, issuer_uri, path="/.well-known/openid-credential-issuer"
@@ -492,17 +573,26 @@ class IdentityOwner:
             return cred
 
         token = cred.access_token.model_dump()
+        headers = {
+            "Authorization": f"Bearer {cred.access_token.access_token}",
+        }
         body = {"transaction_id": cred.transaction_id}
         with OAuth2Session(token=token) as s:
+            s.headers = headers
             refresh: Response = s.request(
                 "POST", cred.deferred_credential_endpoint, json=body
             )
-            refresh.raise_for_status()
 
-            if refresh.status_code == 202:
+            if (
+                refresh.status_code == 400
+                and refresh.json()["error"] == "issuance_pending"
+            ):
                 cred.last_request = datetime.now(tz=UTC).isoformat()
                 self.store_credential(cred)
                 return cred
+
+            # Pending credentials also use 400
+            refresh.raise_for_status()
 
             if refresh.status_code == 200:
                 new = refresh.json().get("credential", None)

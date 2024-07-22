@@ -11,17 +11,18 @@ import {
 import { withEmotionCache } from "@emotion/react";
 import {
   CssBaseline,
+  ThemeProvider,
   unstable_useEnhancedEffect as useEnhancedEffect,
 } from "@mui/material";
-import ClientStyleContext from "./src/ClientStyleContext";
+import ClientStyleContext from "~/src/ClientStyleContext";
+import { walletTheme } from "./styles/theme";
 
 interface DocumentProps {
   children: React.ReactNode;
-  title?: string;
 }
 
 const Document = withEmotionCache(
-  ({ children, title }: DocumentProps, emotionCache) => {
+  ({ children }: Readonly<DocumentProps>, emotionCache) => {
     const clientStyleData = React.useContext(ClientStyleContext);
 
     // Only executed on client
@@ -44,7 +45,6 @@ const Document = withEmotionCache(
         <head>
           <meta charSet="utf-8" />
           <meta name="viewport" content="width=device-width,initial-scale=1" />
-          {title ? <title>{title}</title> : null}
           <Meta />
           <Links />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -72,27 +72,19 @@ const Document = withEmotionCache(
   },
 );
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export function Layout({ children }: Readonly<LayoutProps>) {
+export function Layout({ children }: Readonly<DocumentProps>) {
   return (
-    <Document>
-      <React.StrictMode>{children}</React.StrictMode>
-    </Document>
+    <ThemeProvider theme={walletTheme}>
+      <CssBaseline />
+      <Document>{children}</Document>
+    </ThemeProvider>
   );
 }
 
 // https://remix.run/docs/en/main/route/component
 // https://remix.run/docs/en/main/file-conventions/routes
 export default function App() {
-  return (
-    <>
-      <CssBaseline />
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
 
 // https://remix.run/docs/en/main/route/error-boundary
@@ -122,6 +114,7 @@ export function ErrorBoundary() {
 
     return (
       <>
+        <title>{`${error.status} ${error.statusText}`}</title>
         <h1>
           {error.status}: {error.statusText}
         </h1>
@@ -133,15 +126,18 @@ export function ErrorBoundary() {
   if (error instanceof Error) {
     console.error(error);
     return (
-      <div>
-        <h1>There was an error</h1>
-        <p>{error.message}</p>
-        <hr />
-        <p>
-          Hey, developer, you should replace this with what you want your users
-          to see.
-        </p>
-      </div>
+      <>
+        <title>Error!</title>
+        <div>
+          <h1>There was an error</h1>
+          <p>{error.message}</p>
+          <hr />
+          <p>
+            Hey, developer, you should replace this with what you want your
+            users to see.
+          </p>
+        </div>
+      </>
     );
   }
 
