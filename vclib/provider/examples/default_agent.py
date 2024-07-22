@@ -70,7 +70,21 @@ verify_over_18_pd = {
                     }
                 ]
             },
-        }
+        },
+        {
+            "id": "dob_descriptor",
+            "constraints": {
+                "fields": [
+                    {
+                        "path": ["$.credentialSubject.birthdate", "$.birthdate"],
+                        "filter": {"type": "string"},
+                        "optional": True,
+                    }
+                ]
+            },
+            "name": "Birthdate Verification",
+            "purpose": "To verify the individual's year of birth",
+        },
     ],
 }
 

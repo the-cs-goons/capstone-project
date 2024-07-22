@@ -14,6 +14,3 @@ class AuthorizationRequestObject(BaseModel):
     nonce: str
     wallet_nonce: str | None = None
     state: str | None = None  # transaction id
-
-    class Config:
-        exclude_none = True
