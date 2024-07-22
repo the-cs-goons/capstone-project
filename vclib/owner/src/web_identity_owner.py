@@ -57,7 +57,8 @@ class WebIdentityOwner(IdentityOwner):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, dev_mode=dev_mode)
-        self.current_transaction: AuthorizationRequestObject | None = None
+        self.current_vp_request: AuthorizationRequestObject | None = None
+        self.current_vp_response: AuthorizationResponseObject | None = None
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -67,7 +68,8 @@ class WebIdentityOwner(IdentityOwner):
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
         router.get("/presentation/init")(self.get_auth_request)
-        router.post("/presentation/")(self.present_selection)
+        router.post("/presentation/present")(self.present_credentials)
+        router.post("/presentation/review")(self.review_credential_presentation)
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
@@ -146,9 +148,28 @@ class WebIdentityOwner(IdentityOwner):
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
 
-    async def present_selection(
+    async def present_credentials(
+            self,
+            approved:bool = False
+            ):
+        response_uri = self.current_vp_request.response_uri
+        authorization_response_object = self.current_vp_response
+        # make sure response_mode is direct_post
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                f"{response_uri}", data=authorization_response_object.model_dump()
+            )
+
+        self.current_vp_request = None
+        self.current_vp_response = None
+        return response.json()
+
+    async def review_credential_presentation(
         self, field_selections: FieldSelectionObject = Body(...)
     ):
+        """
+        Finds and creates the
+        """
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
 
@@ -156,7 +177,7 @@ class WebIdentityOwner(IdentityOwner):
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
         ]
-        pd = self.current_transaction.presentation_definition
+        pd = self.current_vp_request.presentation_definition
         ids = pd.input_descriptors
 
         # list[tuple[input_descriptor_id, vp_token]]
@@ -209,8 +230,8 @@ class WebIdentityOwner(IdentityOwner):
 
         final_vp_token = None
         descriptor_maps = []
-        definition_id = self.current_transaction.presentation_definition.id
-        transaction_id = self.current_transaction.state
+        definition_id = self.current_vp_request.presentation_definition.id
+        transaction_id = self.current_vp_request.state
 
         if len(id_vp_tokens) == 1:
             input_descriptor_id, vp_token = id_vp_tokens[0]
@@ -253,15 +274,8 @@ class WebIdentityOwner(IdentityOwner):
             **authorization_response
         )
 
-        response_uri = self.current_transaction.response_uri
-        # make sure response_mode is direct_post
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{response_uri}", data=authorization_response_object.model_dump()
-            )
-
-        self.current_transaction = None
-        return response.json()
+        self.current_vp_response = authorization_response_object
+        return authorization_response_object
 
     async def get_auth_request(
         self,
@@ -290,5 +304,5 @@ class WebIdentityOwner(IdentityOwner):
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
         auth_request = response.json()
-        self.current_transaction = AuthorizationRequestObject(**auth_request)
+        self.current_vp_request = AuthorizationRequestObject(**auth_request)
         return auth_request

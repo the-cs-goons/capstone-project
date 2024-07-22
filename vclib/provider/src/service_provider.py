@@ -16,7 +16,8 @@ class ServiceProvider:
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
-        router.post("/request/{request_type}", response_model_exclude_none=True)(self.fetch_authorization_request)
+        router.post("/request/{request_type}",
+            response_model_exclude_none=True)(self.fetch_authorization_request)
         router.post("/cb")(self.parse_authorization_response)
         return router
 

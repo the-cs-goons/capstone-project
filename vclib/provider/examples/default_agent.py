@@ -4,8 +4,6 @@ import uuid
 from typing import override
 
 from fastapi import Form, HTTPException
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
 from vclib.provider import (
     AuthorizationRequestObject,
