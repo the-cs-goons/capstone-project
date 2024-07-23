@@ -1,10 +1,12 @@
 import json
+import secrets
 from base64 import urlsafe_b64decode
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from time import mktime
 from typing import Annotated, Any
 from uuid import uuid4
 
+import jwt
 from fastapi import FastAPI, Form, Header, HTTPException, Response, status
 from fastapi.responses import RedirectResponse
 from jwcrypto.jwk import JWK
@@ -30,6 +32,9 @@ from .models.responses import (
     FormResponse,
     StatusResponse,
 )
+
+# Time in seconds until token expires
+TOKEN_EXPIRY = 3600
 
 
 class CredentialIssuer:
@@ -100,15 +105,15 @@ class CredentialIssuer:
         for key, value in self.metadata["credential_configurations_supported"].items():
             self.credentials[key.replace(self.uri + "/", "")] = value["claims"]
 
-        self.client_ids = {}
+        self.secret = secrets.token_hex(32)
+        self.ticket = 0
 
+        self.client_ids = {}
         self.auth_codes = {}
 
-        self.ticket = 0
-        self.active_access_tokens = []
         self.auths_to_ids = {}
-        self.access_to_ids = {}
-        self.id_to_ticket = {}
+
+        self.id_to_status = {}
         self.transaction_id_to_ticket = {}
 
     async def get_did_json(self) -> DIDJSONResponse:
@@ -160,6 +165,7 @@ class CredentialIssuer:
 
     async def authorize(
         self,
+        response: Response,
         response_type: str,
         client_id: str,
         redirect_uri: str,
@@ -241,23 +247,13 @@ class CredentialIssuer:
 
         self._check_input_typing(self.credentials[cred_type], cred_type, information)
 
-        # try:
-        #     self._check_input_typing(
-        #         self.credentials[cred_type].items(), cred_type, information
-        #     )
-        # except Exception as e:
-        #     raise HTTPException(
-        #         status_code=status.HTTP_400_BAD_REQUEST,
-        #         detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
-        #     )
-
         self.ticket += 1
         auth_code = str(uuid4())
         self.auth_codes[auth_code] = client_id
 
         cred_id = f"{cred_type}_{uuid4()!s}"
         self.auths_to_ids[auth_code] = [(cred_type, cred_id, redirect_uri)]
-        self.id_to_ticket[cred_id] = self.ticket
+        self.id_to_status[cred_id] = {"ticket": self.ticket, "transaction": None}
 
         self.get_request(self.ticket, cred_type, information)
 
@@ -299,9 +295,18 @@ class CredentialIssuer:
         ):
             cred_type, cred_id, re_uri = self.auths_to_ids[code][0]
             if re_uri == redirect_uri:
-                access_token = str(uuid4())
-                self.active_access_tokens.append(access_token)
-                self.access_to_ids[access_token] = (cred_id, None)
+                self.auths_to_ids.pop(code)
+                self.auth_codes.pop(code)
+
+                payload = {
+                    "client_id": client_id,
+                    "credential_id": cred_id,
+                    "iat": mktime(datetime.now(tz=UTC).timetuple()),
+                }
+
+                secret = self.secret + client_secret
+
+                access_token = jwt.encode(payload, secret, algorithm="HS256")
 
                 auth_details = AuthorizationDetails(
                     type="openid_credential",
@@ -312,7 +317,7 @@ class CredentialIssuer:
                 return OAuthTokenResponse(
                     access_token=access_token,
                     token_type="bearer",
-                    expires_in=7200,
+                    expires_in=TOKEN_EXPIRY,
                     c_nonce=None,
                     c_nonce_expires_in=None,
                     authorization_details=[auth_details],
@@ -345,7 +350,14 @@ class CredentialIssuer:
         - If the credential is DENIED:
           - Return a 400, with `{"error": "credential_request_denied"}`.
         """
-        access_token = self._check_access_token(authorization)
+        access_token_payload: dict
+
+        try:
+            access_token_payload = self._check_access_token(authorization)
+        except Exception as e:
+            response.headers["WWW-Authenticate"] = f'Bearer error="{e}"'
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return None
 
         try:
             CredentialRequestBody.model_validate(request)
@@ -353,34 +365,32 @@ class CredentialIssuer:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_credential_request"}
 
-        if self.access_to_ids[access_token][0] != request["credential_identifier"]:
+        cred_id = access_token_payload["credential_id"]
+
+        if cred_id != request["credential_identifier"]:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "unsupported_credential_type"}
 
-        if self.access_to_ids[access_token][1] is not None:
-            return {"transaction_id": self.access_to_ids[access_token][1]}
+        if self.id_to_status[cred_id]["transaction"] is not None:
+            return {"transaction_id": self.id_to_status[cred_id]["transaction"]}
 
-        ticket = self.id_to_ticket[self.access_to_ids[access_token][0]]
+        ticket = self.id_to_status[cred_id]["ticket"]
 
         cred_status = self.get_credential_status(ticket)
 
         if cred_status.status == "ACCEPTED":
-            self.access_to_ids.pop(access_token)
-            self.active_access_tokens.remove(access_token)
             credential = self.create_credential(
                 request["credential_identifier"], cred_status.information
             )
             return {"credential": credential}
 
         if cred_status.status == "DENIED":
-            # Unsure if we remove access token if denied
-            # self.auths_to_ids.pop(access_token)
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "credential_request_denied"}
 
         transaction_id = str(uuid4())
         self.transaction_id_to_ticket[transaction_id] = ticket
-        self.access_to_ids[access_token] = (ticket, transaction_id)
+        self.id_to_status[cred_id]["transaction"] = transaction_id
         response.status_code = status.HTTP_202_ACCEPTED
         return {"transaction_id": transaction_id}
 
@@ -405,7 +415,7 @@ class CredentialIssuer:
         - If the credential is DENIED:
           - Return a 400, with `{"error": "credential_request_denied"}`.
         """
-        access_token = self._check_access_token(authorization)
+        self._check_access_token(authorization)
 
         try:
             DeferredCredentialRequestBody.model_validate(request)
@@ -422,8 +432,6 @@ class CredentialIssuer:
         cred_status = self.get_credential_status(ticket)
         if cred_status.status == "ACCEPTED":
             self.transaction_id_to_ticket.pop(request["transaction_id"])
-            self.access_to_ids.pop(access_token)
-            self.active_access_tokens.remove(access_token)
             credential = self.create_credential(
                 cred_status.cred_type, cred_status.information
             )
@@ -432,8 +440,6 @@ class CredentialIssuer:
         response.status_code = status.HTTP_400_BAD_REQUEST
 
         if cred_status.status == "DENIED":
-            # Unsure if we remove access token if denied
-            # self.auths_to_ids.pop(access_token)
             return {"error": "credential_request_denied"}
 
         return {"error": "issuance_pending"}
@@ -441,8 +447,6 @@ class CredentialIssuer:
     def get_server(self) -> FastAPI:
         """Gets the server for the issuer."""
         router = FastAPI()
-
-        # TODO: Allow customising endpoints using passed in metadata
 
         auth_endpoint = self.oauth_metadata["authorization_endpoint"].replace(
             self.uri, ""
@@ -531,18 +535,27 @@ class CredentialIssuer:
             if field_name not in template:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
-    def _check_access_token(self, access_token: str) -> str:
-        # TODO: Errors for incorrect/missing auth code
-        if access_token is not None and access_token.startswith("Bearer "):
-            ac = access_token.split(" ")[1]
-            if ac in self.active_access_tokens:
-                return ac
+    def _check_access_token(self, access_token: str) -> dict:
+        if access_token is None or not access_token.startswith("Bearer "):
+            raise Exception("invalid_request")
 
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or missing authorization code",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        ac = access_token.split(" ")[1]
+
+        payload: dict
+        try:
+            client_id = jwt.decode(ac, options={"verify_signature": False})["client_id"]
+            secret = self.secret + self.client_ids[client_id]
+
+            payload = jwt.decode(ac, secret, algorithms="HS256")
+        except Exception:
+            raise Exception("invalid_token")
+
+        issue_time = datetime.fromtimestamp(payload["iat"], tz=UTC)
+
+        if datetime.now(tz=UTC) - issue_time > timedelta(0, TOKEN_EXPIRY, 0):
+            raise Exception("invalid_token")
+
+        return payload
 
     ###
     ### User-defined functions, designed to be overwritten
@@ -596,7 +609,7 @@ class CredentialIssuer:
         - `str`: A string containing the new issued credential.
         """
 
-        other = {"iat": mktime(datetime.now(UTC).timetuple())}
+        other = {"iat": mktime(datetime.now(tz=UTC).timetuple())}
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwt, None)
 
         return new_credential.sd_jwt_issuance

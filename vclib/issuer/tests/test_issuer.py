@@ -1,4 +1,5 @@
 import json
+import os
 from base64 import urlsafe_b64encode
 
 import pytest
@@ -11,6 +12,8 @@ exp_diddoc: dict
 exp_didconf: dict
 exp_meta: dict
 exp_ometa: dict
+
+os.environ["TZ"] = "UTC"
 
 with open("vclib/issuer/tests/test_diddoc.json", "rb") as diddoc_file:
     exp_diddoc = json.load(diddoc_file)
@@ -79,7 +82,6 @@ async def test_request_credential(credential_issuer):
     )
 
     auth_code = response1.headers["location"].split("=")[1].split("&")[0]
-    print(auth_code)
 
     authorization = urlsafe_b64encode(f"{client_id}:{client_secret}".encode()).decode(
         "utf-8"
@@ -97,7 +99,6 @@ async def test_request_credential(credential_issuer):
     response = await credential_issuer.get_credential(
         Response(), req, "Bearer " + response1.access_token
     )
-    print(response)
     assert response["transaction_id"]
 
 
