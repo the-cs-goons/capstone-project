@@ -401,7 +401,7 @@ class IdentityOwner:
             params = {
                 "grant_type": "authorization_code",
                 "code": code,
-                "redirect_uri": "aa",  # TODO: CHANGE TO ACTUAL URI
+                "redirect_uri": oauth_client_info.redirect_uris[0],
             }
 
             # Note - using post instead of fetch_token because fetch_token doesn't

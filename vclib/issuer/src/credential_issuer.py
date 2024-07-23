@@ -298,25 +298,25 @@ class CredentialIssuer:
             and self.client_ids[client_id] == client_secret
         ):
             cred_type, cred_id, re_uri = self.auths_to_ids[code][0]
-            # if re_uri == redirect_uri:
-            access_token = str(uuid4())
-            self.active_access_tokens.append(access_token)
-            self.access_to_ids[access_token] = (cred_id, None)
+            if re_uri == redirect_uri:
+                access_token = str(uuid4())
+                self.active_access_tokens.append(access_token)
+                self.access_to_ids[access_token] = (cred_id, None)
 
-            auth_details = AuthorizationDetails(
-                type="openid_credential",
-                credential_configuration_id=cred_type,
-                credential_identifiers=[cred_id],
-            )
+                auth_details = AuthorizationDetails(
+                    type="openid_credential",
+                    credential_configuration_id=cred_type,
+                    credential_identifiers=[cred_id],
+                )
 
-            return OAuthTokenResponse(
-                access_token=access_token,
-                token_type="bearer",
-                expires_in=7200,
-                c_nonce=None,
-                c_nonce_expires_in=None,
-                authorization_details=[auth_details],
-            )
+                return OAuthTokenResponse(
+                    access_token=access_token,
+                    token_type="bearer",
+                    expires_in=7200,
+                    c_nonce=None,
+                    c_nonce_expires_in=None,
+                    authorization_details=[auth_details],
+                )
 
             # TODO: Incorrect redirect uri error
 
