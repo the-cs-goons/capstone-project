@@ -1,4 +1,3 @@
-import json
 from base64 import b64decode, b64encode
 from datetime import UTC, datetime
 from json import dumps, loads
@@ -17,6 +16,8 @@ from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
+
+from .storage.local_storage_provider import LocalStorageProvider
 
 
 class IdentityOwner:
@@ -42,6 +43,7 @@ class IdentityOwner:
         self,
         oauth_client_metadata: dict[str, Any],
         *,
+        storage_provider: LocalStorageProvider = None,
         dev_mode=False,
     ):
         """
@@ -63,6 +65,7 @@ class IdentityOwner:
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
         # dict[credential id, credential]
+        self.storage_provider = storage_provider
         self.credentials: dict[str, Credential | DeferredCredential] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
@@ -92,7 +95,7 @@ class IdentityOwner:
         for disclosure in disclosures:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
             decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
-            decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            decoded_disclosure_list = loads(decoded_disclosure_str)
             decoded_disclosure_claim = {
                 decoded_disclosure_list[1]: decoded_disclosure_list[2]
             }
@@ -173,6 +176,49 @@ class IdentityOwner:
         if obj.get("is_deferred"):
             return DeferredCredential.model_validate(obj)
         return Credential.model_validate(obj)
+    
+    def store_credential(self, cred: Credential):
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to store a serialised credential in some manner.
+
+        ### Parameters
+        - cred(`Credential`): A `Credential`
+
+        IMPORTANT: Do not store unsecured credentials in a production environment.
+        Use `self.serialise` to convert the `Credential` to
+        something that can be stored.
+        """
+        return
+
+    def load_credential_from_storage(
+        self, cred_id: str
+    ) -> Credential | DeferredCredential:
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to load a specific credential from storage.
+        Use `self.load_from` to convert the stored credential to a `Credential` object.
+
+        ### Parameters
+        - cred_id(`str`): an identifier for the credential
+
+        ### Returns
+        - `Credential`: The requested credential, if it exists.
+        """
+        return None
+
+    def load_all_credentials_from_storage(
+        self,
+    ) -> list[Credential | DeferredCredential]:
+        """## !!! This function MUST be `@override`n !!!
+
+        Function to retrieve all credentials. Overwrite this method
+        to retrieve all credentials.
+
+        ### Returns
+        - `list[Credential | DeferredCredential]`: A list of Credential objects.
+        """
+        return []
 
     ###
     ### Credential Issuance (OAuth2)
@@ -638,45 +684,4 @@ class IdentityOwner:
     ### User-defined functions, designed to be overwritten
     ###
 
-    def store_credential(self, cred: Credential):
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to store a serialised credential in some manner.
-
-        ### Parameters
-        - cred(`Credential`): A `Credential`
-
-        IMPORTANT: Do not store unsecured credentials in a production environment.
-        Use `self.serialise` to convert the `Credential` to
-        something that can be stored.
-        """
-        return
-
-    def load_credential_from_storage(
-        self, cred_id: str
-    ) -> Credential | DeferredCredential:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to load a specific credential from storage.
-        Use `self.load_from` to convert the stored credential to a `Credential` object.
-
-        ### Parameters
-        - cred_id(`str`): an identifier for the credential
-
-        ### Returns
-        - `Credential`: The requested credential, if it exists.
-        """
-        return None
-
-    def load_all_credentials_from_storage(
-        self,
-    ) -> list[Credential | DeferredCredential]:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to retrieve all credentials. Overwrite this method
-        to retrieve all credentials.
-
-        ### Returns
-        - `list[Credential | DeferredCredential]`: A list of Credential objects.
-        """
-        return []
+    

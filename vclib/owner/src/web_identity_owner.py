@@ -1,4 +1,3 @@
-from json import loads
 from uuid import uuid4
 from typing import Any
 from urllib.parse import urlparse
@@ -6,8 +5,6 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
-from webauthn import base64url_to_bytes, generate_registration_options, options_to_json, verify_registration_response
-from webauthn.registration.verify_registration_response import VerifiedRegistration
 
 from .identity_owner import IdentityOwner
 from .models.authorization_request_object import AuthorizationRequestObject
@@ -19,7 +16,6 @@ from .models.presentation_submission_object import (
     PresentationSubmissionObject,
 )
 from .models.request_body import CredentialSelection
-from .models.passkey import NewRegistrationResponse, ParsedClientDataJSON, VerifyRegistrationRequest
 
 class WebIdentityOwner(IdentityOwner):
     """
@@ -56,7 +52,7 @@ class WebIdentityOwner(IdentityOwner):
         offer_path = urlparse(cred_offer_endpoint).path
         self._credential_offer_endpoint = offer_path
         self.wallet_uri = "localhost"
-        self.challenges = set()
+        self.current_challenge: str | None = None
         self.passkeys = {}
 
         oauth_client_info = oauth_client_options
@@ -80,6 +76,9 @@ class WebIdentityOwner(IdentityOwner):
         router.post(self._credential_offer_endpoint)(self.request_authorization)
         # Might change this later from /add to something else
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
+
+        router.get("/register-start")(self.generate_registration)
+        router.post("/register-verify")(self.confirm_registration)
 
         return router
 
@@ -297,33 +296,3 @@ class WebIdentityOwner(IdentityOwner):
         auth_request = response.json()
         self.current_transaction = AuthorizationRequestObject(**auth_request)
         return auth_request
-    
-    def generate_registration(self, name: str) -> NewRegistrationResponse:
-        registration = generate_registration_options(
-            rp_id=self.wallet_uri,
-            rp_name="Verifiable Credentials Wallet (COMP3900)",
-            user_name=name,
-            user_display_name=name
-        )
-
-        options = options_to_json(registration)
-        self.challenges.add(loads(options)["challenge"])
-        return NewRegistrationResponse.model_validate_json(options)
-
-    def confirm_registration(self, register_response: VerifyRegistrationRequest):
-        cred = register_response.model_dump()
-        client_data = ParsedClientDataJSON.model_validate_json(
-            base64url_to_bytes(register_response.response.clientDataJSON)
-            )
-        expected_challenge = client_data.challenge
-        if expected_challenge not in self.challenges:
-            raise HTTPException(status_code=400, detail="Bad challenge")
-        self.challenges.remove(expected_challenge)
-        passkey: VerifiedRegistration = verify_registration_response(
-            credential=cred,
-            expected_challenge=expected_challenge,
-            expected_rp_id="localhost",
-            expected_origin=self.wallet_uri
-        )
-        self.passkeys[passkey.credential_id] = passkey
-        return True
