@@ -35,7 +35,6 @@ from .models.responses import (
 class CredentialIssuer:
     def __init__(
         self,
-        credentials: dict[str, dict[str, dict[str, Any]]],
         jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
@@ -54,7 +53,6 @@ class CredentialIssuer:
         - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
         - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
         """
-        self.credentials = credentials
 
         try:
             with open(jwt_path, "rb") as key_file:
@@ -95,8 +93,12 @@ class CredentialIssuer:
             raise FileNotFoundError(f"Could not find OAuth metadata json: {e}")
         except ValueError as e:
             raise ValueError(f"Invalid OAuth metadata json provided: {e}")
-        
+
         self.uri = self.metadata["credential_issuer"]
+
+        self.credentials = {}
+        for key, value in self.metadata["credential_configurations_supported"].items():
+            self.credentials[key.replace(self.uri + "/", "")] = value["claims"]
 
         self.client_ids = {}
 
@@ -237,13 +239,17 @@ class CredentialIssuer:
                 detail=f"Credential type {cred_type} is not supported",
             )
 
-        try:
-            self._check_input_typing(cred_type, information)
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
-            )
+        self._check_input_typing(self.credentials[cred_type], cred_type, information)
+
+        # try:
+        #     self._check_input_typing(
+        #         self.credentials[cred_type].items(), cred_type, information
+        #     )
+        # except Exception as e:
+        #     raise HTTPException(
+        #         status_code=status.HTTP_400_BAD_REQUEST,
+        #         detail=f"Fields for credential type {cred_type} were formatted incorrectly: {e}",  # noqa: E501
+        #     )
 
         self.ticket += 1
         auth_code = str(uuid4())
@@ -438,12 +444,18 @@ class CredentialIssuer:
 
         # TODO: Allow customising endpoints using passed in metadata
 
-        auth_endpoint = self.oauth_metadata["authorization_endpoint"].replace(self.uri, "")
+        auth_endpoint = self.oauth_metadata["authorization_endpoint"].replace(
+            self.uri, ""
+        )
         token_endpoint = self.oauth_metadata["token_endpoint"].replace(self.uri, "")
-        register_endpoint = self.oauth_metadata["registration_endpoint"].replace(self.uri, "")
+        register_endpoint = self.oauth_metadata["registration_endpoint"].replace(
+            self.uri, ""
+        )
 
         credential_endpoint = self.metadata["credential_endpoint"].replace(self.uri, "")
-        deferred_endpoint = self.metadata["deferred_credential_endpoint"].replace(self.uri, "")
+        deferred_endpoint = self.metadata["deferred_credential_endpoint"].replace(
+            self.uri, ""
+        )
 
         """Metadata must be hosted at these endpoints"""
         router.get("/.well-known/did.json")(self.get_did_json)
@@ -462,39 +474,61 @@ class CredentialIssuer:
 
         return router
 
-    def _check_input_typing(self, cred_type: str, information: dict):
+    def _check_input_typing(self, template: dict, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
         Raises `TypeError` if types do not match.
         """
-        for field_name, field_info in self.credentials[cred_type].items():
+        for field_name, field_info in template.items():
             if field_name in information:
-                value = information[field_name]
-                if value is None:
-                    if field_info.get("mandatory"):
+                values = information[field_name]
+                if values is None:
+                    if (
+                        isinstance(field_info, list) and field_info[0].get("mandatory")
+                    ) or field_info.get("mandatory"):
                         raise TypeError(f"{field_name} is mandatory and was null")
                 else:
-                    match field_info["value_type"]:
-                        case "string":
-                            if not isinstance(value, str):
-                                raise TypeError(f"{field_name} expected to be string")
-                        case "number":
-                            # bools can count as ints, and need to be explicitly checked
-                            if not (
-                                isinstance(value, int) and not isinstance(value, bool)
-                            ) and not isinstance(value, float):
-                                raise TypeError(f"{field_name} expected to be number")
-                        case "boolean":
-                            if not isinstance(value, bool):
-                                raise TypeError(f"{field_name} expected to be boolean")
-                        # Unimplemented, will be in future sprint
-                        case ["array[", _typ, "]"]:
-                            raise NotImplementedError
-                        case "object":
-                            raise NotImplementedError
-            elif field_info.get("mandatory"):
+                    if isinstance(field_info, list):
+                        field_info = field_info[0]
+                    else:
+                        values = [values]
+
+                    for value in values:
+                        if "value_type" in field_info:
+                            match field_info["value_type"]:
+                                case "any":
+                                    # Type checking not needed
+                                    pass
+                                case "string":
+                                    if not isinstance(value, str):
+                                        raise TypeError(
+                                            f"{field_name} expected to be string"
+                                        )
+                                case "number":
+                                    # bools can count as ints, and need to be checked
+                                    if not (
+                                        isinstance(value, int)
+                                        and not isinstance(value, bool)
+                                    ) and not isinstance(value, float):
+                                        raise TypeError(
+                                            f"{field_name} expected to be number"
+                                        )
+                                case "boolean":
+                                    if not isinstance(value, bool):
+                                        raise TypeError(
+                                            f"{field_name} expected to be boolean"
+                                        )
+                                case other:
+                                    raise TypeError(
+                                        f"{field_name} unexpected type: {other}"
+                                    )
+                        else:
+                            self._check_input_typing(field_info, cred_type, value)
+            elif (
+                isinstance(field_info, list) and field_info[0].get("mandatory")
+            ) or field_info.get("mandatory"):
                 raise TypeError(f"{field_name} is mandatory and was not provided")
         for field_name in information:
-            if field_name not in self.credentials[cred_type]:
+            if field_name not in template:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
     def _check_access_token(self, access_token: str) -> str:

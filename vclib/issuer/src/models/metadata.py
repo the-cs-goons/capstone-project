@@ -54,7 +54,7 @@ class UniqueCredentialIdentifier(BaseModel):
     cryptographic_binding_methods_supported: list[str]
     credential_signing_alg_values_supported: list[str]
     proof_types_supported: dict[str, ProofTypesSupported]
-    claims: dict[str, dict[str, Any]]
+    claims: dict[str, dict[str, Any] | list[dict[str, Any]]]
 
 
 class MetadataResponse(BaseModel):

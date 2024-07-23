@@ -7,15 +7,6 @@ from fastapi import Response
 from vclib.issuer import CredentialIssuer
 from vclib.issuer.src.models.oauth import WalletClientMetadata
 
-MOCK_INFORMATION = {
-    "default": {
-        "string": {"mandatory": True, "value_type": "string"},
-        "number": {"mandatory": True, "value_type": "number"},
-        "boolean": {"mandatory": True, "value_type": "boolean"},
-        "optional": {"mandatory": False, "value_type": "string"},
-    },
-}
-
 exp_diddoc: dict
 exp_didconf: dict
 exp_meta: dict
@@ -37,8 +28,6 @@ with open("vclib/issuer/tests/test_oauth_metadata.json", "rb") as ometa_file:
 @pytest.fixture()
 def credential_issuer():
     return CredentialIssuer(
-        MOCK_INFORMATION,
-        "https://issuer-lib:8082",
         "vclib/issuer/tests/test_jwk_private.pem",
         "vclib/issuer/tests/test_diddoc.json",
         "vclib/issuer/tests/test_didconf.json",
@@ -116,8 +105,6 @@ async def test_request_credential(credential_issuer):
 async def test_nonexistent_files():
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "not/a/key.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -127,8 +114,6 @@ async def test_nonexistent_files():
 
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "not/a/diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -138,8 +123,6 @@ async def test_nonexistent_files():
 
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "not/a/didconf.json",
@@ -149,8 +132,6 @@ async def test_nonexistent_files():
 
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -160,8 +141,6 @@ async def test_nonexistent_files():
 
     with pytest.raises(FileNotFoundError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -174,8 +153,6 @@ async def test_nonexistent_files():
 async def test_invalid_files():
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_invalid_private_key.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -185,8 +162,6 @@ async def test_invalid_files():
 
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_invalid_private_key.pem",
             "vclib/issuer/tests/test_didconf.json",
@@ -196,8 +171,6 @@ async def test_invalid_files():
 
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_invalid_private_key.pem",
@@ -207,8 +180,6 @@ async def test_invalid_files():
 
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -218,8 +189,6 @@ async def test_invalid_files():
 
     with pytest.raises(ValueError):
         CredentialIssuer(
-            MOCK_INFORMATION,
-            "https://issuer-lib:8082",
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",

@@ -1,6 +1,6 @@
 import datetime
 import json
-from typing import Any, override
+from typing import override
 
 from fastapi import FastAPI
 
@@ -22,7 +22,6 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def __init__(
         self,
-        credentials: dict[str, dict[str, dict[str, Any]]],
         jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
@@ -30,7 +29,6 @@ class DefaultIssuer(CredentialIssuer):
         oauth_metadata_path: str,
     ):
         super().__init__(
-            credentials,
             jwt_path,
             diddoc_path,
             did_config_path,
@@ -73,25 +71,7 @@ class DefaultIssuer(CredentialIssuer):
         return router
 
 
-credentials = {
-    "ID": {
-        "given_name": {"mandatory": True, "value_type": "string"},
-        "family_name": {"mandatory": True, "value_type": "string"},
-        "email": {"value_type": "string"},
-        "phone_number": {"value_type": "number"},
-        "address": {
-            "street_address": {"value_type": "string"},
-            "state": {"value_type": "string"},
-            "country": {"value_type": "string"},
-        },
-        "birthdate": {"mandatory": True, "value_type": "number"},
-        "is_over_18": {"mandatory": True, "value_type": "string"},
-    }
-}
-
 credential_issuer = DefaultIssuer(
-    credentials,
-    # "https://issuer-lib:8082",
     "/usr/src/app/examples/example_jwk_private.pem",
     "/usr/src/app/examples/example_diddoc.json",
     "/usr/src/app/examples/example_didconf.json",

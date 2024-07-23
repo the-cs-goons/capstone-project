@@ -4,7 +4,7 @@ from pydantic import BaseModel
 
 
 class FormResponse(BaseModel):
-    form: dict[str, dict[str, Any]]
+    form: dict[str, dict[str, Any] | list[dict[str, Any]]]
 
 
 class StatusResponse(BaseModel):
