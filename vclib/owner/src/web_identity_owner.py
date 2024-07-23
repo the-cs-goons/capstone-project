@@ -186,7 +186,7 @@ class WebIdentityOwner(IdentityOwner):
         return response.json()
 
     async def review_credential_presentation(
-        self, field_selections: FieldSelectionObject = Body(...)
+        self, field_selections: FieldSelectionObject
     ):
         """
         Finds and creates the
