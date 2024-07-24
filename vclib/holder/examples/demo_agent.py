@@ -1,14 +1,14 @@
 from os import environ
 from typing import override
 
-from vclib.owner import (
+from vclib.holder import (
     AuthorizationMetadata,
     Credential,
     IssuerMetadata,
     RegisteredClientMetadata,
     WebIdentityOwner,
 )
-from vclib.owner.src.models.credentials import DeferredCredential
+from vclib.holder.src.models.credentials import DeferredCredential
 
 MOCK_STORE = {
     "example1": {

@@ -5,15 +5,15 @@ import pytest
 from fastapi import HTTPException
 from pytest_httpx import HTTPXMock
 
-from vclib.owner import (
+from vclib.holder import (
     AuthorizationMetadata,
     Credential,
     CredentialOffer,
     DeferredCredential,
     IssuerMetadata,
 )
-from vclib.owner.examples.demo_agent import DefaultWebIdentityOwner
-from vclib.owner.src.models.field_selection_object import FieldSelectionObject
+from vclib.holder.examples.demo_agent import DefaultWebIdentityOwner
+from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 
 over_18_mock_auth_response = {
     "vp_token": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",  # noqa: E501

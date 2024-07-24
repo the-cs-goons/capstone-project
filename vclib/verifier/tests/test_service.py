@@ -5,7 +5,7 @@ from unittest.mock import patch
 import pytest
 from fastapi import FastAPI
 
-from vclib.provider import ServiceProvider
+from vclib.verifier import ServiceProvider
 
 
 @pytest.mark.asyncio()
