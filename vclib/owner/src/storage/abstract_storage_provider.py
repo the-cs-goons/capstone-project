@@ -1,4 +1,4 @@
-from typing import Any, List
+from typing import Any, List, Optional
 
 from vclib.owner.src.models.credentials import Credential, DeferredCredential
 
@@ -21,51 +21,85 @@ class AbstractStorageProvider():
         """
         pass
 
-    def unlock(self, *args, **kwargs):
+    def login(self, *args, **kwargs):
         """
-        Performs operations needed to access some form of storage.
-        Implementation specific.
-        """
-        pass
-
-    def lock(self, *args, **kwargs):
-        """
-        Performs operations needed to remove access to some form of storage.
-        Implementation specific.
+        Performs operations needed to access a user's wallet.
         """
         pass
 
-    def get(self, cred_id: str, *args, **kwargs) -> Credential | DeferredCredential:
+    def logout(self, *args, **kwargs):
+        """
+        Performs operations needed to reverse the relevant operations performed during
+        login/register
+        """
+        pass
+
+    def get_credential(
+            self, 
+            cred_id: str, 
+            *args, 
+            **kwargs
+            ) -> Optional[Credential | DeferredCredential]:
         """
         Retrieves corresponding credential
         """
         pass
 
-    def get_all(self, *args, **kwargs) -> List[Credential | DeferredCredential]:
+    def get_credentials(
+            self, 
+            *args, 
+            **kwargs
+            ) -> List[Credential | DeferredCredential]:
         """
         Retrieves all credentials
         """
         pass
 
-    def get_deferred(self, *args, **kwargs) -> List[DeferredCredential]:
+    def get_received_credentials(
+            self, 
+            *args, 
+            **kwargs
+            ) -> List[Credential]:
+        """
+        Retrieves all credentials
+        """
+        pass
+
+    def get_deferred_credentials(
+            self, 
+            *args, 
+            **kwargs
+            ) -> List[DeferredCredential]:
         """
         Retrieves all deferred credentials
         """
         pass
 
-    def add(self, cred: Credential | DeferredCredential, *args, **kwargs):
+    def add_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
         """
         Adds a credential to storage
         """
         pass
 
-    def update(self, cred: Credential | DeferredCredential, *args, **kwargsl):
+    def update_credential(self, cred: Credential | DeferredCredential, *args, **kwargsl):
         """
         Updates a credential already in storage.
         """
         pass
 
-    def upsert(self, cred: Credential | DeferredCredential, *args, **kwargs):
+    def update_credentials(self, cred: List[Credential | DeferredCredential], *args, **kwargsl):
+        """
+        Updates a credential already in storage.
+        """
+        pass
+
+    def upsert_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
+        """
+        Updates a credential already in storage if it exists, otherwise, adds it.
+        """
+        pass
+
+    def upsert_credentials(self, cred: List[Credential | DeferredCredential], *args, **kwargs):
         """
         Updates a credential already in storage if it exists, otherwise, adds it.
         """

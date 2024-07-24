@@ -46,6 +46,9 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 
 class DefaultWebIdentityOwner(WebIdentityOwner):
+
+    clients = {}
+
     def __init__(
         self,
         redirect_uris,
@@ -103,6 +106,8 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
         return await super().register_client(
             registration_url, issuer_uri, wallet_metadata=wallet_metadata
         )
+    
+
 
 
 identity_owner = DefaultWebIdentityOwner(
@@ -136,3 +141,5 @@ cred = Credential(
 identity_owner.credentials["yalo"] = cred
 
 identity_owner_server = identity_owner.get_server()
+
+

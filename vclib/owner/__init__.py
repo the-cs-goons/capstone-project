@@ -23,4 +23,11 @@ from .src.models.presentation_definition import (
     PresentationDefinition as PresentationDefinition,
 )
 from .src.models.request_body import CredentialSelection as CredentialSelection
+from .src.storage.abstract_storage_provider import (
+    AbstractStorageProvider as AbstractStorageProvider
+)
+from .src.storage.local_storage_provider import (
+    LocalStorageProvider as LocalStorageProvider
+)
 from .src.web_identity_owner import WebIdentityOwner as WebIdentityOwner
+
