@@ -12,7 +12,7 @@ from vclib.owner import (
     DeferredCredential,
     IssuerMetadata,
 )
-from vclib.owner.examples.default_agent import DefaultWebIdentityOwner
+from vclib.owner.examples.demo_agent import DefaultWebIdentityOwner
 from vclib.owner.src.models.field_selection_object import FieldSelectionObject
 
 over_18_mock_auth_response = {
