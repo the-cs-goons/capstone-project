@@ -1,26 +1,15 @@
-import datetime
-import json
 from typing import override
-from uuid import uuid4
 
-from fastapi import FastAPI
-
-from vclib.common import hello_world
-from vclib.issuer import CredentialIssuer, StatusResponse
+from vclib.issuer.src.credential_issuer import CredentialIssuer
 from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
+from vclib.issuer.src.models.responses import StatusResponse
 
 
-class DefaultIssuer(CredentialIssuer):
-    """Example implementation of the `CredentialIssuer` base class.
-
-    ### Added Attributes
-    - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
-    of active credential requests.
-    """
+class TestIssuer(CredentialIssuer):
+    __test__ = False
 
     statuses: dict[int, (str, dict)]
-    time: datetime
 
     @override
     def __init__(
@@ -51,8 +40,8 @@ class DefaultIssuer(CredentialIssuer):
 
     @override
     def register_client(self, data: WalletClientMetadata) -> RegisteredClientMetadata:
-        client_id = str(uuid4())
-        client_secret = str(uuid4())
+        client_id = "client_id"
+        client_secret = "client_secret"
         self.client_ids[client_id] = client_secret
 
         client_info = {
@@ -75,15 +64,14 @@ class DefaultIssuer(CredentialIssuer):
         self, client_id: str, cred_type: str, redirect_uri: str, information: dict
     ) -> str:
         self.ticket += 1
-        auth_code = str(uuid4())
+        auth_code = "auth_code"
         self.auth_codes[auth_code] = client_id
 
-        cred_id = f"{cred_type}_{uuid4()!s}"
+        cred_id = cred_type
         self.auths_to_ids[auth_code] = (cred_type, cred_id, redirect_uri)
         self.id_to_info[cred_id] = {"ticket": self.ticket, "transaction_id": None}
 
         self.statuses[self.ticket] = (cred_type, information)
-        self.time = datetime.datetime.now(tz=datetime.UTC)
 
         return auth_code
 
@@ -113,21 +101,11 @@ class DefaultIssuer(CredentialIssuer):
         ticket = cred_info["ticket"]
         cred_type, information = self.statuses[ticket]
 
-        status = "ACCEPTED"
-
-        curr_time = datetime.datetime.now(tz=datetime.UTC)
-        if curr_time - self.time < datetime.timedelta(0, 40, 0):
-            if cred_info["transaction_id"] is None:
-                transaction_id = str(uuid4())
-                self.id_to_info[cred_id]["transaction_id"] = transaction_id
-                self.transaction_id_to_cred_id[transaction_id] = cred_id
-            status = "PENDING"
-
         return StatusResponse(
-            status=status,
+            status="ACCEPTED",
             cred_type=cred_type,
             information=information,
-            transaction_id=cred_info["transaction_id"],
+            transaction_id=None,
         )
 
     @override
@@ -140,29 +118,3 @@ class DefaultIssuer(CredentialIssuer):
             return status
         except KeyError:
             raise IssuerError("invalid_transaction_id")
-
-    async def credential_offer(self):
-        cred_offer = {
-            "credential_issuer": "https://issuer-lib:8082",
-            "credential_configuration_ids": ["ID"],
-        }
-        await self.offer_credential(
-            "https://owner-lib:8081/offer", json.dumps(cred_offer)
-        )
-
-    @override
-    def get_server(self) -> FastAPI:
-        router = super().get_server()
-        router.get("/offer")(self.credential_offer)
-        router.get("/hello")(hello_world)
-        return router
-
-
-credential_issuer = DefaultIssuer(
-    "/usr/src/app/examples/example_jwk_private.pem",
-    "/usr/src/app/examples/example_diddoc.json",
-    "/usr/src/app/examples/example_didconf.json",
-    "/usr/src/app/examples/example_metadata.json",
-    "/usr/src/app/examples/example_oauth_metadata.json",
-)
-credential_issuer_server = credential_issuer.get_server()

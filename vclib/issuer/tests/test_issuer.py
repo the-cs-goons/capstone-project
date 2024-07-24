@@ -7,6 +7,7 @@ from fastapi import Response
 
 from vclib.issuer import CredentialIssuer
 from vclib.issuer.src.models.oauth import WalletClientMetadata
+from vclib.issuer.tests.test_issuer_class import TestIssuer
 
 exp_diddoc: dict
 exp_didconf: dict
@@ -30,7 +31,7 @@ with open("vclib/issuer/tests/test_oauth_metadata.json", "rb") as ometa_file:
 
 @pytest.fixture()
 def credential_issuer():
-    return CredentialIssuer(
+    return TestIssuer(
         "vclib/issuer/tests/test_jwk_private.pem",
         "vclib/issuer/tests/test_diddoc.json",
         "vclib/issuer/tests/test_didconf.json",
@@ -73,9 +74,10 @@ async def test_request_credential(credential_issuer):
 
     info_1 = {"string": "string", "number": 0, "boolean": True, "optional": None}
     response1 = await credential_issuer.receive_credential_request(
+        Response(),
         "code",
         client_id,
-        "aaa",  # TODO: modify to valid url
+        "https://example.com",
         "xyz",
         """[{"type": "openid_credential", "credential_configuration_id": "default"}]""",
         info_1,
@@ -88,7 +90,11 @@ async def test_request_credential(credential_issuer):
     )
 
     response1 = await credential_issuer.token(
-        "authorization_code", auth_code, "aaa", "Basic " + authorization
+        Response(),
+        "authorization_code",
+        auth_code,
+        "https://example.com",
+        "Basic " + authorization,
     )
 
     req = {
@@ -99,7 +105,7 @@ async def test_request_credential(credential_issuer):
     response = await credential_issuer.get_credential(
         Response(), req, "Bearer " + response1.access_token
     )
-    assert response["transaction_id"]
+    assert response["credential"]
 
 
 @pytest.mark.asyncio()

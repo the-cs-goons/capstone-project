@@ -11,3 +11,4 @@ class StatusResponse(BaseModel):
     status: str
     cred_type: str | None
     information: dict[str, Any] | None
+    transaction_id: str | None
