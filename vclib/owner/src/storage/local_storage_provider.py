@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from sqlite3 import connect, Connection, Row
 from typing import List, Optional
 from pathlib import Path
+from shutil import copy
 from uuid import uuid4
 
 from argon2 import PasswordHasher
@@ -16,13 +17,12 @@ CONFIG_FILE = "vclib_wallet_config.db"
 
 CONFIG_SCHEMA = """
 CREATE TABLE users (
-    username text PRIMARY KEY NOT NULL,
-    secret_hash text NOT NULL,
-    user_store text UNIQUE NOT NULL
+    username TEXT PRIMARY KEY NOT NULL,
+    secret_hash TEXT NOT NULL,
+    user_store TEXT UNIQUE NOT NULL
 );
 """
 
-# TODO: SPLIT THIS UP
 CREDENTIAL_SCHEMA = """
 PRAGMA foreign_keys = ON;
 
@@ -131,7 +131,7 @@ class LocalStorageProvider(AbstractStorageProvider):
 
         self.config_db_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
         con = connect(str(self.config_db_path))
-        con.execute(CONFIG_SCHEMA)
+        con.executescript(CONFIG_SCHEMA)
         con.close()
 
     def _check_storage_directory(self):
@@ -172,7 +172,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             """, 
             new_user)
         u = cursor.fetchone()
-        user_store_path = str(self.storage_dir_path.joinpath(u["user_store"]))
+        user_store_path = self.storage_dir_path.joinpath(u["user_store"])
 
         # NOTE: AESZipFile is an extension of zipfile.ZipFile, from Python 3.7.
         # It's compatible with Python 3.12, but not everything in zipfile.Zipfile 
@@ -180,7 +180,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         # https://docs.python.org/3.7/library/zipfile.html
 
         u_zip = AESZipFile(
-            user_store_path,
+            str(user_store_path),
             mode="x", # NOT execute, x creates a new file
             compression=ZIP_LZMA,
             encryption=WZ_AES
@@ -188,7 +188,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         u_zip.setpassword(password)
         # An in-memory SQLite database that can be regularly written to the above
         u_con = connect(f"file:{u['user_store']}?mode=memory")
-        u_con.execute(self.LOCAL_CREDENTIAL_SCHEMA)
+
+        # Create tables
+        u_con.executescript(self.LOCAL_CREDENTIAL_SCHEMA)
 
         self.active_user = self.ActiveUser(
             u["username"],
@@ -206,12 +208,12 @@ class LocalStorageProvider(AbstractStorageProvider):
         # Check config for user
         pass
 
-    def lock(self, *args, **kwargs):
+    def logout(self, *args, **kwargs):
         """
         Performs operations needed to remove access to some form of storage.
         Implementation specific.
         """
-        self.save()
+        self.save(close=True)
         del self.active_user
         self.active_user = None
         pass
@@ -252,7 +254,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         pass
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, close=False, **kwargs):
         """
         Performs operations to push data to persistent storage (e.g. flushing to a 
         database).
@@ -265,10 +267,24 @@ class LocalStorageProvider(AbstractStorageProvider):
             self.active_user.conn.serialize()
             )
         
-        self.active_user.zip_object.write
+        # TODO: Close & re-open the AESZipFile
+        self.active_user.zip_object.close()
+        # If 
+        if close:
+            return
 
-        # dump.name
-        # u_c = self.active_user.conn
-        # dump_connection = connect()
-        # u_c.backup
+        # Closing a zip file writes some extra records. 
+        # So copy it to a backup, juuuuuuuust in case.
+        u_path = self.active_user.store
+        backup_path = str(self.active_user.store) + ".backup"
+        copy(u_path, backup_path)
+
+        self.active_user.zip_object = AESZipFile(
+            str(self.active_user.store),
+            mode="a", # NOT execute, x creates a new file
+            compression=ZIP_LZMA,
+            encryption=WZ_AES
+            )
+        self.active_user.zip_object.setpassword(self.active_user.secret)
+
         
