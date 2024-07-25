@@ -7,6 +7,7 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
+import { ActionFunctionArgs } from "@remix-run/node";
 import {
   isRouteErrorResponse,
   json,
@@ -40,6 +41,15 @@ export async function loader() {
   );
   const data: Array<BaseCredential> = await resp.json();
   return json(data);
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  const body = await request.formData();
+  const resp = await fetch(
+    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${body.get("id")}`,
+    { method: "DELETE" },
+  );
+  return null;
 }
 
 export default function Credentials() {

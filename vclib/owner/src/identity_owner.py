@@ -71,7 +71,7 @@ class IdentityOwner:
         for cred in self.credentials:
             if cred == id:
                 del self.credentials[cred]
-                return "Credential successfully deleted"
+                return {}
 
         raise Exception(f"Credential of ID {id} not found.")
 

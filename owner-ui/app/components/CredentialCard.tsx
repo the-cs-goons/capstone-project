@@ -8,23 +8,16 @@ import {
   Button,
 } from "@mui/material";
 import { Delete as DeleteIcon } from "@mui/icons-material";
+import { useSubmit } from "@remix-run/react";
 import { Link } from "@remix-run/react";
 import { BaseCredential } from "~/interfaces/Credential/BaseCredential";
-
-// export async function deleteCredential(id: string) {
-//     const resp = await fetch(
-//         `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${id}`,
-//         { method: "DELETE" },
-//     );
-//     const data: Boolean = await resp.json();
-//     return data;
-// }
 
 export function CredentialCard({
   credential,
 }: Readonly<{
   credential: BaseCredential;
 }>) {
+  const submit = useSubmit();
   return (
     <Card
       component="article"
@@ -55,7 +48,7 @@ export function CredentialCard({
           color="error"
           startIcon={<DeleteIcon />}
           onClick={() => {
-            //   deleteCredential(credential.id);
+            submit({id : credential.id}, {method: "post"})
             console.log(`deleted ${credential.id}`);
           }}
         >
