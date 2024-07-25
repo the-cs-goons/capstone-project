@@ -38,14 +38,14 @@ from .models.responses import (
     StatusResponse,
 )
 
-# Time in seconds until token expires
-TOKEN_EXPIRY = 3600
-
 
 class CredentialIssuer:
+    # Time in seconds until token expires
+    TOKEN_EXPIRY = 3600
+
     def __init__(
         self,
-        jwt_path: str,
+        key_pem_filepath: str,
         diddoc_path: str,
         did_config_path: str,
         metadata_path: str,
@@ -54,7 +54,7 @@ class CredentialIssuer:
         """Base class used for the credential issuer agent.
 
         ### Parameters
-        - jwt_path(`str`): Path to PEM-encoded private JWT.
+        - key_pem_filepath(`str`): Path to PEM-encoded private JWT.
         - diddoc_path(`str`): Path to DIDDoc JSON object.
         - did_config_path(`str`): Path to DID configuraton JSON object.
         - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
@@ -62,8 +62,8 @@ class CredentialIssuer:
         """
 
         try:
-            with open(jwt_path, "rb") as key_file:
-                self.jwt = JWK.from_pem(key_file.read())
+            with open(key_pem_filepath, "rb") as key_file:
+                self.jwk = JWK.from_pem(key_file.read())
         except FileNotFoundError as e:
             raise FileNotFoundError(f"Could not find private jwt: {e}")
         except ValueError as e:
@@ -289,7 +289,9 @@ class CredentialIssuer:
                 status_code=status.HTTP_302_FOUND,
             )
 
-        auth_code = self.get_request(client_id, cred_type, redirect_uri, information)
+        auth_code = self.get_credential_request(
+            client_id, cred_type, redirect_uri, information
+        )
 
         return RedirectResponse(
             url=f"{redirect_uri}?code={auth_code}&state={state}",
@@ -318,7 +320,7 @@ class CredentialIssuer:
 
         ### Errors
         If an error occurs, return a 400 code with following query parameters:
-        - error: The error code of the error that occured.
+        - error: The name of the error that occurred, as a string.
         """
 
         if None in (grant_type, code, redirect_uri, authorization):
@@ -356,7 +358,7 @@ class CredentialIssuer:
                 return OAuthTokenResponse(
                     access_token=access_token,
                     token_type="bearer",
-                    expires_in=TOKEN_EXPIRY,
+                    expires_in=self.TOKEN_EXPIRY,
                     c_nonce=None,
                     c_nonce_expires_in=None,
                     authorization_details=[auth_details],
@@ -393,7 +395,7 @@ class CredentialIssuer:
         error as defined in RFC6750.
 
         Otherwise, return a 400 code with following query parameters:
-        - error: The error code of the error that occured.
+        - error: The name of the error that occurred, as a string.
         """
         access_token_payload: dict
 
@@ -503,18 +505,12 @@ class CredentialIssuer:
         """Gets the server for the issuer."""
         router = FastAPI()
 
-        auth_endpoint = self.oauth_metadata["authorization_endpoint"].replace(
-            self.uri, ""
-        )
-        token_endpoint = self.oauth_metadata["token_endpoint"].replace(self.uri, "")
-        register_endpoint = self.oauth_metadata["registration_endpoint"].replace(
-            self.uri, ""
-        )
+        auth_endpoint = urlparse(self.oauth_metadata["authorization_endpoint"]).path
+        token_endpoint = urlparse(self.oauth_metadata["token_endpoint"]).path
+        register_endpoint = urlparse(self.oauth_metadata["registration_endpoint"]).path
 
-        credential_endpoint = self.metadata["credential_endpoint"].replace(self.uri, "")
-        deferred_endpoint = self.metadata["deferred_credential_endpoint"].replace(
-            self.uri, ""
-        )
+        credential_endpoint = urlparse(self.metadata["credential_endpoint"]).path
+        deferred_endpoint = urlparse(self.metadata["deferred_credential_endpoint"]).path
 
         # Metadata must be hosted at these endpoints
         router.get("/.well-known/did.json")(self.get_did_json)
@@ -646,7 +642,7 @@ class CredentialIssuer:
 
         issue_time = datetime.fromtimestamp(payload["iat"], tz=UTC)
 
-        if datetime.now(tz=UTC) - issue_time > timedelta(0, TOKEN_EXPIRY, 0):
+        if datetime.now(tz=UTC) - issue_time > timedelta(0, self.TOKEN_EXPIRY, 0):
             raise IssuerError("invalid_token")
 
         return payload
@@ -703,12 +699,12 @@ class CredentialIssuer:
         ```
         """
 
-    def get_request(
+    def get_credential_request(
         self, _client_id: str, _cred_type: str, _redirect_uri: str, _information: dict
     ) -> str:
         """## !!! This function must be `@override`n !!!
 
-        Function to accept and process requests.
+        Function to accept and process credential requests.
 
         ### Parameters
         - client_id(`str`): Client ID of the requesting entity.
@@ -827,7 +823,7 @@ class CredentialIssuer:
         """Checks if a given redirect uri is valid.
 
         Overriding this function is *optional* - the default implementation only
-        checks if the provided value can possibly be a valid uri.
+        checks if `urlparse` throws an error.
 
         ### Parameters
         - uri(`str`): The URI to be checked."""
@@ -855,7 +851,7 @@ class CredentialIssuer:
         """
 
         other = {"iat": mktime(datetime.now(tz=UTC).timetuple())}
-        new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwt, None)
+        new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwk, None)
 
         return new_credential.sd_jwt_issuance
 

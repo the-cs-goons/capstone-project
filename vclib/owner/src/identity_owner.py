@@ -366,8 +366,11 @@ class IdentityOwner:
         - (`List[Credential | DeferredCredential]`): A list containing the
         credential(s) retrieved from the issuer using the acquired access token.
         """
-        if error is not None or code is None:
+        if error is not None:
             raise Exception(f"Bad Authorization Request: {error}")
+
+        if code is None:
+            raise Exception("Bad Authorization Request: Missing authorization code")
 
         oauth_client_info = self.oauth_clients.get(state, None)
         if not oauth_client_info:

@@ -79,7 +79,7 @@ class DefaultIssuer(CredentialIssuer):
             raise IssuerError("invalid_client")
 
     @override
-    def get_request(
+    def get_credential_request(
         self, client_id: str, cred_type: str, redirect_uri: str, information: dict
     ) -> str:
         self.ticket += 1
