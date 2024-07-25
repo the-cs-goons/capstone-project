@@ -4,7 +4,7 @@ import jwt
 import requests
 from fastapi import FastAPI, Form
 
-from .models.authorization_request_object import AuthorizationRequestObject
+from vclib.common import vp_auth_request
 
 
 class ServiceProvider:
@@ -16,7 +16,8 @@ class ServiceProvider:
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
-        router.post("/request/{request_type}")(self.fetch_authorization_request)
+        router.post("/request/{request_type}",
+                    response_model_exclude_none=True)(self.fetch_authorization_request)
         router.post("/cb")(self.parse_authorization_response)
         return router
 
@@ -42,7 +43,7 @@ class ServiceProvider:
         request_type: str,
         wallet_metadata: str = Form(...),
         wallet_nonce: str = Form(...),
-    ) -> AuthorizationRequestObject:
+    ) -> vp_auth_request.AuthorizationRequestObject:
         pass
 
     def generate_nonce(self):

@@ -19,7 +19,7 @@ from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
 
 
-class IdentityOwner:
+class Holder:
     """
     ## Base IdentityOwner class
 

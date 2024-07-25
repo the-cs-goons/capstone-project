@@ -45,7 +45,7 @@ OWNER_PORT = environ.get("CS3900_OWNER_AGENT_PORT", "8081")
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 
-class DefaultWebIdentityOwner(WebIdentityOwner):
+class DemoWebIdentityOwner(WebIdentityOwner):
     def __init__(
         self,
         redirect_uris,
@@ -105,7 +105,7 @@ class DefaultWebIdentityOwner(WebIdentityOwner):
         )
 
 
-identity_owner = DefaultWebIdentityOwner(
+identity_owner = DemoWebIdentityOwner(
     [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", mock_data=MOCK_STORE
 )
 identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(

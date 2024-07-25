@@ -3,7 +3,7 @@ Identity Owner module
 """
 
 # Add imports from `owner/src` here to expose objects under vclib.owner
-from .src.identity_owner import IdentityOwner as IdentityOwner
+from .src.holder import Holder as Holder
 from .src.models.authorization_request_object import (
     AuthorizationRequestObject as AuthorizationRequestObject,
 )

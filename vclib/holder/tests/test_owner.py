@@ -12,7 +12,7 @@ from vclib.holder import (
     DeferredCredential,
     IssuerMetadata,
 )
-from vclib.holder.examples.demo_agent import DefaultWebIdentityOwner
+from vclib.holder.examples.demo_agent import DemoWebIdentityOwner
 from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 
 over_18_mock_auth_response = {
@@ -114,7 +114,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     httpx_mock.add_response(
         url="https://example.com/request/over_18", json=over_18_mock_auth_req
     )
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     cred = Credential(
         id="yalo",
         raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",
@@ -144,7 +144,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
 
 @pytest.fixture()
 def identity_owner():
-    id_owner = DefaultWebIdentityOwner(
+    id_owner = DemoWebIdentityOwner(
         [f"{OWNER_URI}/add"],
         f"{OWNER_URI}/offer",
         mock_data=MOCK_STORE,
@@ -171,20 +171,20 @@ def identity_owner():
 
 @pytest.mark.asyncio
 async def test_get_credential(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     credential1 = await identity_owner.get_credential("example1", refresh=0)
     assert credential1.id == "example1"
 
 
 @pytest.mark.asyncio
 async def test_get_credential_error(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     with pytest.raises(HTTPException):
         await identity_owner.get_credential("bad_id")
 
 
 def test_get_pending_credentials(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     pending: list[DeferredCredential] = identity_owner.get_deferred_credentials()
     assert len(pending) == 1
     assert pending[0].is_deferred
@@ -194,14 +194,14 @@ def test_get_pending_credentials(identity_owner):
 
 @pytest.mark.asyncio
 async def test_get_credentials(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     credentials = await identity_owner.get_credentials()
     assert len(credentials) == 2
 
 
 @pytest.mark.asyncio
 async def test_authorize_issuer_initiated(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     id = "Passport"
 
     select = CredentialOffer.model_validate(
@@ -229,7 +229,7 @@ async def test_authorize_issuer_initiated(identity_owner):
 
 @pytest.mark.asyncio
 async def test_authorize_wallet_initiated(identity_owner):
-    identity_owner: DefaultWebIdentityOwner
+    identity_owner: DemoWebIdentityOwner
     id = "Passport"
 
     redirect_url = await identity_owner.get_auth_redirect(id, "https://example.com")

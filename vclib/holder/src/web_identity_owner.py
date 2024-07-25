@@ -3,22 +3,20 @@ from typing import Any
 from urllib.parse import urlparse
 
 import httpx
-from fastapi import Body, FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
-from .identity_owner import IdentityOwner
+from vclib.common import vp_auth_request as vp_auth_request
+from vclib.common import vp_auth_response as vp_auth_response
+
+from .holder import Holder
 from .models.authorization_request_object import AuthorizationRequestObject
-from .models.authorization_response_object import AuthorizationResponseObject
 from .models.credentials import Credential, DeferredCredential
 from .models.field_selection_object import FieldSelectionObject
-from .models.presentation_submission_object import (
-    DescriptorMapObject,
-    PresentationSubmissionObject,
-)
 from .models.request_body import CredentialSelection
 
 
-class WebIdentityOwner(IdentityOwner):
+class WebIdentityOwner(Holder):
     """
     IdentityOwner that implements a HTTP API interface.
     """
@@ -35,18 +33,22 @@ class WebIdentityOwner(IdentityOwner):
         Create a new Identity Owner
 
         ### Parameters
-        - redirect_uris(`list[str]`): A list of redirect URIs to register with issuers.
-        It is the caller's responsibility to ensure these match with the API.
+        - redirect_uris(`list[str]`): A list of redirect URIs to register
+        with issuers. It is the caller's responsibility to ensure these
+        match with the API.
         - cred_offer_endpoint(`str`): The credential offer URI, e.g.
-        "https://example.com/offer". The routes for receiving credential offers, and
-        redirecting the user to authorise based on a credential offer, are dynamically
-        determined by parsing this URI with `urllib.parse.urlparse` and retrieving the
-        path.
-        - oauth_client_options(`dict = {}`): A dictionary containing optional overrides
-        for the wallet's OAuth client info, used in registration of new clients. See
-        `WalletClientMetadata` for accepted fields.
-        Note that even if keys `"redirect_uris"` or `"credential_offer_endpoint"` are
-        provided, they will be overwritten by their respective positional arguments.
+        "https://example.com/offer". The routes for receiving credential
+        offers, and redirecting the user to authorise based on a
+        credential offer, are dynamically determined by parsing this URI
+        with `urllib.parse.urlparse` and retrieving the path.
+        - oauth_client_options(`dict = {}`): A dictionary containing
+        optional overrides for the wallet's OAuth client info, used in
+        registration of new clients. See `WalletClientMetadata` for
+        accepted fields.
+
+        Note that even if keys `"redirect_uris"` or
+        `"credential_offer_endpoint"` are provided, they will be
+        overwritten by their respective positional arguments.
         """
 
         # Referenced in `get_server`
@@ -57,7 +59,8 @@ class WebIdentityOwner(IdentityOwner):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, dev_mode=dev_mode)
-        self.current_transaction: AuthorizationRequestObject | None = None
+        self.current_transaction: \
+            vp_auth_request.AuthorizationRequestObject | None = None
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -85,13 +88,15 @@ class WebIdentityOwner(IdentityOwner):
 
         ### Parameters
         - cred_id(`str`): The ID of the credential, as kept by the owner
-        - refresh(`int = 1`): Whether or not to refresh the credential, if currently
-        deferred. Expressed as an int for the purposes of making it easier to pass
-        in the request URL as a query parameter. 0 is `False`, any other number is
-        interpreted as `True` (default).
+        - refresh(`int = 1`): Whether or not to refresh the credential,
+        if currently deferred. Expressed as an int for the purposes of
+        making it easier to pass in the request URL as a query
+        parameter. 0 is `False`, any other number is interpreted as
+        `True` (default).
 
         ### Returns
-        - `Credential | DeferredCredential`: The requested credential, if it exists.
+        - `Credential | DeferredCredential`: The requested credential,
+        if it exists.
         """
         r = refresh != 0
         try:
@@ -147,7 +152,7 @@ class WebIdentityOwner(IdentityOwner):
         )
 
     async def present_selection(
-        self, field_selections: FieldSelectionObject = Body(...)
+        self, field_selections: FieldSelectionObject
     ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
@@ -221,7 +226,9 @@ class WebIdentityOwner(IdentityOwner):
                 "format": "vc+sd-jwt",
                 "path": "$",
             }
-            descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+            descriptor_maps.append(
+                vp_auth_response.DescriptorMapObject(**descriptor_map)
+                )
         elif len(id_vp_tokens) > 1:
             final_vp_token = []
             for input_descriptor_id, vp_token in id_vp_tokens:
@@ -233,32 +240,37 @@ class WebIdentityOwner(IdentityOwner):
                     "format": "vc+sd-jwt",
                     "path": f"$[{idx}]",
                 }
-                descriptor_maps.append(DescriptorMapObject(**descriptor_map))
+                descriptor_maps.append(
+                    vp_auth_response.DescriptorMapObject(**descriptor_map)
+                    )
 
-        presentation_submission = {
+        presentation_submission_data = {
             "id": str(uuid.uuid4()),
             "definition_id": definition_id,
             "descriptor_map": descriptor_maps,
-        }
-        presentation_submission_object = PresentationSubmissionObject(
-            **presentation_submission
-        )
+            }
 
-        authorization_response = {
+        presentation_submission = vp_auth_response.PresentationSubmissionObject(
+            **presentation_submission_data
+            )
+
+        auth_response = {
             "vp_token": final_vp_token,
-            "presentation_submission": presentation_submission_object,
+            "presentation_submission": presentation_submission,
             "state": transaction_id,
-        }
-        authorization_response_object = AuthorizationResponseObject(
-            **authorization_response
-        )
+            }
+
+        print(self.current_transaction)
+        auth_response_object = vp_auth_response.AuthorizationResponseObject(
+            **auth_response
+            )
 
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{response_uri}", data=authorization_response_object.model_dump()
-            )
+                f"{response_uri}", data=auth_response_object.model_dump()
+                )
 
         self.current_transaction = None
         return response.json()
@@ -285,9 +297,14 @@ class WebIdentityOwner(IdentityOwner):
                 },
             )
         # just send the auth request to the frontend for now
-        # what the backend sends to the fronend should be up to implementation
-        # although it shouldn't include sensitive info unless the user has
-        # opted to share that information
+        # what the backend sends to the fronend should be up to
+        # implementation although it shouldn't include sensitive info
+        # unless the user has opted to share that information
         auth_request = response.json()
-        self.current_transaction = AuthorizationRequestObject(**auth_request)
+        # IDK WHY THIS BREAKS IF I TURN IT INTO
+        # vp_auth_request.Auth req obj
+        # BECAUSE THEY'RE THE EXACT SAME THINGS
+        self.current_transaction = AuthorizationRequestObject(
+            **auth_request
+            )
         return auth_request

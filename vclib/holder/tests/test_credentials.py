@@ -1,6 +1,6 @@
 import pytest
 
-from vclib.holder import Credential, DeferredCredential, IdentityOwner
+from vclib.holder import Credential, DeferredCredential, Holder
 
 MOCK_STORE = {
     "example1": {
@@ -46,7 +46,7 @@ def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj)
     credential = Credential.model_validate(credential_obj)
     deferred = DeferredCredential.model_validate(deferred_credential_obj)
 
-    id_owner = IdentityOwner(
+    id_owner = Holder(
         {"redirect_uris": ["example"], "credential_offer_endpoint": "example"}
     )
     store = id_owner.serialise(credential)

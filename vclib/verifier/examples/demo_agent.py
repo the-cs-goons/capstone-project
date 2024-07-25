@@ -4,12 +4,11 @@ import uuid
 from typing import override
 
 from fastapi import Form, HTTPException
-from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
 
+from vclib.common import vp_auth_request
 from vclib.verifier import (
-    AuthorizationRequestObject,
-    PresentationDefinition,
+    # AuthorizationRequestObject,
+    # PresentationDefinition,
     ServiceProvider,
 )
 
@@ -24,7 +23,7 @@ class ExampleServiceProvider(ServiceProvider):
         self.current_transactions = {}
 
         # mapping of req name to req
-        self.auth_requests: dict[str, AuthorizationRequestObject] = {}
+        self.auth_requests: dict[str, vp_auth_request.AuthorizationRequestObject] = {}
         self.request_history = []
 
     @override
@@ -33,7 +32,7 @@ class ExampleServiceProvider(ServiceProvider):
         request_type: str,
         wallet_metadata: str = Form(...),
         wallet_nonce: str = Form(...),
-    ) -> AuthorizationRequestObject:
+    ) -> vp_auth_request.AuthorizationRequestObject:
         if request_type not in self.auth_requests:
             raise HTTPException(status_code=404, detail="Request type not found")
 
@@ -45,8 +44,7 @@ class ExampleServiceProvider(ServiceProvider):
         request.state = transaction_id
         request.wallet_nonce = wallet_nonce
         self.current_transactions[transaction_id] = "age_verification"
-        response = jsonable_encoder(request, exclude_none=True)
-        return JSONResponse(content=response)
+        return request
 
     def __create_request_uri_qr(self, request_type: str):
         pass
@@ -88,14 +86,17 @@ verify_over_18_pd = {
     ],
 }
 
-verify_over_18_pd_object = PresentationDefinition(**verify_over_18_pd)
+verify_over_18_pd_object = vp_auth_request.PresentationDefinition(
+    **verify_over_18_pd
+    )
 
 age_request_data = {
     "client_id": "some did",
     "client_id_scheme": "did",
     "client_metadata": {"data": "metadata in this object"},
     "presentation_definition": verify_over_18_pd_object,
-    "response_uri": f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}/cb",
+    "response_uri": \
+        f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",
@@ -103,7 +104,7 @@ age_request_data = {
     # state will be set when transaction is initiated
 }
 
-age_request = AuthorizationRequestObject(**age_request_data)
+age_request = vp_auth_request.AuthorizationRequestObject(**age_request_data)
 
 service_provider.auth_requests["over_18"] = age_request
 
