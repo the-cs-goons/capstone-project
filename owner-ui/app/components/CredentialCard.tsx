@@ -1,12 +1,24 @@
 import {
   Card,
+  CardActions,
   CardActionArea,
   CardContent,
   CardHeader,
   Divider,
+  Button,
 } from "@mui/material";
+import { Delete as DeleteIcon } from "@mui/icons-material";
 import { Link } from "@remix-run/react";
 import { BaseCredential } from "~/interfaces/Credential/BaseCredential";
+
+// export async function deleteCredential(id: string) {
+//     const resp = await fetch(
+//         `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${id}`,
+//         { method: "DELETE" },
+//     );
+//     const data: Boolean = await resp.json();
+//     return data;
+// }
 
 export function CredentialCard({
   credential,
@@ -21,7 +33,7 @@ export function CredentialCard({
       <CardActionArea
         component={Link}
         to={credential.id}
-        sx={{ height: "100%" }}
+        sx={{ height: "80%" }}
       >
         <CardHeader
           title={
@@ -37,6 +49,15 @@ export function CredentialCard({
           {"raw_sdjwtvc" in credential ? "Real credential" : "Pending approval"}
         </CardContent>
       </CardActionArea>
+      <CardActions>
+        <Button size="small" color="error" startIcon={<DeleteIcon />}
+        onClick={() => {
+        //   deleteCredential(credential.id);
+          console.log(`deleted ${credential.id}`)
+        }}>
+          Delete
+        </Button>
+      </CardActions>
     </Card>
   );
 }

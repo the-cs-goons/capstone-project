@@ -67,6 +67,14 @@ class IdentityOwner:
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
 
+    def _delete_credential(self, id: str):
+        for cred in self.credentials:
+            if cred == id:
+                del self.credentials[cred]
+                return True
+
+        raise Exception(f"Credential of ID {id} not found.")
+
     def _get_credential_payload(self, sd_jwt_vc: str):
         return sd_jwt_vc.split("~")[0]
 
