@@ -246,3 +246,26 @@ async def test_authorize_wallet_initiated(identity_owner):
     details = loads(query_params["authorization_details"][0])
     assert details[0]["credential_configuration_id"] == id
     assert query_params["state"][0] in identity_owner.oauth_clients
+
+@pytest.mark.asyncio
+async def test_delete_credential_success(identity_owner):
+    identity_owner: DefaultWebIdentityOwner
+    assert len(identity_owner.credentials) == 2
+    await identity_owner._delete_credential("example1")
+    assert len(identity_owner.credentials) == 1
+
+@pytest.mark.asyncio
+async def test_delete_credential_fail(identity_owner):
+    identity_owner: DefaultWebIdentityOwner
+    assert len(identity_owner.credentials) == 2
+    with pytest.raises(Exception) as excinfo:
+        await identity_owner._delete_credential("yalo")
+    assert "Credential of ID yalo not found." in str(excinfo.value)
+    assert len(identity_owner.credentials) == 2
+
+@pytest.mark.asyncio
+async def test_async_delete_credentials(identity_owner):
+    identity_owner: DefaultWebIdentityOwner
+    assert len(identity_owner.credentials) == 2
+    await identity_owner.delete_credential("example1")
+    assert len(identity_owner.credentials) == 1
