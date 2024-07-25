@@ -54,9 +54,6 @@ class CredentialIssuer:
         """Base class used for the credential issuer agent.
 
         ### Parameters
-        - credentials(`dict`): A dictionary of available credentials that can be issued,
-        with required fields and types
-        - uri(`str`): Issuer's URI, used by the wallet agent to access endpoints
         - jwt_path(`str`): Path to PEM-encoded private JWT.
         - diddoc_path(`str`): Path to DIDDoc JSON object.
         - did_config_path(`str`): Path to DID configuraton JSON object.
@@ -187,6 +184,14 @@ class CredentialIssuer:
              from the issuer's metadata endpoint.
 
         Returns the schema of the `credential_configuration_id` given.
+
+        ### Errors
+        If the given redirect URI is invalid, returns a 400 error code.
+
+        Otherwise, if an error occurs, returns a `RedirectResponse` with the
+        following query parameters:
+        - error: The error code of the error that occured.
+        - state: The state value given to the endpoint.
         """
         try:
             self._check_authorization_details(
@@ -243,6 +248,14 @@ class CredentialIssuer:
         Returns a `RedirectResponse`, with the following query parameters:
         - code: The authorization code to be used at the access token endpoint.
         - state: The state value given to the endpoint.
+
+        ### Errors
+        If the given redirect URI is invalid, returns a 400 error code.
+
+        Otherwise, if an error occurs, returns a `RedirectResponse` with the
+        following query parameters:
+        - error: The error code of the error that occured.
+        - state: The state value given to the endpoint.
         """
         try:
             self._check_authorization_details(
@@ -270,7 +283,7 @@ class CredentialIssuer:
             self._check_input_typing(
                 self.credentials[cred_type], cred_type, information
             )
-        except IssuerError:
+        except TypeError:
             return RedirectResponse(
                 url=f"{redirect_uri}?error=invalid_request&state={state}",
                 status_code=status.HTTP_302_FOUND,
@@ -302,6 +315,10 @@ class CredentialIssuer:
           `Basic client_id:client_secret`.
 
         Returns an `OAuthTokenResponse`.
+
+        ### Errors
+        If an error occurs, return a 400 code with following query parameters:
+        - error: The error code of the error that occured.
         """
 
         if None in (grant_type, code, redirect_uri, authorization):
@@ -370,6 +387,13 @@ class CredentialIssuer:
             the form `{"transaction_id": transaction_id}`.
         - If the credential is DENIED:
           - Return a 400, with `{"error": "credential_request_denied"}`.
+
+        ### Errors
+        If the access token cannot be authorized, return an authorization
+        error as defined in RFC6750.
+
+        Otherwise, return a 400 code with following query parameters:
+        - error: The error code of the error that occured.
         """
         access_token_payload: dict
 
@@ -427,8 +451,22 @@ class CredentialIssuer:
           - Return a 400, with `{"error": "issuance_pending"}`.
         - If the credential is DENIED:
           - Return a 400, with `{"error": "credential_request_denied"}`.
+
+        ### Errors
+        If the access token cannot be authorized, return an authorization
+        error as defined in RFC6750.
+
+        Otherwise, return a 400 code with following query parameters:
+        - error: The error code of the error that occured.
         """
-        self._check_access_token(authorization)
+        access_token_payload: dict
+
+        try:
+            access_token_payload = self._check_access_token(authorization)
+        except IssuerError as e:
+            response.headers["WWW-Authenticate"] = f'Bearer error="{e.message}"'
+            response.status_code = status.HTTP_401_UNAUTHORIZED
+            return None
 
         try:
             DeferredCredentialRequestBody.model_validate(request)
@@ -438,8 +476,12 @@ class CredentialIssuer:
 
         cred_status: StatusResponse
 
+        cred_id = access_token_payload["credential_id"]
+
         try:
-            cred_status = self.get_deferred_credential_status(request["transaction_id"])
+            cred_status = self.get_deferred_credential_status(
+                request["transaction_id"], cred_id
+            )
         except IssuerError as e:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": e.message}
@@ -474,15 +516,13 @@ class CredentialIssuer:
             self.uri, ""
         )
 
-        # router.exception_handler(RequestValidationError)()
-
-        """Metadata must be hosted at these endpoints"""
+        # Metadata must be hosted at these endpoints
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/.well-known/did-configuration")(self.get_did_config)
         router.get("/.well-known/openid-credential-issuer")(self.get_issuer_metadata)
         router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
 
-        """OAuth2 endpoints"""
+        # OAuth2 endpoints
         router.get(auth_endpoint)(self.authorize)
         router.post(auth_endpoint)(self.receive_credential_request)
         router.post(token_endpoint)(self.token)
@@ -493,8 +533,41 @@ class CredentialIssuer:
 
         return router
 
-    # async def validation_exception_handler(request, exc):
-    #     return JSONResponse({"error:" "invalid_request"}, status_code=)
+    def _check_authorization_details(
+        self,
+        response_type: str,
+        client_id: str,
+        redirect_uri: str,
+        state,
+        authorization_details: str,
+    ):
+        """Checks provided details to authorization endpoint are correct."""
+        if None in (
+            response_type,
+            client_id,
+            redirect_uri,
+            state,
+            authorization_details,
+        ):
+            raise IssuerError("invalid_request")
+
+        if response_type != "code":
+            raise IssuerError("unsupported_response_type")
+
+        try:
+            self.check_client_id(client_id)
+        except IssuerError:
+            raise IssuerError("invalid_request")
+
+        if not self.validate_uri(redirect_uri):
+            raise IssuerError("invalid_uri")  # NOT defined in spec, self added
+
+        try:
+            AuthorizationRequestDetails.model_validate(
+                json.loads(authorization_details)[0]
+            )
+        except Exception:
+            raise IssuerError("invalid_request")
 
     def _check_input_typing(self, template: dict, cred_type: str, information: dict):
         """Checks fields in the given information are of the correct type.
@@ -554,6 +627,9 @@ class CredentialIssuer:
                 raise TypeError(f"{field_name} not required by {cred_type}")
 
     def _check_access_token(self, access_token: str) -> dict:
+        """Checks if the provided access token is valid.
+        Returns the contents of the token after verification.
+        """
         if access_token is None or not access_token.startswith("Bearer "):
             raise IssuerError("invalid_request")
 
@@ -575,44 +651,58 @@ class CredentialIssuer:
 
         return payload
 
-    def _check_authorization_details(
-        self,
-        response_type: str,
-        client_id: str,
-        redirect_uri: str,
-        state,
-        authorization_details: str,
-    ):
-        if None in (
-            response_type,
-            client_id,
-            redirect_uri,
-            state,
-            authorization_details,
-        ):
-            raise IssuerError("invalid_request")
-
-        if response_type != "code":
-            raise IssuerError("unsupported_response_type")
-
-        try:
-            self.check_client_id(client_id)
-        except IssuerError:
-            raise IssuerError("invalid_request")
-
-        if not self.validate_uri(redirect_uri):
-            raise IssuerError("invalid_uri")  # NOT defined in spec, self added
-
-        try:
-            AuthorizationRequestDetails.model_validate(
-                json.loads(authorization_details)[0]
-            )
-        except Exception:
-            raise IssuerError("invalid_request")
-
     ###
     ### User-defined functions, designed to be overwritten
     ###
+    def register_client(self, data: WalletClientMetadata) -> RegisteredClientMetadata:
+        """## !!! This function must be `@override`n !!!
+
+        Function to register clients with the application.
+
+        ### Parameters
+        - data(`WalletClientMetadata`): Provided data by the requester for registration.
+
+        Returns a `RegisteredClientMetadata` object containing the given wallet
+        metadata, as well as client information as specified in
+        [Section 3.2.1 of RFC7591](https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.1).
+
+        ### Errors
+        Errors MUST conform to [Section 3.2.2 of RFC7591](https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2).
+        Specifically, they MUST be declared by raising an `IssuerError` with the correct
+        error code as a message.
+
+        For example:
+        ```python
+        try:
+            # ...
+        except Exception:
+            raise IssuerError("invalid_client_metadata")
+        ```
+        """
+
+    def check_client_id(self, client_id: str) -> str:
+        """## !!! This function must be `@override`n !!!
+
+        Function to check client ids and corresponding secrets.
+
+        ### Parameters
+        - client_id(`str`): Client ID to check.
+
+        Returns the associated client secret as a string.
+
+        ### Errors
+        If the ID does not exist or is malformed, an `"invalid_client"` error may
+        be raised by using `IssuerError` with the correct error code as a message.
+
+        For example:
+        ```python
+        try:
+            # ...
+        except Exception:
+            raise IssuerError("invalid_client")
+        ```
+        """
+
     def get_request(
         self, _client_id: str, _cred_type: str, _redirect_uri: str, _information: dict
     ) -> str:
@@ -621,15 +711,46 @@ class CredentialIssuer:
         Function to accept and process requests.
 
         ### Parameters
-        - ticket(`int`): Ticket number of the request. This is generated by the class.
+        - client_id(`str`): Client ID of the requesting entity.
         - cred_type(`str`):  Type of credential being requested.
           This parameter is taken from the endpoint that was visited.
+        - redirect_uri(`str`):
         - information(`dict`): Request body, containing information for the
         credential being requested.
 
         Returns the authorization code to be used by the client in the OAuth flow.
         """
-        return
+
+    def check_auth_code(
+        self, auth_code: str, client_id: str, redirect_uri: str
+    ) -> dict:
+        """## !!! This function must be `@override`n !!!
+
+        Function to check and validate authorization codes.
+
+        ### Parameters
+        - auth_code(`str`): Authorization code to check.
+        - client_id(`str`): Client ID provided with request.
+        - redirect_uri(`str`): Redirect URI provided with request.
+
+        ### Return value
+        Returns a dictionary with the following fields:
+        - credential_type(`str`): Type of credential
+        - credential_id(`str`): Identifier of credential request
+
+        ### Errors
+        Errors MUST conform to [Section 5.2 of RFC6749](https://datatracker.ietf.org/doc/html/rfc6749#section-5.2).
+        Specifically, they MUST be declared by raising an `IssuerError` with the correct
+        error code as a message.
+
+        For example:
+        ```python
+        try:
+            # ...
+        except Exception:
+            raise IssuerError("invalid_request")
+        ```
+        """
 
     def get_credential_status(self, _cred_id: int) -> StatusResponse:
         """## !!! This function must be `@override`n !!!
@@ -648,8 +769,74 @@ class CredentialIssuer:
         - `cred_type`: The type of credential that was requested.
         - `information`: Fields to be used in the new credential, once approved. Set as
           `None` otherwise.
+        - `transaction_id`: The transaction ID of the request, if deferred. Set as
+           `None` otherwise.
+
+        ### Errors
+        Errors MUST conform to [Section 7.3.1.2 of OpenIDv4VC's Verifiable Credential Issuance](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-7.3.1.2)
+        specifications. Specifically, they MUST be declared by raising an `IssuerError`
+        with the correct error code as a message.
+
+        For example:
+        ```python
+        try:
+            # ...
+        except Exception:
+            raise IssuerError("invalid_credential_request")
+        ```
         """
-        return StatusResponse(status="PENDING", cred_type=None, information=None)
+
+    def get_deferred_credential_status(
+        self, _transaction_id: str, _credential_identifier: str
+    ) -> StatusResponse:
+        """## !!! This function must be `@override`n !!!
+
+        Function to process referred requests for credential application status updates,
+        as well as returning credentials for successful applications.
+
+        ### Parameters
+        - transaction_id(`str`): The transaction id of the credential being requested.
+        - credential_identifier(`str`): The unique identifier of the credential being
+          requested.
+
+        ### Returns
+        A `StatusResponse` object is returned, with the following fields:
+        - `status`: A string representing the status of the application. Expected to be
+           one of ACCEPTED, PENDING or DENIED.
+        - `cred_type`: The type of credential that was requested.
+        - `information`: Fields to be used in the new credential, once approved. Set as
+          `None` otherwise.
+        - `transaction_id`: The transaction ID of the request, if deferred. Set as
+           `None` otherwise.
+
+        ### Errors
+        Errors MUST conform to [Section 9.3 of OpenIDv4VC's Verifiable Credential Issuance](https://openid.github.io/OpenID4VCI/openid-4-verifiable-credential-issuance-wg-draft.html#section-9.3)
+        specifications. Specifically, they MUST be declared by raising an `IssuerError`
+        with the correct error code as a message.
+
+        For example:
+        ```python
+        try:
+            # ...
+        except Exception:
+            raise IssuerError("invalid_credential_request")
+        ```
+        """
+
+    def validate_uri(self, uri: str) -> bool:
+        """Checks if a given redirect uri is valid.
+
+        Overriding this function is *optional* - the default implementation only
+        checks if the provided value can possibly be a valid uri.
+
+        ### Parameters
+        - uri(`str`): The URI to be checked."""
+        try:
+            urlparse(uri)
+        except AttributeError:
+            return False
+
+        return True
 
     def create_credential(self, cred_type: str, disclosable_claims: dict) -> str:
         """Function to generate credentials after being accepted.
@@ -671,30 +858,6 @@ class CredentialIssuer:
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwt, None)
 
         return new_credential.sd_jwt_issuance
-
-    def validate_uri(self, uri: str) -> bool:
-        """Optional override"""
-        try:
-            urlparse(uri)
-        except AttributeError:
-            return False
-
-        return True
-
-    def register_client(self, data: WalletClientMetadata) -> RegisteredClientMetadata:
-        # https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.2
-        pass
-
-    def check_client_id(self, client_id: str) -> str:
-        pass
-
-    def check_auth_code(
-        self, auth_code: str, client_id: str, redirect_uri: str
-    ) -> dict:
-        pass
-
-    def get_deferred_credential_status(self, _transaction_id: str) -> StatusResponse:
-        pass
 
     async def offer_credential(self, uri: str, credential_offer: str):
         with Session() as s:

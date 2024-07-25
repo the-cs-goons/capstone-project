@@ -343,8 +343,9 @@ class IdentityOwner:
 
     async def get_access_token_and_credentials_from_callback(
         self,
-        code: str,
         state: str,
+        code: str | None = None,
+        error: str | None = None,
     ) -> list[Credential | DeferredCredential]:
         """
         Retrieves an OAuth2 Access token from a successful authorization response, and
@@ -365,6 +366,9 @@ class IdentityOwner:
         - (`List[Credential | DeferredCredential]`): A list containing the
         credential(s) retrieved from the issuer using the acquired access token.
         """
+        if error is not None or code is None:
+            raise Exception(f"Bad Authorization Request: {error}")
+
         oauth_client_info = self.oauth_clients.get(state, None)
         if not oauth_client_info:
             raise Exception("Bad Authorization Redirect")

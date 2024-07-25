@@ -15,8 +15,16 @@ class DefaultIssuer(CredentialIssuer):
     """Example implementation of the `CredentialIssuer` base class.
 
     ### Added Attributes
-    - statuses`(dict[int, (str, dict)])`: Dictionary storing the current status
-    of active credential requests.
+    - ticket(`int`): Internal system for tracking credential requests.
+    - statuses(`dict[int, (str, dict)]`): Dictionary storing the current status
+      of active credential requests.
+    - client_ids(`dict[str, str]`): Mapping of client IDs to secrets.
+    - auth_codes(`dict[str, str]`): Mapping of authorization codes to associated
+      client ID.
+    - auths_to_ids(`dict[str, (str, str, str)]`): Mapping of authorization codes
+      to credential type, credential identifier and redirect URI used.
+    - id_to_info(`dict[str, dict[str, str]]`): Mapping of credential identifiers
+      to associated ticket and transaction ID.
     """
 
     statuses: dict[int, (str, dict)]
@@ -67,7 +75,7 @@ class DefaultIssuer(CredentialIssuer):
     def check_client_id(self, client_id: str) -> str:
         try:
             return self.client_ids[client_id]
-        except IssuerError:
+        except KeyError:
             raise IssuerError("invalid_client")
 
     @override
@@ -131,15 +139,21 @@ class DefaultIssuer(CredentialIssuer):
         )
 
     @override
-    def get_deferred_credential_status(self, transaction_id: str) -> StatusResponse:
+    def get_deferred_credential_status(
+        self, transaction_id: str, credential_identifier: str
+    ) -> StatusResponse:
         try:
             cred_id = self.transaction_id_to_cred_id[transaction_id]
+            if cred_id != credential_identifier:
+                raise IssuerError("invalid_credential_request")
             status = self.get_credential_status(cred_id)
             if status.status == "ACCEPTED":
                 self.transaction_id_to_cred_id.pop(transaction_id)
             return status
         except KeyError:
             raise IssuerError("invalid_transaction_id")
+        except IssuerError as e:
+            raise IssuerError(e.message)
 
     async def credential_offer(self):
         cred_offer = {
