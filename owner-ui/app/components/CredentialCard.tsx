@@ -50,11 +50,15 @@ export function CredentialCard({
         </CardContent>
       </CardActionArea>
       <CardActions>
-        <Button size="small" color="error" startIcon={<DeleteIcon />}
-        onClick={() => {
-        //   deleteCredential(credential.id);
-          console.log(`deleted ${credential.id}`)
-        }}>
+        <Button
+          size="small"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={() => {
+            //   deleteCredential(credential.id);
+            console.log(`deleted ${credential.id}`);
+          }}
+        >
           Delete
         </Button>
       </CardActions>
