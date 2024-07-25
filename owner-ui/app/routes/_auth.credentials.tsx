@@ -45,7 +45,7 @@ export async function loader() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
-  const resp = await fetch(
+  await fetch(
     `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${body.get("id")}`,
     { method: "DELETE" },
   );

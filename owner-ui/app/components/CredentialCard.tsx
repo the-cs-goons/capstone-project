@@ -48,8 +48,7 @@ export function CredentialCard({
           color="error"
           startIcon={<DeleteIcon />}
           onClick={() => {
-            submit({id : credential.id}, {method: "post"})
-            console.log(`deleted ${credential.id}`);
+            submit({ id: credential.id }, { method: "post" });
           }}
         >
           Delete
