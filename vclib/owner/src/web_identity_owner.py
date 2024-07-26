@@ -64,6 +64,7 @@ class WebIdentityOwner(IdentityOwner):
 
         router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
+        router.delete("/credentials/{cred_id}")(self.delete_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
         router.get("/presentation/init")(self.get_auth_request)
@@ -110,6 +111,23 @@ class WebIdentityOwner(IdentityOwner):
         - `list[Credential | DeferredCredential]`: A list of credentials
         """
         return self.credentials.values()
+
+    async def delete_credential(self, cred_id:str) -> str:
+        """
+        Delete a credential by ID, if one exists
+
+        ### Parameters
+        - cred_id(`str`): The ID of the credential to be deleted
+
+        ### Returns
+        - `Credential | DeferredCredential`: The requested credential, if it exists.
+        """
+        try:
+            return await super()._delete_credential(cred_id)
+        except Exception:
+            raise HTTPException(
+                status_code=404, detail=f"Credential with ID {cred_id} not found."
+            )
 
     async def request_authorization(
         self, credential_selection: CredentialSelection
