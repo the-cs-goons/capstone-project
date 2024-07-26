@@ -17,7 +17,9 @@ class ServiceProvider:
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.post("/request/{request_type}",
-                    response_model_exclude_none=True)(self.fetch_authorization_request)
+                    response_model_exclude_none=True)(
+                        self.fetch_authorization_request
+                        )
         router.post("/cb")(self.parse_authorization_response)
         return router
 
@@ -27,8 +29,8 @@ class ServiceProvider:
         presentation_submission=Form(...),
         state=Form(...),
     ):
-        # TODO: verify the auth_response and tell the wallet whether or not
-        # it has been successful or not
+        # TODO: verify the auth_response and tell the wallet whether or
+        # not it has been successful or not
         return {
             "vp_token": vp_token,
             "presentation_submission": presentation_submission,

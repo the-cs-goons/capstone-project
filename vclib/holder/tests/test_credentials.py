@@ -42,7 +42,10 @@ def deferred_credential_obj():
     return MOCK_STORE["example2"]
 
 
-def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj):
+def test_serialise_and_load_credentials(
+        credential_obj,
+        deferred_credential_obj
+        ):
     credential = Credential.model_validate(credential_obj)
     deferred = DeferredCredential.model_validate(deferred_credential_obj)
 

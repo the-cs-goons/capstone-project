@@ -6,11 +6,9 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
-from vclib.common import vp_auth_request as vp_auth_request
-from vclib.common import vp_auth_response as vp_auth_response
+from vclib.common import vp_auth_request, vp_auth_response
 
 from .holder import Holder
-from .models.authorization_request_object import AuthorizationRequestObject
 from .models.credentials import Credential, DeferredCredential
 from .models.field_selection_object import FieldSelectionObject
 from .models.request_body import CredentialSelection
@@ -18,17 +16,17 @@ from .models.request_body import CredentialSelection
 
 class WebIdentityOwner(Holder):
     """
-    IdentityOwner that implements a HTTP API interface.
+    IdentityOwner that implements a HTTPS API interface.
     """
 
     def __init__(
-        self,
-        redirect_uris: list[str],
-        cred_offer_endpoint: str,
-        *,
-        oauth_client_options: dict[str, Any] = {},
-        dev_mode: bool = False,
-    ):
+            self,
+            redirect_uris: list[str],
+            cred_offer_endpoint: str,
+            *,
+            oauth_client_options: dict[str, Any] = {},
+            dev_mode: bool = False,
+            ):
         """
         Create a new Identity Owner
 
@@ -103,7 +101,8 @@ class WebIdentityOwner(Holder):
             return await super()._get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
-                status_code=400, detail=f"Credential with ID {cred_id} not found."
+                status_code=400,
+                detail=f"Credential with ID {cred_id} not found."
             )
 
     async def get_credentials(self) -> list[Credential | DeferredCredential]:
@@ -127,7 +126,7 @@ class WebIdentityOwner(Holder):
             if credential_selection.issuer_uri:
                 raise HTTPException(
                     status_code=400,
-                    detail="Can't provide both issuer_uri and credential_offer.",
+                    detail="Can't provide both issuer_uri and credential_offer."
                 )
             redirect_url = await self.get_auth_redirect_from_offer(
                 credential_selection.credential_configuration_id,
@@ -183,12 +182,14 @@ class WebIdentityOwner(Holder):
                     valid_credentials = new_valid_creds
                     continue
                 # make sure we keep creds with previously found fields
-                for cred in valid_credentials:
-                    if cred not in new_valid_creds:
-                        valid_credentials.pop(cred)
-                for cred in new_valid_creds:
-                    if cred not in valid_credentials:
-                        new_valid_creds.pop(cred)
+                # ignore if field is optional
+                if not field.optional:
+                    for cred in valid_credentials:
+                        if cred not in new_valid_creds:
+                            valid_credentials.pop(cred)
+                    for cred in new_valid_creds:
+                        if cred not in valid_credentials:
+                            new_valid_creds.pop(cred)
 
                 # valid credentials should equal new_valid_creds now
 
@@ -243,6 +244,11 @@ class WebIdentityOwner(Holder):
                 descriptor_maps.append(
                     vp_auth_response.DescriptorMapObject(**descriptor_map)
                     )
+        elif len(id_vp_tokens) == 0:
+            # TODO: send to verifier access_denied error at /cb
+            print("No vp_tokens found")
+            self.current_transaction = None
+            return "Appropriate credentials not found. Presentation failed"
 
         presentation_submission_data = {
             "id": str(uuid.uuid4()),
@@ -260,7 +266,6 @@ class WebIdentityOwner(Holder):
             "state": transaction_id,
             }
 
-        print(self.current_transaction)
         auth_response_object = vp_auth_response.AuthorizationResponseObject(
             **auth_response
             )
@@ -276,12 +281,12 @@ class WebIdentityOwner(Holder):
         return response.json()
 
     async def get_auth_request(
-        self,
-        request_uri,
-        client_id,
-        client_id_scheme,
-        request_uri_method,
-    ):  # -> PresentationDefinition:
+            self,
+            request_uri,
+            client_id,
+            client_id_scheme,
+            request_uri_method,
+            ):  # -> PresentationDefinition:
         if client_id_scheme != "did":
             raise HTTPException(
                 status_code=400,
@@ -292,7 +297,7 @@ class WebIdentityOwner(Holder):
             response = await client.post(
                 f"{request_uri}",
                 data={
-                    "wallet_nonce": "nonce",  # replace this data with actual stuff
+                    "wallet_nonce": "nonce",  # TODO: not hardcode this
                     "wallet_metadata": "metadata",
                 },
             )
@@ -300,11 +305,9 @@ class WebIdentityOwner(Holder):
         # what the backend sends to the fronend should be up to
         # implementation although it shouldn't include sensitive info
         # unless the user has opted to share that information
-        auth_request = response.json()
-        # IDK WHY THIS BREAKS IF I TURN IT INTO
-        # vp_auth_request.Auth req obj
-        # BECAUSE THEY'RE THE EXACT SAME THINGS
-        self.current_transaction = AuthorizationRequestObject(
-            **auth_request
+        auth_request_data = response.json()
+        self.current_transaction = vp_auth_request.AuthorizationRequestObject(
+            **auth_request_data
             )
-        return auth_request
+
+        return auth_request_data

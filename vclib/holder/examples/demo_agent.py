@@ -18,6 +18,7 @@ MOCK_STORE = {
         "credential_configuration_id": "Passport",
         "is_deferred": False,
         "c_type": "openid_credential",
+        # TODO: Make this a proper sdjwt?
         "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
         "received_at": "2024-07-15T02:54:13.634808+00:00",
     },

@@ -1,10 +1,10 @@
 from pydantic import BaseModel
 
-from .presentation_definition import Field
+from vclib.common import vp_auth_request
 
 
 class FieldRequest(BaseModel):
-    field: Field
+    field: vp_auth_request.Field
     input_descriptor_id: str
     approved: bool = False
 

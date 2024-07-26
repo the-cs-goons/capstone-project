@@ -9,7 +9,8 @@ class WalletClientMetadata(BaseModel):
     token_endpoint_auth_method: str = Field(default="client_secret_basic")
     grant_types: list[str] = Field(default=["authorization_code"])
     response_types: list[str] = Field(["code"])
-    authorization_details_types: list[str] = Field(default=["openid_credential"])
+    authorization_details_types: list[str] = Field(
+                                                default=["openid_credential"])
 
     # Extra optional fields for human readability
     client_name: str | None = Field(default=None)

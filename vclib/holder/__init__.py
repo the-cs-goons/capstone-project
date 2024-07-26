@@ -4,9 +4,6 @@ Identity Owner module
 
 # Add imports from `owner/src` here to expose objects under vclib.owner
 from .src.holder import Holder as Holder
-from .src.models.authorization_request_object import (
-    AuthorizationRequestObject as AuthorizationRequestObject,
-)
 from .src.models.client_metadata import (
     RegisteredClientMetadata as RegisteredClientMetadata,
 )
@@ -19,8 +16,5 @@ from .src.models.issuer_metadata import IssuerMetadata as IssuerMetadata
 from .src.models.oauth import AccessToken as AccessToken
 from .src.models.oauth import AuthorizationDetails as AuthorizationDetails
 from .src.models.oauth import OAuthTokenResponse as OAuthTokenResponse
-from .src.models.presentation_definition import (
-    PresentationDefinition as PresentationDefinition,
-)
 from .src.models.request_body import CredentialSelection as CredentialSelection
 from .src.web_identity_owner import WebIdentityOwner as WebIdentityOwner

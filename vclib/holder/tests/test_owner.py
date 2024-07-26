@@ -52,24 +52,27 @@ over_18_mock_auth_req = {
                 "constraints": {
                     "fields": [
                         {
-                            "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
+                            "path": [
+                                "$.credentialSubject.is_over_18",
+                                "$.is_over_18"
+                                ],
                             "filter": {"type": "string"},
                             "optional": False,
-                        }
-                    ]
-                },
+                            }
+                        ]
+                    },
                 "name": "Over 18 Verification",
                 "purpose": "To verify that the individual is over 18 years old",
-            }
-        ],
-    },
+                }
+            ],
+        },
     "response_uri": "https://example.com/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",
     "wallet_nonce": "nonce_here",
     "state": "d1d9846b-0f0e-4716-8178-88a6e76f1673_1721045932",
-}
+    }
 
 MOCK_STORE = {
     "example1": {
@@ -81,7 +84,7 @@ MOCK_STORE = {
         "c_type": "openid_credential",
         "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
         "received_at": "2024-07-15T02:54:13.634808+00:00",
-    },
+        },
     "example2": {
         "id": "example2",
         "issuer_url": "https://example.com",
@@ -96,9 +99,9 @@ MOCK_STORE = {
             "access_token": "exampletoken",
             "token_type": "bearer",
             "expires_in": 99999999999,
+            },
         },
-    },
-}
+    }
 
 EXAMPLE_ISSUER = "https://example.com"
 OWNER_HOST = "https://localhost"

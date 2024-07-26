@@ -93,7 +93,11 @@ def test_verify_jwt_success(service_provider):
         fake_token = create_test_jwt()
         fake_did_url = "https://example.com"
 
-        result = service_provider.verify_jwt(fake_token, fake_did_url, "nonce-value")
+        result = service_provider.verify_jwt(
+            fake_token,
+            fake_did_url,
+            "nonce-value"
+            )
 
         mock_from_jwk.assert_called_once_with(
             example_did_document["verificationMethod"][0]["publicKeyJwk"]

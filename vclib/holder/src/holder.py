@@ -93,6 +93,7 @@ class Holder:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
             decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
             decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            # TODO: Support nested claims, and array claims
             decoded_disclosure_claim = {
                 decoded_disclosure_list[1]: decoded_disclosure_list[2]
             }
