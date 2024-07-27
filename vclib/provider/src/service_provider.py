@@ -1,4 +1,3 @@
-import os
 from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException
@@ -20,7 +19,7 @@ class ServiceProvider:
         self,
         presentation_definitions: dict[str, PresentationDefinition],
         diddoc_path: str,
-        base_url: str = "provider-lib",
+        base_url: str,
         extra_provider_metadata: dict = {},
     ):
         """
@@ -84,7 +83,7 @@ class ServiceProvider:
             client_id=self.diddoc.id,
             client_metadata=self.extra_provider_metadata,
             presentation_definition=self.presentation_definitions[ref],
-            response_uri=f"https://{self.base_url}:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
+            response_uri=f"{self.base_url}/cb",
             nonce=nonce,
             wallet_nonce=wallet_nonce,
         )
@@ -100,7 +99,7 @@ class ServiceProvider:
         ):
             raise HTTPException(
                 status_code=400,
-                detail="Specified definition_id does not match a supported presentation definition", # noqa: E501
+                detail="Specified definition_id does not match a supported presentation definition",  # noqa: E501
             )
         presentation_definition = self.presentation_definitions[
             auth_response.presentation_submission.definition_id
@@ -119,7 +118,7 @@ class ServiceProvider:
             if len(match) != 1:
                 raise HTTPException(
                     status_code=400,
-                    detail=f"JSONPath for descriptor {descriptor.id} did not match exactly one field", # noqa: E501
+                    detail=f"JSONPath for descriptor {descriptor.id} did not match exactly one field",  # noqa: E501
                 )
             presented_tokens[descriptor.id] = match[0].value
 
@@ -148,7 +147,7 @@ class ServiceProvider:
           dict matching the desired presentation definition
         - image_path(`str`): Where to save the QR code image
         """
-        # img = qrcode.make(f"request_uri=https://provider-lib:8083/authorize/presentation_definition_uri=https://provider-lib:8083/presentationdefs?ref={presentation_definition_key}")  # noqa: E501
+        # img = qrcode.make(f"request_uri={self.base_url}/authorize/presentation_definition_uri={self.base_url}/presentationdefs?ref={presentation_definition_key}")  # noqa: E501
         # img.save(image_path)
 
     def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:

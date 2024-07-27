@@ -41,6 +41,7 @@ class ExampleServiceProvider(ServiceProvider):
 
         super().__init__(
             presentation_definitions={"verify_over_18": verify_over_18_pd},
+            base_url=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 

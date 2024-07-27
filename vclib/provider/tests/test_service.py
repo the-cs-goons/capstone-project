@@ -55,6 +55,7 @@ def service_provider(presentation_definition) -> ServiceProvider:
 
     return ExampleServiceProvider(
         presentation_definitions={presentation_definition.id: presentation_definition},
+        base_url=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}",
         diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/test_diddoc.json",
     )
 
@@ -109,9 +110,7 @@ async def test_parse_valid_authorization_response(
             presentation_submission=PresentationSubmission(
                 id="submission_id",
                 definition_id=presentation_definition.id,
-                descriptor_map=[
-                    Descriptor(id="licence", format="jwt_vc", path="$")
-                ],
+                descriptor_map=[Descriptor(id="licence", format="jwt_vc", path="$")],
             ),
             state="",
         )
