@@ -1,0 +1,16 @@
+{
+  "redirect_uris": [
+    "https://provider-lib:8083/redirect",
+    "https://provider-lib:8083/transactions"
+  ],
+  "token_endpoint_auth_method": "none",
+  "grant_types": ["implicit"],
+  "response_types": ["vp_token"],
+  "client_name": "Example Service Provider",
+  "vp_formats": {
+    "vc+sd-jwt": {
+      "sd-jwt_alg_values": ["ES256"],
+      "kb-jwt_alg_values": ["EdDSA"]
+    }
+  }
+}

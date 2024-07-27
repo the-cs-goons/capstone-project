@@ -1,0 +1,15 @@
+{
+  "issuer": "https://owner-lib:8081",
+  "authorization_endpoint": "https://owner-lib:8081/authorize",
+  "response_types_supported": ["vp_token"],
+  "response_modes_supported": ["direct_post"],
+  "grant_types_supported": ["implicit"],
+  "presentation_definition_uri_supported": "false",
+  "vp_formats_supported": {
+    "vc+sd-jwt": {
+      "sd-jwt_alg_values_supported": ["ES256"],
+      "kb-jwt_alg_values_supported": ["EdDSA"]
+    }
+  },
+  "client_id_schemes_supported": ["did"]
+}
