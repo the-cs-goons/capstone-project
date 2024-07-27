@@ -47,9 +47,15 @@
                     "mandatory": false,
                     "value_type": "number"
                 },
+                "nationalities": [
+                    {
+                        "mandatory": true,
+                        "value_type": "string"
+                    }
+                ],
                 "is_over_18": {
                     "mandatory": true,
-                    "value_type": "string"
+                    "value_type": "boolean"
                 }
             }
         }

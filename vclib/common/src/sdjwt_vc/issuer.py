@@ -64,18 +64,9 @@ class SDJWTVCIssuer(SDJWTIssuer):
         Other keyword arguments that `SDJWTIssuer` accepts can be passed down as
         keyword arguments - such as extra header options, or a holder key for KB JWTs
         """
-        payload = {}
-        for key, value in disclosable_claims.items():
-            # Registered JWT claims are not disclosable
-            if key in self.NONDISCLOSABLE_CLAIMS:
-                raise SDJWTVCRegisteredClaimsError(key)
-            # The base class checks for disclosable claims by checking for this
-            # wrapper class.
-            # TODO: Improve this to work over arrays and objects
-            payload[SDObj(key)] = value
+        payload = self._wrap_dict(disclosable_claims)
 
-        for key, value in oth_claims.items():
-            payload[key] = value
+        payload = payload | oth_claims
 
         if self.ENFORCE_KEY_BINDING and holder_key is None:
             raise SDJWTVCNoHolderPublicKeyError
@@ -95,3 +86,26 @@ class SDJWTVCIssuer(SDJWTIssuer):
     def get_disclosures(self):
         """TODO: Make this easier"""
         return [digest.json for digest in self.ii_disclosures]
+
+    def _wrap_dict(self, disclosable_claims) -> dict:
+        payload = {}
+        for key, value in disclosable_claims.items():
+            # Registered JWT claims are not disclosable
+            if key in self.NONDISCLOSABLE_CLAIMS:
+                raise SDJWTVCRegisteredClaimsError(key)
+            # The base class checks for disclosable claims by checking for this
+            # wrapper class. If there are nested objects or objects within lists,
+            # handle them as well.
+            if isinstance(value, list):
+                value_list = []
+                for v in value:
+                    if isinstance(v, dict):
+                        value_list.append(self._wrap_dict(v))
+                    else:
+                        value_list.append(v)
+                payload[SDObj(key)] = value_list
+            elif isinstance(value, dict):
+                payload[SDObj(key)] = self._wrap_dict(value)
+            else:
+                payload[SDObj(key)] = value
+        return payload
