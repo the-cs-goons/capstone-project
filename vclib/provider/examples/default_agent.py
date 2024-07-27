@@ -6,6 +6,7 @@ from typing import override
 from fastapi import Form, HTTPException
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
+from jwcrypto.jwk import JWK
 
 from vclib.provider import (
     AuthorizationRequestObject,
@@ -51,6 +52,11 @@ class ExampleServiceProvider(ServiceProvider):
     #     # mapping of req name to req
     #     self.auth_requests: dict[str, AuthorizationRequestObject] = {}
     #     self.request_history = []
+
+    @override
+    def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
+        with open(f"{os.path.dirname(os.path.abspath(__file__))}/example_issuer_jwk.json", "r") as f:
+            return JWK.from_json(f.read()) # the only JWK we accept
 
     @override
     def validate_disclosed_fields(self, presentation_definition: PresentationDefinition, disclosed_fields: dict) -> bool:

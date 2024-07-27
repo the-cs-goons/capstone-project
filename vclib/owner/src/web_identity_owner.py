@@ -146,6 +146,34 @@ class WebIdentityOwner(IdentityOwner):
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
 
+    async def get_auth_request(
+        self,
+        request_uri,
+        client_id, # TODO
+        client_id_scheme,
+        request_uri_method, # TODO
+    ) -> AuthorizationRequestObject:
+        if client_id_scheme != "did":
+            raise HTTPException(
+                status_code=400,
+                detail=f"client_id_scheme {client_id_scheme} not supported",
+            )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{request_uri}",
+                params={
+                    "wallet_nonce": str(uuid.uuid4()),  # replace this data with actual stuff
+                },
+            )
+
+        # just send the auth request to the frontend for now
+        # what the backend sends to the fronend should be up to implementation
+        # although it shouldn't include sensitive info unless the user has
+        # opted to share that information
+        self.current_transaction = AuthorizationRequestObject.model_validate_json(response)
+        return self.current_transaction
+
     async def present_selection(
         self, field_selections: FieldSelectionObject = Body(...)
     ):
@@ -219,7 +247,7 @@ class WebIdentityOwner(IdentityOwner):
             descriptor_map = {
                 "id": input_descriptor_id,
                 "format": "vc+sd-jwt",
-                "path": "$",
+                "path": "$.vp_token",
             }
             descriptor_maps.append(DescriptorMapObject(**descriptor_map))
         elif len(id_vp_tokens) > 1:
@@ -231,63 +259,28 @@ class WebIdentityOwner(IdentityOwner):
                 descriptor_map = {
                     "id": input_descriptor_id,
                     "format": "vc+sd-jwt",
-                    "path": f"$[{idx}]",
+                    "path": f"$.vp_token[{idx}]",
                 }
                 descriptor_maps.append(DescriptorMapObject(**descriptor_map))
 
-        presentation_submission = {
-            "id": str(uuid.uuid4()),
-            "definition_id": definition_id,
-            "descriptor_map": descriptor_maps,
-        }
-        presentation_submission_object = PresentationSubmissionObject(
-            **presentation_submission
+        presentation_submission = PresentationSubmissionObject(
+            id=str(uuid.uuid4()),
+            definition_id=definition_id,
+            descriptor_map=descriptor_maps,
         )
 
-        authorization_response = {
-            "vp_token": final_vp_token,
-            "presentation_submission": presentation_submission_object,
-            "state": transaction_id,
-        }
-        authorization_response_object = AuthorizationResponseObject(
-            **authorization_response
+        authorization_response = AuthorizationResponseObject(
+            vp_token=final_vp_token,
+            presentation_submission=presentation_submission,
+            state=transaction_id,
         )
 
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{response_uri}", data=authorization_response_object.model_dump()
+                f"{response_uri}", data=authorization_response.model_dump_json()
             )
 
         self.current_transaction = None
         return response.json()
-
-    async def get_auth_request(
-        self,
-        request_uri,
-        client_id,
-        client_id_scheme,
-        request_uri_method,
-    ):  # -> PresentationDefinition:
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{request_uri}",
-                data={
-                    "wallet_nonce": "nonce",  # replace this data with actual stuff
-                    "wallet_metadata": "metadata",
-                },
-            )
-        # just send the auth request to the frontend for now
-        # what the backend sends to the fronend should be up to implementation
-        # although it shouldn't include sensitive info unless the user has
-        # opted to share that information
-        auth_request = response.json()
-        self.current_transaction = AuthorizationRequestObject(**auth_request)
-        return auth_request

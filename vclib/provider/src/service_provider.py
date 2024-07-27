@@ -8,6 +8,8 @@ import httpx
 from jsonpath_ng.ext import parse as parse_jsonpath
 from jwcrypto.jwk import JWK
 from fastapi import FastAPI, HTTPException, Form
+from pydantic import ValidationError
+import qrcode
 
 from vclib.common import SDJWTVCVerifier
 from vclib.common.src.metadata import DIDJSONResponse
@@ -19,6 +21,8 @@ from .models.presentation_submission import PresentationSubmission
 
 
 class ServiceProvider:
+    valid_nonces: set[str]
+
     def __init__(
         self,
         presentation_definitions: dict[str, PresentationDefinition],
@@ -32,6 +36,7 @@ class ServiceProvider:
         - presentation_definitions(`dict[str, PresentationDefinition]`): A map from a
           string identifying the request type to the corresponding presentation definition
         """
+        self.valid_nonces = set()
         self.presentation_definitions = presentation_definitions
         self.extra_provider_metadata = extra_provider_metadata
 
@@ -63,6 +68,7 @@ class ServiceProvider:
     # TODO doc string
     async def fetch_authorization_request(
         self,
+        wallet_nonce: str,
         presentation_definition: str | None = None,
         presentation_definition_uri: str | None = None,
     ) -> AuthorizationRequestObject:
@@ -77,17 +83,24 @@ class ServiceProvider:
                     res = await client.get(presentation_definition_uri)
                 res.raise_for_status()
                 parsed_presentation_definition = PresentationDefinition.model_validate_json(res.content)
-            except Exception as e: # TODO HTTPError, pydantic validation error
-                raise HTTPException(status_code=400, detail="Could not fetch or parse presentation definition from URI")
+            except httpx.HTTPStatusError as e:
+                raise HTTPException(status_code=e.response.status_code, detail=e.response.reason_phrase)
+            except ValidationError as e:
+                raise HTTPException(status_code=400, detail="Presentation definition is malformed")
         else:
             parsed_presentation_definition = PresentationDefinition.model_validate_json(presentation_definition)
+
+        while (nonce := str(uuid4())) in self.valid_nonces:
+            pass
+        self.valid_nonces.add(nonce)
 
         return AuthorizationRequestObject(
             client_id=self.diddoc.id,
             client_metadata=self.extra_provider_metadata,
             presentation_definition=parsed_presentation_definition,
             response_uri=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb", # TODO
-            nonce=str(uuid4()),
+            nonce=nonce,
+            wallet_nonce=wallet_nonce,
         )
 
     # TODO doc string
@@ -101,7 +114,7 @@ class ServiceProvider:
         presented_tokens = {}
         for descriptor in auth_response.presentation_submission.descriptor_map:
             try:
-                match = parse_jsonpath(descriptor.path).find(auth_response)
+                match = parse_jsonpath(descriptor.path).find(dict(auth_response))
             except:
                 raise HTTPException(status_code=400, detail=f"Invalid JSONPath for descriptor {descriptor.id}")
             if len(match) != 1:
@@ -121,11 +134,20 @@ class ServiceProvider:
 
         self.validate_disclosed_fields(presentation_definition, disclosed_fields)
 
+    def create_presentation_qr_code(self, presentation_definition_key: str, image_path: str):
+        """### Parameters
+        - presentation_definition_key(`str`): The key in the `presentation_definitions` dict matching the desired presentation definition
+        - image_path(`str`): Where to save the QR code image
+        """
+        pass # TODO
+        # img = qrcode.make(f"request_uri=https://provider-lib:8083/authorize/presentation_definition_uri=https://provider-lib:8083/presentationdefs?ref={presentation_definition_key}") # might need to be escaped
+        # img.save(image_path)
+
     def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
         """## !!! This function must be `@override`n !!!
 
         ### Parameters
-        - iss(`str`): JWT issuer claim
+        - iss(`str`): JWT issuer claim (URI)
         - headers(`dict`): Presented JWT headers
 
         ### Returns
