@@ -1,102 +1,185 @@
-import base64
-import json
-from unittest.mock import patch
+import os
 
 import pytest
-from fastapi import FastAPI
+from fastapi import HTTPException
+from jwcrypto.jwk import JWK
+from pytest_httpx import HTTPXMock
 
-from vclib.provider import ServiceProvider
-
-
-@pytest.mark.asyncio()
-async def test_server_exists():
-    sp = ServiceProvider()
-    sp_server = sp.get_server()
-    assert isinstance(sp_server, FastAPI)
+from vclib.provider import (
+    Constraints,
+    Field,
+    Filter,
+    InputDescriptor,
+    PresentationDefinition,
+    ServiceProvider,
+)
+from vclib.provider.src.models.authorization_response_object import (
+    AuthorizationResponseObject,
+)
+from vclib.provider.src.models.presentation_submission import (
+    Descriptor,
+    PresentationSubmission,
+)
 
 
 @pytest.fixture
-def service_provider():
-    return ServiceProvider()
+def presentation_definition() -> PresentationDefinition:
+    return PresentationDefinition(
+        id="verify_over_18",
+        input_descriptors=[
+            InputDescriptor(
+                id="over_18_descriptor",
+                name="Over 18 Verification",
+                purpose="To verify that the individual is over 18 years old",
+                format=[{"uri": "https://example.com/credentials/age"}],
+                constraints=Constraints(
+                    fields=[
+                        Field(
+                            path=["$.credentialSubject.is_over_18", "$.is_over_18"],
+                            filter=Filter(type="string", enum=["true"]),
+                        )
+                    ]
+                ),
+            )
+        ],
+    )
 
 
-def test_fetch_did_document_success(service_provider):
-    with patch("requests.get") as mock_get:
-        example_did_document = {
-            "@context": ["https://www.w3.org/ns/did/v1"],
-            "id": "did:web:example.com",
-            "verificationMethod": [
-                {
-                    "id": "did:web:example.com#key-1",
-                    "type": "JsonWebKey2020",
-                    "controller": "did:web:example.com",
-                    "publicKeyJwk": {
-                        "kty": "EC",
-                        "crv": "P-256",
-                        "x": "abc",
-                        "y": "def",
-                    },
-                }
-            ],
-        }
-        mock_get.return_value.status_code = 200
-        mock_get.return_value.json.return_value = example_did_document
+@pytest.fixture
+def service_provider(presentation_definition) -> ServiceProvider:
+    class ExampleServiceProvider(ServiceProvider):
+        def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
+            with open(
+                f"{os.path.dirname(os.path.abspath(__file__))}/test_issuer_jwk.json"
+            ) as f:
+                return JWK.from_json(f.read())  # the only JWK we accept
 
-        result = service_provider.fetch_did_document("https://example.com")
-
-        assert result == example_did_document
+    return ExampleServiceProvider(
+        presentation_definitions={presentation_definition.id: presentation_definition},
+        diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/test_diddoc.json",
+    )
 
 
-def base64url_encode(data):
-    """Encode data in a base64url-safe manner, without padding."""
-    base64_encoded = base64.urlsafe_b64encode(data.encode()).decode("utf-8")
-    return base64_encoded.rstrip("=")
+@pytest.fixture
+def vp_token() -> str:
+    with open(f"{os.path.dirname(os.path.abspath(__file__))}/test_vp_token.txt") as f:
+        return f.read()
 
 
-def create_test_jwt():
-    header = {"kid": "did:web:example.com#key-1", "alg": "ES256"}
-    payload = {"sub": "123", "nonce": "nonce-value"}
-
-    encoded_header = base64url_encode(json.dumps(header))
-    encoded_payload = base64url_encode(json.dumps(payload))
-
-    signature = base64url_encode("signature-placeholder")
-
-    return f"{encoded_header}.{encoded_payload}.{signature}"
+@pytest.mark.asyncio
+async def test_get_valid_presentation_definition(
+    service_provider, presentation_definition
+):
+    assert (
+        await service_provider.get_presentation_definition(presentation_definition.id)
+        == presentation_definition
+    )
 
 
-def test_verify_jwt_success(service_provider):
-    with (
-        patch.object(service_provider, "fetch_did_document") as mock_fetch,
-        patch("jwt.decode") as mock_decode,
-        patch("jwt.algorithms.ECAlgorithm.from_jwk") as mock_from_jwk,
-    ):
-        example_did_document = {
-            "@context": "https://www.w3.org/ns/did/v1",
-            "id": "did:web:example.com",
-            "verificationMethod": [
-                {
-                    "id": "did:web:example.com#key-1",
-                    "type": "JsonWebKey2020",
-                    "controller": "did:web:example.com",
-                    "publicKeyJwk": {
-                        "kty": "EC",
-                        "crv": "P-256",
-                        "x": "abc",
-                        "y": "def",
-                    },
-                }
-            ],
-        }
-        mock_fetch.return_value = example_did_document
-        mock_decode.return_value = {"sub": "123"}
-        fake_token = create_test_jwt()
-        fake_did_url = "https://example.com"
+@pytest.mark.asyncio
+async def test_get_invalid_presentation_definition(service_provider):
+    with pytest.raises(HTTPException):
+        await service_provider.get_presentation_definition("non-existent definition")
 
-        result = service_provider.verify_jwt(fake_token, fake_did_url, "nonce-value")
 
-        mock_from_jwk.assert_called_once_with(
-            example_did_document["verificationMethod"][0]["publicKeyJwk"]
+@pytest.mark.asyncio
+async def test_fetch_authorization_request_by_json(
+    service_provider, presentation_definition
+):
+    res = await service_provider.fetch_authorization_request(
+        presentation_definition=presentation_definition.model_dump_json()
+    )
+    assert res.presentation_definition == presentation_definition
+
+
+@pytest.mark.asyncio
+async def test_fetch_authorization_request_by_uri(
+    httpx_mock: HTTPXMock, service_provider, presentation_definition
+):
+    httpx_mock.add_response(
+        url="https://getdefinition", json=presentation_definition.model_dump_json()
+    )
+    res = await service_provider.fetch_authorization_request(
+        presentation_definition_uri="https://getdefinition"
+    )
+    assert res.presentation_definition == presentation_definition
+
+
+@pytest.mark.asyncio
+async def test_parse_valid_authorization_response(
+    service_provider, presentation_definition, vp_token
+):
+    res = await service_provider.parse_authorization_response(
+        auth_response=AuthorizationResponseObject(
+            vp_token=vp_token,
+            presentation_submission=PresentationSubmission(
+                id="submission_id",
+                definition_id=presentation_definition.id,
+                descriptor_map=[
+                    Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                ],
+            ),
+            state="",
         )
-        mock_decode.assert_called_once()
-        assert result == {"sub": "123"}
+    )
+    assert res == {"status": "OK"}
+
+
+@pytest.mark.asyncio
+async def test_parse_authorization_response_with_invalid_jwt(
+    service_provider, presentation_definition, vp_token
+):
+    with pytest.raises(HTTPException):
+        await service_provider.parse_authorization_response(
+            auth_response=AuthorizationResponseObject(
+                vp_token=vp_token.capitalize(),  # invalid jwt
+                presentation_submission=PresentationSubmission(
+                    id="random_id",
+                    definition_id=presentation_definition.id,
+                    descriptor_map=[
+                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                    ],
+                ),
+                state="",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_parse_authorization_response_with_invalid_id(
+    service_provider, presentation_definition, vp_token
+):
+    with pytest.raises(HTTPException):
+        await service_provider.parse_authorization_response(
+            auth_response=AuthorizationResponseObject(
+                vp_token=vp_token,
+                presentation_submission=PresentationSubmission(
+                    id="random_id",
+                    definition_id="random_id",  # invalid id
+                    descriptor_map=[
+                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                    ],
+                ),
+                state="",
+            )
+        )
+
+
+@pytest.mark.asyncio
+async def test_parse_authorization_response_with_invalid_path(
+    service_provider, presentation_definition, vp_token
+):
+    with pytest.raises(HTTPException):
+        await service_provider.parse_authorization_response(
+            auth_response=AuthorizationResponseObject(
+                vp_token=vp_token,
+                presentation_submission=PresentationSubmission(
+                    id="random_id",
+                    definition_id="random_id",
+                    descriptor_map=[
+                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                    ],  # invalid path
+                ),
+                state="",
+            )
+        )

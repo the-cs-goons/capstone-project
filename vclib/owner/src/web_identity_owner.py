@@ -112,7 +112,7 @@ class WebIdentityOwner(IdentityOwner):
         """
         return self.credentials.values()
 
-    async def delete_credential(self, cred_id:str) -> str:
+    async def delete_credential(self, cred_id: str) -> str:
         """
         Delete a credential by ID, if one exists
 
@@ -167,9 +167,9 @@ class WebIdentityOwner(IdentityOwner):
     async def get_auth_request(
         self,
         request_uri,
-        client_id, # TODO
+        client_id,  # TODO
         client_id_scheme,
-        request_uri_method, # TODO
+        request_uri_method,  # TODO
     ) -> AuthorizationRequestObject:
         if client_id_scheme != "did":
             raise HTTPException(
@@ -178,18 +178,15 @@ class WebIdentityOwner(IdentityOwner):
             )
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(
-                f"{request_uri}",
-                params={
-                    "wallet_nonce": str(uuid.uuid4()),  # replace this data with actual stuff
-                },
-            )
+            response = await client.get(f"{request_uri}")
 
         # just send the auth request to the frontend for now
         # what the backend sends to the fronend should be up to implementation
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
-        self.current_transaction = AuthorizationRequestObject.model_validate_json(response)
+        self.current_transaction = AuthorizationRequestObject.model_validate_json(
+            response.text
+        )
         return self.current_transaction
 
     async def present_selection(

@@ -13,6 +13,9 @@ from vclib.owner import (
     IssuerMetadata,
 )
 from vclib.owner.examples.default_agent import DefaultWebIdentityOwner
+from vclib.owner.src.models.authorization_request_object import (
+    AuthorizationRequestObject,
+)
 from vclib.owner.src.models.field_selection_object import FieldSelectionObject
 
 over_18_mock_auth_response = {
@@ -66,8 +69,8 @@ over_18_mock_auth_req = {
     "response_uri": "https://example.com/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
-    "nonce": "some nonce",
-    "wallet_nonce": "nonce_here",
+    "nonce": "unique nonce",
+    "wallet_nonce": None,
     "state": "d1d9846b-0f0e-4716-8178-88a6e76f1673_1721045932",
 }
 
@@ -112,7 +115,7 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 @pytest.mark.asyncio()
 async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     httpx_mock.add_response(
-        url="https://example.com/request/over_18", json=over_18_mock_auth_req
+        url="https://example.com/authorize", json=over_18_mock_auth_req
     )
     identity_owner: DefaultWebIdentityOwner
     cred = Credential(
@@ -127,10 +130,11 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     identity_owner.credentials["yalo"] = cred
 
     resp = await identity_owner.get_auth_request(
-        "https://example.com/request/over_18", "some did", "did", "post"
+        "https://example.com/authorize", "some did", "did", "post"
     )
+    over_18_mock_auth_req["nonce"] = resp.nonce  # we can't know nonce beforehand
 
-    assert resp == over_18_mock_auth_req
+    assert resp == AuthorizationRequestObject(**over_18_mock_auth_req)
 
     # TODO: make this return a redirect_uri
     httpx_mock.add_response(
@@ -247,12 +251,14 @@ async def test_authorize_wallet_initiated(identity_owner):
     assert details[0]["credential_configuration_id"] == id
     assert query_params["state"][0] in identity_owner.oauth_clients
 
+
 @pytest.mark.asyncio
 async def test_delete_credential_success(identity_owner):
     identity_owner: DefaultWebIdentityOwner
     assert len(identity_owner.credentials) == 2
     await identity_owner._delete_credential("example1")
     assert len(identity_owner.credentials) == 1
+
 
 @pytest.mark.asyncio
 async def test_delete_credential_fail(identity_owner):
@@ -262,6 +268,7 @@ async def test_delete_credential_fail(identity_owner):
         await identity_owner._delete_credential("yalo")
     assert "Credential of ID yalo not found." in str(excinfo.value)
     assert len(identity_owner.credentials) == 2
+
 
 @pytest.mark.asyncio
 async def test_async_delete_credentials(identity_owner):

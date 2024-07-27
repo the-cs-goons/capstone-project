@@ -14,13 +14,6 @@ from pydantic import ValidationError
 from requests import Session
 
 from vclib.common import SDJWTVCIssuer
-from vclib.issuer.src.models.exceptions import IssuerError
-from vclib.issuer.src.models.oauth import (
-    AuthorizationDetails,
-    OAuthTokenResponse,
-    RegisteredClientMetadata,
-    WalletClientMetadata,
-)
 from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
@@ -28,6 +21,7 @@ from vclib.common.src.metadata import (
     OAuthMetadataResponse,
 )
 
+from .models.exceptions import IssuerError
 from .models.oauth import (
     AuthorizationDetails,
     OAuthTokenResponse,
@@ -856,10 +850,7 @@ class CredentialIssuer:
         - `str`: A string containing the new issued credential.
         """
 
-        other = {
-            "iss": self.uri,
-            "iat": mktime(datetime.now(tz=UTC).timetuple())
-        }
+        other = {"iss": self.uri, "iat": mktime(datetime.now(tz=UTC).timetuple())}
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwk, None)
 
         return new_credential.sd_jwt_issuance

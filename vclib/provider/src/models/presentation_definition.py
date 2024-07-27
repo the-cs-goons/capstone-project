@@ -63,7 +63,7 @@ class InputDescriptor(BaseModel):
     constraints: Constraints
     name: str | None = None
     purpose: str | None = None
-    format: Any | None = None # TODO ??
+    format: Any | None = None  # TODO ??
 
 
 class PresentationDefinition(BaseModel):
