@@ -20,6 +20,7 @@ class ServiceProvider:
         self,
         presentation_definitions: dict[str, PresentationDefinition],
         diddoc_path: str,
+        base_url: str = "provider-lib",
         extra_provider_metadata: dict = {},
     ):
         """
@@ -32,6 +33,7 @@ class ServiceProvider:
         """
         self.valid_nonces = set()
         self.presentation_definitions = presentation_definitions
+        self.base_url = base_url
         self.extra_provider_metadata = extra_provider_metadata
 
         try:
@@ -82,7 +84,7 @@ class ServiceProvider:
             client_id=self.diddoc.id,
             client_metadata=self.extra_provider_metadata,
             presentation_definition=self.presentation_definitions[ref],
-            response_uri=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
+            response_uri=f"https://{self.base_url}:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
             nonce=nonce,
             wallet_nonce=wallet_nonce,
         )
@@ -108,7 +110,7 @@ class ServiceProvider:
         presented_tokens = {}
         for descriptor in auth_response.presentation_submission.descriptor_map:
             try:
-                match = parse_jsonpath(descriptor.path).find(dict(auth_response))
+                match = parse_jsonpath(descriptor.path).find(auth_response.vp_token)
             except Exception:
                 raise HTTPException(
                     status_code=400,

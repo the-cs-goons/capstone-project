@@ -110,7 +110,7 @@ async def test_parse_valid_authorization_response(
                 id="submission_id",
                 definition_id=presentation_definition.id,
                 descriptor_map=[
-                    Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                    Descriptor(id="licence", format="jwt_vc", path="$")
                 ],
             ),
             state="",
@@ -131,7 +131,7 @@ async def test_parse_authorization_response_with_invalid_jwt(
                     id="random_id",
                     definition_id=presentation_definition.id,
                     descriptor_map=[
-                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                        Descriptor(id="licence", format="jwt_vc", path="$")
                     ],
                 ),
                 state="",
@@ -151,7 +151,7 @@ async def test_parse_authorization_response_with_invalid_id(
                     id="random_id",
                     definition_id="random_id",  # invalid id
                     descriptor_map=[
-                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                        Descriptor(id="licence", format="jwt_vc", path="$")
                     ],
                 ),
                 state="",
@@ -171,7 +171,7 @@ async def test_parse_authorization_response_with_invalid_path(
                     id="random_id",
                     definition_id="random_id",
                     descriptor_map=[
-                        Descriptor(id="licence", format="jwt_vc", path="$.vp_token")
+                        Descriptor(id="licence", format="jwt_vc", path="$")
                     ],  # invalid path
                 ),
                 state="",
