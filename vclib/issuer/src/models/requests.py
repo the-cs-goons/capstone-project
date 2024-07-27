@@ -7,3 +7,8 @@ class CredentialRequestBody(BaseModel):
 
 class DeferredCredentialRequestBody(BaseModel):
     transaction_id: str
+
+
+class AuthorizationRequestDetails(BaseModel):
+    type: str
+    credential_configuration_id: str

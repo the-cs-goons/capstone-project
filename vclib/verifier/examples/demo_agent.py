@@ -7,8 +7,6 @@ from fastapi import Form, HTTPException
 
 from vclib.common import vp_auth_request
 from vclib.verifier import (
-    # AuthorizationRequestObject,
-    # PresentationDefinition,
     ServiceProvider,
 )
 
@@ -25,6 +23,34 @@ class ExampleServiceProvider(ServiceProvider):
         # mapping of req name to req
         self.auth_requests: dict[str, vp_auth_request.AuthorizationRequestObject] = {}
         self.request_history = []
+        verify_over_18_pd = vp_auth_request.PresentationDefinition(
+            id="verify_over_18",
+            input_descriptors=[
+                vp_auth_request.InputDescriptor(
+                    id="over_18_descriptor",
+                    name="Over 18 Verification",
+                    purpose="To verify that the individual is over 18 years old",
+                    format=[{"uri": "https://example.com/credentials/age"}],
+                    constraints=vp_auth_request.Constraints(
+                        fields=[
+                            vp_auth_request.Field(
+                                path=["$.credentialSubject.is_over_18", "$.is_over_18"],
+                                filter=vp_auth_request.Filter(
+                                    type="string",
+                                    enum=["true"]
+                                    ),
+                            )
+                        ]
+                    ),
+                )
+            ],
+        )
+
+        super().__init__(
+            presentation_definitions={"verify_over_18": verify_over_18_pd},
+            base_url=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}",
+            diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
+        )
 
     @override
     async def fetch_authorization_request(

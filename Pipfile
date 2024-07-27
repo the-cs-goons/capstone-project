@@ -12,6 +12,7 @@ pyjwt = "*"
 jsonpath-ng = "*"
 pytest-httpx = "*"
 requests-oauthlib = "*"
+qrcode = "*"
 
 [dev-packages]
 pytest = "*"

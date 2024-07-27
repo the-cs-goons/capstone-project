@@ -65,6 +65,7 @@ class WebIdentityOwner(Holder):
 
         router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
+        router.delete("/credentials/{cred_id}")(self.delete_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
         router.get("/presentation/init")(self.get_auth_request)
@@ -115,6 +116,23 @@ class WebIdentityOwner(Holder):
         """
         return self.credentials.values()
 
+    async def delete_credential(self, cred_id: str) -> str:
+        """
+        Delete a credential by ID, if one exists
+
+        ### Parameters
+        - cred_id(`str`): The ID of the credential to be deleted
+
+        ### Returns
+        - `Credential | DeferredCredential`: The requested credential, if it exists.
+        """
+        try:
+            return await super()._delete_credential(cred_id)
+        except Exception:
+            raise HTTPException(
+                status_code=404, detail=f"Credential with ID {cred_id} not found."
+            )
+
     async def request_authorization(
         self, credential_selection: CredentialSelection
     ):  # -> RedirectResponse:
@@ -149,6 +167,32 @@ class WebIdentityOwner(Holder):
         return RedirectResponse(
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
+
+    async def get_auth_request(
+        self,
+        request_uri,
+        client_id,  # TODO
+        client_id_scheme,
+        request_uri_method,  # TODO
+    ) -> vp_auth_request.AuthorizationRequestObject:
+        if client_id_scheme != "did":
+            raise HTTPException(
+                status_code=400,
+                detail=f"client_id_scheme {client_id_scheme} not supported",
+            )
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"{request_uri}")
+
+        # just send the auth request to the frontend for now
+        # what the backend sends to the fronend should be up to implementation
+        # although it shouldn't include sensitive info unless the user has
+        # opted to share that information
+        self.current_transaction = \
+            vp_auth_request.AuthorizationRequestObject.model_validate_json(
+            response.text
+        )
+        return self.current_transaction
 
     async def present_selection(
         self, field_selections: FieldSelectionObject
@@ -225,7 +269,7 @@ class WebIdentityOwner(Holder):
             descriptor_map = {
                 "id": input_descriptor_id,
                 "format": "vc+sd-jwt",
-                "path": "$",
+                "path": "$.vp_token",
             }
             descriptor_maps.append(
                 vp_auth_response.DescriptorMapObject(**descriptor_map)
@@ -239,75 +283,28 @@ class WebIdentityOwner(Holder):
                 descriptor_map = {
                     "id": input_descriptor_id,
                     "format": "vc+sd-jwt",
-                    "path": f"$[{idx}]",
+                    "path": f"$.vp_token[{idx}]",
                 }
-                descriptor_maps.append(
-                    vp_auth_response.DescriptorMapObject(**descriptor_map)
-                    )
-        elif len(id_vp_tokens) == 0:
-            # TODO: send to verifier access_denied error at /cb
-            print("No vp_tokens found")
-            self.current_transaction = None
-            return "Appropriate credentials not found. Presentation failed"
-
-        presentation_submission_data = {
-            "id": str(uuid.uuid4()),
-            "definition_id": definition_id,
-            "descriptor_map": descriptor_maps,
-            }
+                descriptor_maps.append(vp_auth_response.DescriptorMapObject(**descriptor_map))
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
-            **presentation_submission_data
-            )
+            id=str(uuid.uuid4()),
+            definition_id=definition_id,
+            descriptor_map=descriptor_maps,
+        )
 
-        auth_response = {
-            "vp_token": final_vp_token,
-            "presentation_submission": presentation_submission,
-            "state": transaction_id,
-            }
-
-        auth_response_object = vp_auth_response.AuthorizationResponseObject(
-            **auth_response
-            )
+        authorization_response = vp_auth_response.AuthorizationResponseObject(
+            vp_token=final_vp_token,
+            presentation_submission=presentation_submission,
+            state=transaction_id,
+        )
 
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{response_uri}", data=auth_response_object.model_dump()
-                )
+                f"{response_uri}", data=authorization_response.model_dump_json()
+            )
 
         self.current_transaction = None
         return response.json()
-
-    async def get_auth_request(
-            self,
-            request_uri,
-            client_id,
-            client_id_scheme,
-            request_uri_method,
-            ):  # -> PresentationDefinition:
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{request_uri}",
-                data={
-                    "wallet_nonce": "nonce",  # TODO: not hardcode this
-                    "wallet_metadata": "metadata",
-                },
-            )
-        # just send the auth request to the frontend for now
-        # what the backend sends to the fronend should be up to
-        # implementation although it shouldn't include sensitive info
-        # unless the user has opted to share that information
-        auth_request_data = response.json()
-        self.current_transaction = vp_auth_request.AuthorizationRequestObject(
-            **auth_request_data
-            )
-
-        return auth_request_data
