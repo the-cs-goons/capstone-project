@@ -115,7 +115,7 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 @pytest.mark.asyncio()
 async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     httpx_mock.add_response(
-        url="https://example.com/authorize", json=over_18_mock_auth_req
+        url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
     )
     identity_owner: DefaultWebIdentityOwner
     cred = Credential(
@@ -130,7 +130,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     identity_owner.credentials["yalo"] = cred
 
     resp = await identity_owner.get_auth_request(
-        "https://example.com/authorize", "some did", "did", "post"
+        "https://example.com/request/verify_over_18", "some did", "did", "post"
     )
     over_18_mock_auth_req["nonce"] = resp.nonce  # we can't know nonce beforehand
 

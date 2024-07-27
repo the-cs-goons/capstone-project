@@ -1,11 +1,9 @@
 import os
 from uuid import uuid4
 
-import httpx
 from fastapi import FastAPI, HTTPException
 from jsonpath_ng.ext import parse as parse_jsonpath
 from jwcrypto.jwk import JWK
-from pydantic import ValidationError
 
 from vclib.common import SDJWTVCVerifier
 from vclib.common.src.metadata import DIDJSONResponse
@@ -48,7 +46,7 @@ class ServiceProvider:
         router = FastAPI()
         router.get("/.well-known/did.json")(self.get_did_json)
         router.get("/presentationdefs")(self.get_presentation_definition)
-        router.get("/authorize")(self.fetch_authorization_request)
+        router.post("/request/{ref}")(self.fetch_authorization_request)
         router.post("/cb")(self.parse_authorization_response)
         return router
 
@@ -66,43 +64,14 @@ class ServiceProvider:
     # TODO doc string
     async def fetch_authorization_request(
         self,
-        presentation_definition: str | None = None,
-        presentation_definition_uri: str | None = None,
+        ref: str,
+        wallet_metadata: dict | None = None,
         wallet_nonce: str | None = None,
     ) -> AuthorizationRequestObject:
-        if presentation_definition is None and presentation_definition_uri is None:
+        if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=400,
-                detail="Either presentation_definition or presentation_definition_uri must be provided", # noqa: E501
-            )
-        if (
-            presentation_definition is not None
-            and presentation_definition_uri is not None
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="Only one of presentation_definition or presentation_definition_uri should be provided", # noqa: E501
-            )
-
-        if presentation_definition_uri is not None:
-            try:
-                async with httpx.AsyncClient() as client:
-                    res = await client.get(presentation_definition_uri)
-                res.raise_for_status()
-                parsed_presentation_definition = (
-                    PresentationDefinition.model_validate_json(json_data=res.json())
-                )
-            except httpx.HTTPStatusError as e:
-                raise HTTPException(
-                    status_code=e.response.status_code, detail=e.response.reason_phrase
-                )
-            except ValidationError as e:
-                raise HTTPException(
-                    status_code=400, detail=f"Presentation definition is malformed: {e}"
-                )
-        else:
-            parsed_presentation_definition = PresentationDefinition.model_validate_json(
-                presentation_definition
+                detail=f"Reference {ref} is not an accepted presentation definition",
             )
 
         while (nonce := str(uuid4())) in self.valid_nonces:
@@ -112,7 +81,7 @@ class ServiceProvider:
         return AuthorizationRequestObject(
             client_id=self.diddoc.id,
             client_metadata=self.extra_provider_metadata,
-            presentation_definition=parsed_presentation_definition,
+            presentation_definition=self.presentation_definitions[ref],
             response_uri=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}/cb",
             nonce=nonce,
             wallet_nonce=wallet_nonce,

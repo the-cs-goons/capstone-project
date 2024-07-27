@@ -3,7 +3,6 @@ import os
 import pytest
 from fastapi import HTTPException
 from jwcrypto.jwk import JWK
-from pytest_httpx import HTTPXMock
 
 from vclib.provider import (
     Constraints,
@@ -79,30 +78,25 @@ async def test_get_valid_presentation_definition(
 @pytest.mark.asyncio
 async def test_get_invalid_presentation_definition(service_provider):
     with pytest.raises(HTTPException):
-        await service_provider.get_presentation_definition("non-existent definition")
+        await service_provider.get_presentation_definition("invalid_definition_id")
 
 
 @pytest.mark.asyncio
-async def test_fetch_authorization_request_by_json(
+async def test_fetch_valid_authorization_request(
     service_provider, presentation_definition
 ):
     res = await service_provider.fetch_authorization_request(
-        presentation_definition=presentation_definition.model_dump_json()
+        ref=presentation_definition.id
     )
     assert res.presentation_definition == presentation_definition
 
 
 @pytest.mark.asyncio
-async def test_fetch_authorization_request_by_uri(
-    httpx_mock: HTTPXMock, service_provider, presentation_definition
+async def test_fetch_invalid_authorization_request(
+    service_provider, presentation_definition
 ):
-    httpx_mock.add_response(
-        url="https://getdefinition", json=presentation_definition.model_dump_json()
-    )
-    res = await service_provider.fetch_authorization_request(
-        presentation_definition_uri="https://getdefinition"
-    )
-    assert res.presentation_definition == presentation_definition
+    with pytest.raises(HTTPException):
+        await service_provider.fetch_authorization_request(ref="invalid_definition_id")
 
 
 @pytest.mark.asyncio
