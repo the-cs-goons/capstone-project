@@ -1,0 +1,26 @@
+{
+    "@context": [
+        "https://www.w3.org/ns/did/v1",
+        "https://w3id.org/security/suites/jws-2020/v1"
+    ],
+    "id": "did:web:provider-lib%3A8083",
+    "verificationMethod": [
+        {
+            "id": "did:web:provider-lib%3A8083#MeH2UqRC8SUAks9GFIZJ8VYjIsAWZOQNRG5K0QtPYM8",
+            "type": "JsonWebKey2020",
+            "controller": "did:web:provider-lib%3A8083",
+            "publicKeyJwk": {
+                "alg": "ES256",
+                "crv": "P-256",
+                "kid": "MeH2UqRC8SUAks9GFIZJ8VYjIsAWZOQNRG5K0QtPYM8",
+                "kty": "EC",
+                "use": "sig",
+                "x": "vSsOAVQtWZ1vSfhuMGpJ3jdAlI_x5UMe9aYkF_inEt0",
+                "y": "-k68NzxzAt3l3G0ndTJYWYDBjzVndYvH8BaCeNJQkfQ"
+            }
+        }
+    ],
+    "authentication": [
+        "did:web:provider-lib%3A8083#MeH2UqRC8SUAks9GFIZJ8VYjIsAWZOQNRG5K0QtPYM8"
+    ]
+}
