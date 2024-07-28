@@ -1,17 +1,11 @@
 from typing import Any, List, Optional
 
-from vclib.owner.src.models.credentials import Credential, DeferredCredential
+from vclib.holder.src.models.credentials import Credential, DeferredCredential
 
 
 class AbstractStorageProvider():
 
     def __init__(self, *args, **kwargs):
-        pass
-
-    def __enter__(self):
-        pass
-
-    def __exit__(self):
         pass
 
     def register(self, *args, **kwargs):
@@ -45,16 +39,6 @@ class AbstractStorageProvider():
         """
         pass
 
-    def get_credentials(
-            self, 
-            *args, 
-            **kwargs
-            ) -> List[Credential | DeferredCredential]:
-        """
-        Retrieves all credentials
-        """
-        pass
-
     def get_received_credentials(
             self, 
             *args, 
@@ -75,19 +59,29 @@ class AbstractStorageProvider():
         """
         pass
 
+    def all_credentials(
+            self, 
+            *args, 
+            **kwargs
+            ) -> List[Credential | DeferredCredential]:
+        """
+        Retrieves all credentials
+        """
+        pass
+    
     def add_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
         """
         Adds a credential to storage
         """
         pass
 
-    def update_credential(self, cred: Credential | DeferredCredential, *args, **kwargsl):
+    def delete_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
         """
-        Updates a credential already in storage.
+        Deletes a credential from storage
         """
         pass
 
-    def update_credentials(self, cred: List[Credential | DeferredCredential], *args, **kwargsl):
+    def update_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
         """
         Updates a credential already in storage.
         """
@@ -99,13 +93,7 @@ class AbstractStorageProvider():
         """
         pass
 
-    def upsert_credentials(self, cred: List[Credential | DeferredCredential], *args, **kwargs):
-        """
-        Updates a credential already in storage if it exists, otherwise, adds it.
-        """
-        pass
-
-    def save(self, *args, **kwargs):
+    def save(self):
         """
         Performs operations to push data to persistent storage (e.g. flushing to a 
         database).
