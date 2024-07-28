@@ -1,10 +1,14 @@
 import {
   Card,
+  CardActions,
   CardActionArea,
   CardContent,
   CardHeader,
   Divider,
+  Button,
 } from "@mui/material";
+import { Delete as DeleteIcon } from "@mui/icons-material";
+import { useSubmit } from "@remix-run/react";
 import { Link } from "@remix-run/react";
 import { BaseCredential } from "~/interfaces/Credential/BaseCredential";
 
@@ -13,6 +17,7 @@ export function CredentialCard({
 }: Readonly<{
   credential: BaseCredential;
 }>) {
+  const submit = useSubmit();
   return (
     <Card
       component="article"
@@ -21,7 +26,7 @@ export function CredentialCard({
       <CardActionArea
         component={Link}
         to={credential.id}
-        sx={{ height: "100%" }}
+        sx={{ height: "80%" }}
       >
         <CardHeader
           title={
@@ -37,6 +42,18 @@ export function CredentialCard({
           {"raw_sdjwtvc" in credential ? "Real credential" : "Pending approval"}
         </CardContent>
       </CardActionArea>
+      <CardActions>
+        <Button
+          size="small"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={() => {
+            submit({ id: credential.id }, { method: "post" });
+          }}
+        >
+          Delete
+        </Button>
+      </CardActions>
     </Card>
   );
 }

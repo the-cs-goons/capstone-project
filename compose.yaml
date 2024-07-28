@@ -12,7 +12,7 @@ services:
         source: owner-ui/app
         target: /usr/src/app/app
       - type: bind
-        source: ./vclib/owner/examples/example_ssl_certfile.crt
+        source: ./vclib/holder/examples/example_ssl_certfile.crt
         target: /usr/src/app/example_ssl_ca_bundle.crt
         read_only: true
     env_file:
@@ -24,19 +24,19 @@ services:
       - PORT=$CS3900_OWNER_UI_PORT
       - NODE_EXTRA_CA_CERTS=/usr/src/app/example_ssl_ca_bundle.crt
 
-  owner-lib:
+  holder-lib:
     build:
-      context: ./vclib/owner
+      context: ./vclib/holder
       dockerfile: Dockerfile
       additional_contexts:
         - vclib-root=./vclib
         - root=.
     ports:
-      - $CS3900_OWNER_AGENT_PORT:$CS3900_OWNER_AGENT_PORT
+      - $CS3900_HOLDER_AGENT_PORT:$CS3900_HOLDER_AGENT_PORT
     volumes:
       - type: bind
-        source: vclib/owner/src
-        target: /usr/src/app/vclib/owner/src
+        source: vclib/holder/src
+        target: /usr/src/app/vclib/holder/src
       - type: bind
         source: vclib/common/src
         target: /usr/src/app/vclib/common/src
@@ -73,19 +73,19 @@ services:
       - path: .env
         required: false
 
-  provider-lib:
+  verifier-lib:
     build:
-      context: ./vclib/provider
+      context: ./vclib/verifier
       dockerfile: Dockerfile
       additional_contexts:
         - vclib-root=./vclib
         - root=.
     ports:
-      - $CS3900_SERVICE_AGENT_PORT:$CS3900_SERVICE_AGENT_PORT
+      - $CS3900_VERIFIER_AGENT_PORT:$CS3900_VERIFIER_AGENT_PORT
     volumes:
       - type: bind
-        source: vclib/provider/src
-        target: /usr/src/app/vclib/provider/src
+        source: vclib/verifier/src
+        target: /usr/src/app/vclib/verifier/src
       - type: bind
         source: vclib/common/src
         target: /usr/src/app/vclib/common/src
@@ -95,3 +95,6 @@ services:
         required: true
       - path: .env
         required: false
+    environment:
+      - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
+      - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt
