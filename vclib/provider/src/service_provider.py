@@ -1,83 +1,180 @@
 from uuid import uuid4
 
-import jwt
-import requests
-from fastapi import FastAPI, Form
+from fastapi import FastAPI, HTTPException
+from jsonpath_ng.ext import parse as parse_jsonpath
+from jwcrypto.jwk import JWK
+
+from vclib.common import SDJWTVCVerifier
+from vclib.common.src.metadata import DIDJSONResponse
 
 from .models.authorization_request_object import AuthorizationRequestObject
+from .models.authorization_response_object import AuthorizationResponseObject
+from .models.presentation_definition import PresentationDefinition
 
 
 class ServiceProvider:
+    valid_nonces: set[str]
+
     def __init__(
         self,
+        presentation_definitions: dict[str, PresentationDefinition],
+        diddoc_path: str,
+        base_url: str,
+        extra_provider_metadata: dict = {},
     ):
-        """Initialise the service provider with a list of CA bundle"""
-        self.used_nonces = set()
+        """
+        Initialise the service provider.
+
+        ### Parameters
+        - presentation_definitions(`dict[str, PresentationDefinition]`): A map
+          from a string identifying the request type to the corresponding
+          presentation definition
+        """
+        self.valid_nonces = set()
+        self.presentation_definitions = presentation_definitions
+        self.base_url = base_url
+        self.extra_provider_metadata = extra_provider_metadata
+
+        try:
+            with open(diddoc_path, "rb") as diddoc_file:
+                self.diddoc = DIDJSONResponse.model_validate_json(diddoc_file.read())
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find DIDDoc: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid DIDDoc provided: {e}")
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
-        router.post("/request/{request_type}")(self.fetch_authorization_request)
+        router.get("/.well-known/did.json")(self.get_did_json)
+        router.get("/presentationdefs")(self.get_presentation_definition)
+        router.post("/request/{ref}")(self.fetch_authorization_request)
         router.post("/cb")(self.parse_authorization_response)
         return router
 
-    async def parse_authorization_response(
-        self,
-        vp_token: str | list[str] = Form(...),
-        presentation_submission=Form(...),
-        state=Form(...),
-    ):
-        # TODO: verify the auth_response and tell the wallet whether or not
-        # it has been successful or not
-        return {
-            "vp_token": vp_token,
-            "presentation_submission": presentation_submission,
-            "state": state,
-        }
+    async def get_did_json(self) -> DIDJSONResponse:
+        return self.diddoc
 
-    # fetches and sends back the requested request object
-    # accessed through request_uri embedded in QR code
-    # should be overridden to fit verifier's needs
+    async def get_presentation_definition(self, ref: str) -> PresentationDefinition:
+        if ref not in self.presentation_definitions:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Presentation definition matching ref '{ref}' not found",
+            )
+        return self.presentation_definitions[ref]
+
+    # TODO doc string
     async def fetch_authorization_request(
         self,
-        request_type: str,
-        wallet_metadata: str = Form(...),
-        wallet_nonce: str = Form(...),
+        ref: str,
+        wallet_metadata: dict | None = None,
+        wallet_nonce: str | None = None,
     ) -> AuthorizationRequestObject:
-        pass
+        if ref not in self.presentation_definitions:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Reference {ref} is not an accepted presentation definition",
+            )
 
-    def generate_nonce(self):
-        return str(uuid4())
+        while (nonce := str(uuid4())) in self.valid_nonces:
+            pass
+        self.valid_nonces.add(nonce)
 
-    def fetch_did_document(self, did_url):
-        """fetch the did document from endpoint"""
-        response = requests.get(did_url + "./well-known/did.json")
-        if response.status_code == 200:
-            return response.json()
+        return AuthorizationRequestObject(
+            client_id=self.diddoc.id,
+            client_metadata=self.extra_provider_metadata,
+            presentation_definition=self.presentation_definitions[ref],
+            response_uri=f"{self.base_url}/cb",
+            nonce=nonce,
+            wallet_nonce=wallet_nonce,
+        )
 
-        raise Exception(f"Failed to fetch DID document from {did_url}")
+    # TODO doc string
+    async def parse_authorization_response(
+        self, auth_response: AuthorizationResponseObject
+    ):
+        # get presentation definition
+        if (
+            auth_response.presentation_submission.definition_id
+            not in self.presentation_definitions
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Specified definition_id does not match a supported presentation definition",  # noqa: E501
+            )
+        presentation_definition = self.presentation_definitions[
+            auth_response.presentation_submission.definition_id
+        ]
 
-    def verify_jwt(self, token: str, did_url: str, nonce: str) -> dict:
-        """Take in the JWT and verify with the did"""
-        did_doc = self.fetch_did_document(did_url)
-        header = jwt.get_unverified_header(token)
-        kid = header["kid"]
+        # get presented fields
+        presented_tokens = {}
+        for descriptor in auth_response.presentation_submission.descriptor_map:
+            try:
+                match = parse_jsonpath(descriptor.path).find(auth_response.vp_token)
+            except Exception:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid JSONPath for descriptor {descriptor.id}",
+                )
+            if len(match) != 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"JSONPath for descriptor {descriptor.id} did not match exactly one field",  # noqa: E501
+                )
+            presented_tokens[descriptor.id] = match[0].value
 
-        # Find the public key in the DID document
-        for vm in did_doc["verificationMethod"]:
-            if vm["id"] == kid:
-                public_key = vm["publicKeyJwk"]
-                # Convert public key into a format usable by PyJWT
-                public_key = jwt.algorithms.ECAlgorithm.from_jwk(public_key)
+        # verify jwts
+        disclosed_fields = {}
+        try:
+            for token in presented_tokens.values():
+                disclosed_field = SDJWTVCVerifier(
+                    token, self.cb_get_issuer_key
+                ).get_verified_payload()
+                if not isinstance(disclosed_fields, dict):
+                    raise Exception("Selective disclosures not in key-value pairs")
+                disclosed_fields |= disclosed_field
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"JWT verification failed: {e}")
 
-                # Verify the JWT using the public key
-                try:
-                    return jwt.decode(
-                        token,
-                        key=public_key,
-                        algorithms=["ES256"],
-                        options={"verify_exp": False},
-                    )
-                except Exception as e:
-                    raise Exception("JWT verification failed: " + str(e))
+        self.validate_disclosed_fields(presentation_definition, disclosed_fields)
 
-        raise Exception("Verification method not found or invalid token.")
+        return {"status": "OK"}
+
+    def create_presentation_qr_code(
+        self, presentation_definition_key: str, image_path: str
+    ):
+        """### Parameters
+        - presentation_definition_key(`str`): The key in the `presentation_definitions`
+          dict matching the desired presentation definition
+        - image_path(`str`): Where to save the QR code image
+        """
+        # img = qrcode.make(f"request_uri={self.base_url}/authorize/presentation_definition_uri={self.base_url}/presentationdefs?ref={presentation_definition_key}")  # noqa: E501
+        # img.save(image_path)
+
+    def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
+        """## !!! This function must be `@override`n !!!
+
+        ### Parameters
+        - iss(`str`): JWT issuer claim (URI)
+        - headers(`dict`): Presented JWT headers
+
+        ### Returns
+        - `JWK`: The trusted issuer's JWK
+
+        ### Raises
+        - `Exception`: If the issuer is not trusted
+        """
+
+    def validate_disclosed_fields(
+        self, presentation_definition: PresentationDefinition, disclosed_fields: dict
+    ) -> bool:
+        """## !!! This function must be `@override`n !!!
+
+        ### Parameters
+        - presentation_definition(`PresentationDefinition`): Relevant presentation
+          definition
+        - disclosed_fields(`dict`): Fields disclosed in presentation
+
+        ### Raises
+        - `Exception`: If the disclosed fields are not satisfactory (by whatever
+          standard)
+        """
