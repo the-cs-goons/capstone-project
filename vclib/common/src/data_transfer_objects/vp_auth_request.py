@@ -28,7 +28,7 @@ class Filter(BaseModel):
     # String filters
     min_length: int | None = None
     max_length: int | None = None
-    pattern: str | None = None  # regex matchw
+    pattern: str | None = None  # regex match
     # Numeric filters
     # exclusive min/max denote whether the min or max should be included
     # in the range
