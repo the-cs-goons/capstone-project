@@ -1,0 +1,9 @@
+{
+  "redirect_uris": ["https://holder-lib:8081/redirect"],
+  "credential_offer_endpoint": "https://holder-lib:8081/credentials/offer",
+  "token_endpoint_auth_method": "client_secret_basic",
+  "grant_types": ["authorization_code"],
+  "response_types": ["code"],
+  "authorization_details_types": ["openid_credential"],
+  "client_name": "Example SSI Wallet"
+}
