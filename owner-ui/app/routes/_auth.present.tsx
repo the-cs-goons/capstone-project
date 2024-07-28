@@ -15,14 +15,14 @@ export async function action({ request }: ActionFunctionArgs) {
   switch (body.intent) {
     case "choose-cred":
       resp = await fetch(
-        `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/presentation/init?${body.query}`,
+        `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/presentation/init?${body.query}`,
       );
       data = await resp.json();
       return json(data);
 
     case "present-cred":
       resp = await fetch(
-        `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/presentation`,
+        `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/presentation`,
         {
           method: "post",
           headers: {
