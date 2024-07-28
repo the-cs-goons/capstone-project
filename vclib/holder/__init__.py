@@ -18,9 +18,9 @@ from .src.models.oauth import AuthorizationDetails as AuthorizationDetails
 from .src.models.oauth import OAuthTokenResponse as OAuthTokenResponse
 from .src.models.request_body import CredentialSelection as CredentialSelection
 from .src.storage.abstract_storage_provider import (
-    AbstractStorageProvider as AbstractStorageProvider
+    AbstractStorageProvider as AbstractStorageProvider,
 )
 from .src.storage.local_storage_provider import (
-    LocalStorageProvider as LocalStorageProvider
+    LocalStorageProvider as LocalStorageProvider,
 )
 from .src.web_holder import WebIdentityOwner as WebIdentityOwner

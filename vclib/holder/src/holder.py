@@ -16,7 +16,6 @@ from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
-
 from .storage.local_storage_provider import LocalStorageProvider
 
 
@@ -185,7 +184,7 @@ class Holder:
         if obj.get("is_deferred"):
             return DeferredCredential.model_validate(obj)
         return Credential.model_validate(obj)
-    
+
     def store_credential(self, cred: Credential):
         """## !!! This function MUST be `@override`n !!!
 
@@ -700,4 +699,4 @@ class Holder:
     ### User-defined functions, designed to be overwritten
     ###
 
-    
+

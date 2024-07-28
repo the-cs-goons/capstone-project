@@ -104,7 +104,7 @@ class DemoWebIdentityOwner(WebIdentityOwner):
         return await super().register_client(
             registration_url, issuer_uri, wallet_metadata=wallet_metadata
         )
-    
+
 
 
 

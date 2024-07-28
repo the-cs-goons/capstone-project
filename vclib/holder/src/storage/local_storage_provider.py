@@ -1,15 +1,21 @@
 from dataclasses import dataclass
-from sqlite3 import Cursor, connect, Connection, Row, register_adapter, register_converter
-from typing import List, Optional
 from pathlib import Path
+from sqlite3 import (
+    Connection,
+    Cursor,
+    Row,
+    connect,
+    register_adapter,
+    register_converter,
+)
 from uuid import uuid4
 
 from argon2 import PasswordHasher
-from pyzipper import AESZipFile, ZIP_LZMA, WZ_AES
+from pyzipper import WZ_AES, ZIP_LZMA, AESZipFile
 
-from .abstract_storage_provider import AbstractStorageProvider
 from vclib.holder.src.models.credentials import Credential, DeferredCredential
 
+from .abstract_storage_provider import AbstractStorageProvider
 
 DEFAULT_WALLET_DIRECTORY = ".vclib_wallet_data"
 CONFIG_FILE = "vclib_wallet_config.db"
@@ -41,9 +47,9 @@ CREATE TABLE credentials (
     raw_vc TEXT NOT NULL,
     received_at DATETIME NOT NULL,
 
-	FOREIGN KEY (credential_id) 
-    REFERENCES credential_info (id) 
-            ON DELETE CASCADE 
+	FOREIGN KEY (credential_id)
+    REFERENCES credential_info (id)
+            ON DELETE CASCADE
             ON UPDATE CASCADE
 );
 
@@ -54,23 +60,21 @@ CREATE TABLE deferred_credentials (
     last_request DATETIME NOT NULL,
     access_token TEXT NOT NULL,
 
-    FOREIGN KEY (credential_id) 
-    REFERENCES credential_info (id) 
-            ON DELETE CASCADE 
+    FOREIGN KEY (credential_id)
+    REFERENCES credential_info (id)
+            ON DELETE CASCADE
             ON UPDATE CASCADE
 );
 """
 
 def dict_factory(cursor: Cursor, row: Row):
-    """
-    Ripped straight out of the sqlite3 row factory example, to make model
-    validation easier.
-    https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory
-    """
+    # Ripped straight out of the sqlite3 row factory example, to make model
+    # validation easier.
+    # https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory
     fields = [column[0] for column in cursor.description]
-    return {key: value for key, value in zip(fields, row)}
+    return {key: value for key, value in zip(fields, row)} # noqa: C416
 
-# Register some adapters to work with boolean types
+# SQLite uses booleans as an alias for int (0, 1)
 register_adapter(bool, int)
 register_converter("BOOLEAN", lambda v: bool(int(v)))
 
@@ -109,43 +113,44 @@ class LocalStorageProvider(AbstractStorageProvider):
     LOCAL_CONFIG_SCHEMA = CONFIG_SCHEMA
     LOCAL_CREDENTIAL_SCHEMA = WALLET_SCHEMA
 
+    # Aliases all columns so that they can be quickly converted
+    # to a [Deferred]Credential object
     CREDENTIAL_QUERY = """
     SELECT c_info.id AS id,
-    c_info.issuer_name AS issuer_name, 
-    c_info.issuer_url AS issuer_url, 
-    c_info.config_id AS credential_configuration_id, 
-    c_info.config_name AS credential_configuration_name, 
-    c_info.type AS c_type, 
-    c_info.deferred AS is_deferred, 
-    creds.raw_vc AS raw_sdjwtvc, 
+    c_info.issuer_name AS issuer_name,
+    c_info.issuer_url AS issuer_url,
+    c_info.config_id AS credential_configuration_id,
+    c_info.config_name AS credential_configuration_name,
+    c_info.type AS c_type,
+    c_info.deferred AS is_deferred,
+    creds.raw_vc AS raw_sdjwtvc,
     creds.received_at AS received_at
-    FROM credential_info AS c_info 
-    INNER JOIN credentials AS creds 
+    FROM credential_info AS c_info
+    INNER JOIN credentials AS creds
     ON c_info.id = creds.credential_id
     """
-
     DEFERRED_QUERY = """
     SELECT c_info.id AS id,
-    c_info.issuer_name AS issuer_name, 
-    c_info.issuer_url AS issuer_url, 
-    c_info.config_id AS credential_configuration_id, 
-    c_info.config_name AS credential_configuration_name, 
-    c_info.type AS c_type, 
-    c_info.deferred AS is_deferred, 
+    c_info.issuer_name AS issuer_name,
+    c_info.issuer_url AS issuer_url,
+    c_info.config_id AS credential_configuration_id,
+    c_info.config_name AS credential_configuration_name,
+    c_info.type AS c_type,
+    c_info.deferred AS is_deferred,
     d_creds.tx_id AS transaction_id,
     d_creds.deferred_endpoint AS deferred_credential_endpoint,
     d_creds.last_request AS last_request,
     d_creds.access_token AS access_token
-    FROM credential_info AS c_info 
-    INNER JOIN deferred_credentials AS d_creds 
+    FROM credential_info AS c_info
+    INNER JOIN deferred_credentials AS d_creds
     ON c_info.id = d_creds.credential_id
     """
 
     @dataclass
     class ActiveUser:
         """
-        A helper class, to keep track of information about the "active user". 
-        
+        A helper class, to keep track of information about the "active user".
+
         This is specific to this particular storage implementation, so it's defined
         here.
         """
@@ -156,30 +161,30 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     storage_dir_path: Path
     config_db_path: Path
-    active_user: Optional[ActiveUser]
+    active_user: ActiveUser | None
 
     # Using argon2 for hashing.
     _pwd_hasher = PasswordHasher()
 
-    def __init__(self, 
-                 *args, 
-                 storage_dir_path: str = None, 
+    def __init__(self,
+                 *args,
+                 storage_dir_path: str | None = None,
                  **kwargs
                  ):
         """
         TODO
         """
-        
+
         # Resolve storage path
         if storage_dir_path:
-            # If a different path is specified, it's up to the developer to ensure 
+            # If a different path is specified, it's up to the developer to ensure
             # they're doing the right thing with any relative paths
             self.storage_dir_path = Path(storage_dir_path).resolve()
         else:
-            # If a path isn't given, the directory will be named 
+            # If a path isn't given, the directory will be named
             # DEFAULT_WALLET_DIRECTORY and located under the user's home path.
             self.storage_dir_path = Path.home().joinpath(DEFAULT_WALLET_DIRECTORY)
-        
+
         if self.storage_dir_path.exists():
             if not self.storage_dir_path.is_dir():
                 raise Exception(
@@ -203,21 +208,21 @@ class LocalStorageProvider(AbstractStorageProvider):
     def _check_storage_directory(self):
         # Check directory structure
         config_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
-        
+
         if not config_path.exists():
             raise Exception(
                 f"Wallet data missing {config_path} file."
             )
-        
+
     def _save_db_to_zip(self):
         # NOTE: AESZipFile is an extension of zipfile.ZipFile, from Python 3.7.
-        # It's compatible with Python 3.12, but not everything in zipfile.Zipfile 
+        # It's compatible with Python 3.12, but not everything in zipfile.Zipfile
         # from Python 3.12. If working with this class, check the 3.7 docs:
         # https://docs.python.org/3.7/library/zipfile.html
 
         if not self.active_user:
             return
-        
+
         with AESZipFile(
             str(self.active_user.store),
             mode="a", # Append mode
@@ -225,17 +230,17 @@ class LocalStorageProvider(AbstractStorageProvider):
             encryption=WZ_AES
             ) as u_zip:
             u_zip.setpassword(self.active_user.secret)
-            
+
             # Writes the sqlite dump into the AESZipFile Object
             u_zip.writestr(
-                self.LOCAL_U_WALLET_FILENAME, 
+                self.LOCAL_U_WALLET_FILENAME,
                 self.active_user.db.serialize()
                 )
-            
+
     def _check_active_user(self):
         if not self.active_user:
             raise Exception("No current active user.")
-    
+
     def active_user_name(self) -> str | None:
         """
         TODO
@@ -267,13 +272,13 @@ class LocalStorageProvider(AbstractStorageProvider):
             "pwd": hash,
             "store": store
             }
-        
+
         # Add an entry to config.db
         cursor = con.execute(
             """
             INSERT INTO users VALUES (:username, :pwd, :store)
             RETURNING username, user_store
-            """, 
+            """,
             new_user)
         u = cursor.fetchone()
         cursor.close()
@@ -281,7 +286,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         user_store_path = self.storage_dir_path.joinpath(u["user_store"])
 
         # An in-memory SQLite database that can be regularly serialised
-        u_con = connect(f":memory:")
+        u_con = connect(":memory:")
         u_con.row_factory = dict_factory
 
         # Create tables
@@ -304,7 +309,7 @@ class LocalStorageProvider(AbstractStorageProvider):
 
             u_zip.setpassword(u_secret)
             u_zip.writestr(self.LOCAL_U_WALLET_FILENAME, u_con.serialize())
-            
+
         self.active_user = self.ActiveUser(
             u["username"],
             u_secret,
@@ -319,7 +324,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         # Logout the current user if there is one.
         if self.active_user:
             self.logout()
-        
+
         con = connect(str(self.config_db_path))
         con.row_factory = Row
         with con.execute(
@@ -331,19 +336,19 @@ class LocalStorageProvider(AbstractStorageProvider):
             u = cursor.fetchone()
             if not u:
                 raise Exception("Bad login attempt")
-            
+
             p_hash: str = u["secret_hash"]
             try:
                 self._pwd_hasher.verify(p_hash, password)
             except Exception:
                 raise Exception("Bad login attempt")
         con.close()
-            
+
         user_store_path = self.storage_dir_path.joinpath(u["user_store"])
         user_secret = password.encode()
 
         # An in-memory SQLite database that can be regularly serialised
-        u_con = connect(f":memory:")
+        u_con = connect(":memory:")
 
         # Extract db dump from zip, then close
         with AESZipFile(
@@ -353,9 +358,9 @@ class LocalStorageProvider(AbstractStorageProvider):
             encryption=WZ_AES
             ) as u_zip:
             u_zip.setpassword(user_secret)
-            
+
             u_con.deserialize(u_zip.read(self.LOCAL_U_WALLET_FILENAME))
-            
+
         self.active_user = self.ActiveUser(
             username,
             password.encode(),
@@ -398,21 +403,19 @@ class LocalStorageProvider(AbstractStorageProvider):
         cursor: Cursor
         with self.active_user.db.execute(query, {"cred_id": cred_id}) as cursor:
             c = cursor.fetchone()
-            credential = Credential.model_validate(c)
-            return credential
-        
+            return Credential.model_validate(c)
+
     def _get_deferred_cred(self, cred_id: str) -> DeferredCredential:
         query = self.DEFERRED_QUERY + "WHERE c_info.id = :cred_id"
         cursor: Cursor
         with self.active_user.db.execute(query, {"cred_id": cred_id}) as cursor:
             c = cursor.fetchone()
-            credential = DeferredCredential.model_validate(c)
-            return credential
+            return DeferredCredential.model_validate(c)
 
-    def get_received_credentials(self) -> List[Credential]:
+    def get_received_credentials(self) -> list[Credential]:
         """
         Retrieves all non-deferred credentials
-        
+
         ### Returns
         - (`List[Credentia]l`): A list of credentials
         """
@@ -423,10 +426,10 @@ class LocalStorageProvider(AbstractStorageProvider):
             creds = cursor.fetchall()
             return [Credential.model_validate(c) for c in creds]
 
-    def get_deferred_credentials(self) -> List[DeferredCredential]:
+    def get_deferred_credentials(self) -> list[DeferredCredential]:
         """
         Retrieves all deferred credentials
-        
+
         ### Returns
         - (`List[DeferredCredentia]l`): A list of deferred credentials
         """
@@ -437,7 +440,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             creds = cursor.fetchall()
             return [DeferredCredential.model_validate(c) for c in creds]
 
-    def all_credentials(self) -> List[Credential | DeferredCredential]:
+    def all_credentials(self) -> list[Credential | DeferredCredential]:
         """
         Retrieves all credentials, deferred or otherwise
 
@@ -450,29 +453,33 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         Adds a credential to storage
         """
-        pass
+        self._check_active_user()
+        self.save()
 
     def delete_credential(self, cred: Credential | DeferredCredential):
         """
         Deletes a credential from storage
         """
-        pass
+        self._check_active_user()
+        self.save()
 
     def update_credential(self, cred: Credential | DeferredCredential):
         """
         Updates a credential already in storage.
         """
-        pass
+        self._check_active_user()
+        self.save()
 
     def upsert_credential(self, cred: Credential | DeferredCredential):
         """
         Updates a credential already in storage if it exists, otherwise, adds it.
         """
-        pass
+        self._check_active_user()
+        self.save()
 
     def save(self, *, close=False):
         """
-        Performs operations to push data to persistent storage (e.g. flushing to a 
+        Performs operations to push data to persistent storage (e.g. flushing to a
         database).
         Implementation specific.
         """
@@ -483,4 +490,4 @@ class LocalStorageProvider(AbstractStorageProvider):
             del self.active_user
             self.active_user = None
 
-        
+
