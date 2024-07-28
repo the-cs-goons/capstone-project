@@ -199,7 +199,7 @@ class WebIdentityOwner(Holder):
     ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
-        print(self.current_transaction)
+        # print(self.current_transaction)
         # list[Field]
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
@@ -269,7 +269,7 @@ class WebIdentityOwner(Holder):
             descriptor_map = {
                 "id": input_descriptor_id,
                 "format": "vc+sd-jwt",
-                "path": "$.vp_token",
+                "path": "$",
             }
             descriptor_maps.append(
                 vp_auth_response.DescriptorMapObject(**descriptor_map)
@@ -299,6 +299,7 @@ class WebIdentityOwner(Holder):
             state=transaction_id,
         )
 
+        print(authorization_response)
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
