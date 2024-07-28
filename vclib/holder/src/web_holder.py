@@ -80,9 +80,6 @@ class WebIdentityOwner(Holder):
         # Might change this later from /add to something else
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
 
-        router.get("/register-start")(self.generate_registration)
-        router.post("/register-verify")(self.confirm_registration)
-
         return router
 
     async def get_credential(
