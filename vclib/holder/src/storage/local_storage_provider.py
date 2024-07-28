@@ -172,7 +172,12 @@ class LocalStorageProvider(AbstractStorageProvider):
                  **kwargs
                  ):
         """
-        TODO
+        Creates a new local storage provider.
+
+        ### Parameters:
+        - storage_dir_path(`str | None`): Optionally, a path to a directory to create
+        or expect the directory containing wallet data. If provided, this MUST be
+        a directory. If not provided, will default to `Path.home()`
         """
 
         # Resolve storage path
@@ -199,7 +204,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         self.storage_dir_path.mkdir(mode=0o660)
 
         # Create the config file. This file is unprotected, nothing sensitive goes
-        # in this file.
+        # in this file. There are password hashes, but they are salted. All you can
+        # achieve by attempting to overwrite these hashes is prevent someone from
+        # being able to login.
         self.config_db_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
         con = connect(str(self.config_db_path))
         con.executescript(self.LOCAL_CONFIG_SCHEMA)
@@ -241,31 +248,51 @@ class LocalStorageProvider(AbstractStorageProvider):
         if not self.active_user:
             raise Exception("No current active user.")
 
-    def active_user_name(self) -> str | None:
+    def get_active_user_name(self) -> str | None:
         """
-        TODO
+        Gets the username of the active user, if there is one
+
+        ### Returns
+        - `str | None`: `None` if there is no active user, otherwise,
+        the active user's username.
         """
         if self.active_user:
             return self.active_user.username
         return None
 
+    def get_db_conn(self) -> Connection:
+        """
+        Gets the sqlite3 Connection tied to the in-memory database.
+
+        ### Returns
+        - `Connection`: a `sqlite3.Connection` tied to an in-memory SQLite database
+        """
+        if not self.active_user:
+            raise Exception("No current user.")
+        return self.active_user.db
+
     def register(self, username: str, password: str):
         """
         Performs the necessary operations associated with 'registering' a new
-        wallet/user for this storage implementation.
-        - Adds entry to config.db
-        - Creates a new ZIP archive corresponding to the entry in LOCAL_CONFIG_FILE
-            - Creates a new sqlite db to the ZIP archvie
-        - Sets the active user, with references to in-memory objects
-        TODO
+        wallet/user for this storage implementation:
+        - Checks the username is not taken
+        - Adds an entry to the configuration file
+        - Initialises persistent storage for the new user at a generated path
+        - Opens an in-memory database
+
+        ### Parameters:
+        - username(`str`): The username being registered
+        - password(`str`): The password associated with the registration
         """
         store = uuid4().hex
-        con = connect(str(self.config_db_path))
-        con.row_factory = Row
+        config = connect(str(self.config_db_path))
+        config.row_factory = Row
+
+        u_secret = password.encode()
 
         # Storing a hash isn't actually necessary for how this storage mechanism
         # works, but it makes error handling on a bad login attempt easier.
-        hash = self._pwd_hasher.hash(password)
+        hash = self._pwd_hasher.hash(u_secret)
 
         new_user = {
             "username": username,
@@ -274,7 +301,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             }
 
         # Add an entry to config.db
-        cursor = con.execute(
+        cursor = config.execute(
             """
             INSERT INTO users VALUES (:username, :pwd, :store)
             RETURNING username, user_store
@@ -283,32 +310,37 @@ class LocalStorageProvider(AbstractStorageProvider):
         u = cursor.fetchone()
         cursor.close()
 
-        user_store_path = self.storage_dir_path.joinpath(u["user_store"])
+        # Make sure all steps succeed before comitting new user
+        try:
+            user_store_path = self.storage_dir_path.joinpath(u["user_store"])
 
-        # An in-memory SQLite database that can be regularly serialised
-        u_con = connect(":memory:")
-        u_con.row_factory = dict_factory
+            # An in-memory SQLite database that can be regularly serialised
+            u_con = connect(":memory:")
+            u_con.row_factory = dict_factory
 
-        # Create tables
-        cursor = u_con.executescript(self.LOCAL_CREDENTIAL_SCHEMA)
-        cursor.close()
+            # Create tables
+            cursor = u_con.executescript(self.LOCAL_CREDENTIAL_SCHEMA)
+            cursor.close()
 
-        # Commit
-        u_con.commit()
+            # Commit
+            u_con.commit()
 
-        u_secret = password.encode()
+            # Save empty DB to zip, creating in 'x' mode. this should happen once.
+            # Use as context manager to ensure ZIP gets closed.
+            with AESZipFile(
+                str(user_store_path),
+                mode="x", # NOT execute, x creates a new file
+                compression=ZIP_LZMA,
+                encryption=WZ_AES
+                ) as u_zip:
 
-        # Save empty DB to zip, creating in 'x' mode. this should happen once.
-        # Use as context manager to ensure ZIP gets closed.
-        with AESZipFile(
-            str(user_store_path),
-            mode="x", # NOT execute, x creates a new file
-            compression=ZIP_LZMA,
-            encryption=WZ_AES
-            ) as u_zip:
-
-            u_zip.setpassword(u_secret)
-            u_zip.writestr(self.LOCAL_U_WALLET_FILENAME, u_con.serialize())
+                u_zip.setpassword(u_secret)
+                u_zip.writestr(self.LOCAL_U_WALLET_FILENAME, u_con.serialize())
+        except Exception:
+            config.rollback()
+            raise Exception("Registration failed")
+        finally:
+            config.close()
 
         self.active_user = self.ActiveUser(
             u["username"],
@@ -319,7 +351,15 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     def login(self, username: str, password: str):
         """
-        TODO
+        Performs the necessary operations associated with 'logging in' to a
+        wallet as a user for this storage implementation:
+        - Checks the argon2 hash of the given password in config.db
+        - If verified, attempts to use the given password to decrypt from
+        storage.
+
+        ### Parameters:
+        - username(`str`): The username being logged into
+        - password(`str`): The password used to try log in
         """
         # Logout the current user if there is one.
         if self.active_user:
@@ -370,9 +410,15 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     def logout(self):
         """
-        TODO
+        Performs the necessary operations associated with 'logging out' a
+        user and locking their wallet for this storage implementation:
+        - Saves the in-memory SQLite database to disk in a ZIP archive
+        - Closes & destroys the in-memory database
+        - Clears the active user
         """
-        self.save(close=True)
+        self.save(close_after=True)
+        del self.active_user
+        self.active_user = None
 
     def get_credential(self, cred_id: str) -> Credential | DeferredCredential:
         """
@@ -390,7 +436,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         WHERE id = :c_id
         """
         cursor: Cursor
-        with self.active_user.db.execute(check_exists, {"c_id": cred_id}) as cursor:
+        with self.get_db_conn().execute(check_exists, {"c_id": cred_id}) as cursor:
             c = cursor.fetchone()
             if not c:
                 raise Exception(f"Credential {cred_id} not found.")
@@ -401,14 +447,14 @@ class LocalStorageProvider(AbstractStorageProvider):
     def _get_received_cred(self, cred_id: str) -> Credential:
         query = self.CREDENTIAL_QUERY + "WHERE c_info.id = :cred_id"
         cursor: Cursor
-        with self.active_user.db.execute(query, {"cred_id": cred_id}) as cursor:
+        with self.get_db_conn().execute(query, {"cred_id": cred_id}) as cursor:
             c = cursor.fetchone()
             return Credential.model_validate(c)
 
     def _get_deferred_cred(self, cred_id: str) -> DeferredCredential:
         query = self.DEFERRED_QUERY + "WHERE c_info.id = :cred_id"
         cursor: Cursor
-        with self.active_user.db.execute(query, {"cred_id": cred_id}) as cursor:
+        with self.get_db_conn().execute(query, {"cred_id": cred_id}) as cursor:
             c = cursor.fetchone()
             return DeferredCredential.model_validate(c)
 
@@ -422,7 +468,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         self._check_active_user()
         query = self.CREDENTIAL_QUERY
         cursor: Cursor
-        with self.active_user.db.execute(query) as cursor:
+        with self.get_db_conn().execute(query) as cursor:
             creds = cursor.fetchall()
             return [Credential.model_validate(c) for c in creds]
 
@@ -436,7 +482,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         self._check_active_user()
         query = self.DEFERRED_QUERY
         cursor: Cursor
-        with self.active_user.db.execute(query) as cursor:
+        with self.get_db_conn().execute(query) as cursor:
             creds = cursor.fetchall()
             return [DeferredCredential.model_validate(c) for c in creds]
 
@@ -449,45 +495,309 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         return self.get_received_credentials().extend(self.get_deferred_credentials())
 
-    def add_credential(self, cred: Credential | DeferredCredential):
+    def add_credential(
+            self,
+            cred: Credential | DeferredCredential,
+            *,
+            save_after=True
+            ):
         """
         Adds a credential to storage
+
+        ### Parameters
+        - cred(`Credential | DeferredCredential`): The credential to add
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
         """
         self._check_active_user()
-        self.save()
+        params = cred.model_dump()
+        try:
+            cursor = self.get_db_conn().execute(
+                """
+                INSERT INTO credential_info (id, issuer_name, issuer_url, config_id,
+                config_name, type, deferred)
+                VALUES (:id, :issuer_name, :issuer_url, :credential_configuration_id,
+                :credential_configuration_name, :is_deferred, :c_type)
+                """,
+                params
+            )
+            if isinstance(cred, Credential):
+                cursor.execute(
+                """
+                INSERT INTO credentials (credential_id, raw_vc, received_at)
+                VALUES (:id, :raw_sdjwtvc, :received_at)
+                """,
+                params
+                )
+            else:
+                cursor.execute(
+                """
+                INSERT INTO deferred_credentials (credential_id, tx_id,
+                deferred_endpoint, last_request, access_token)
+                VALUES (:id, :transaction_id, :deferred_credential_endpoint,
+                :last_request, :access_token)
+                """,
+                params
+                )
+        except Exception as e:
+            self.get_db_conn().rollback()
+            raise Exception(f"Credential could not be added: {e}")
+        finally:
+            cursor.close()
+        if save_after:
+            self.save()
 
-    def delete_credential(self, cred: Credential | DeferredCredential):
+    def delete_credential(
+            self,
+            cred_id: str,
+            *,
+            save_after=True
+            ):
         """
         Deletes a credential from storage
+
+        ### Parameters
+        - cred_id(`str`): The ID of the credential to delete.
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
         """
         self._check_active_user()
-        self.save()
+        # Other tables will be handled thanks to CASCADE
+        cursor = self.get_db_conn().execute(
+            "DELETE FROM credential_info WHERE credential_id = :cred_id",
+            {"cred_id": cred_id}
+            )
+        cursor.close()
+        if save_after:
+            self.save()
 
-    def update_credential(self, cred: Credential | DeferredCredential):
+    def update_credential(
+            self,
+            cred: Credential | DeferredCredential,
+            *,
+            save_after=True
+            ):
         """
         Updates a credential already in storage.
+        Handles updating a previously deferred credential, the credential
+        passed MUST not have an altered ID.
+
+        ### Parameters
+        - cred(`Credential | DeferredCredential`): The credential to update.
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
         """
         self._check_active_user()
-        self.save()
+        params = cred.model_dump()
 
-    def upsert_credential(self, cred: Credential | DeferredCredential):
+        check_prev = """
+        SELECT id, deferred FROM credential_info
+        WHERE id = :id
         """
-        Updates a credential already in storage if it exists, otherwise, adds it.
+        cursor = self.get_db_conn().execute(check_prev, {"c_id": params})
+        was_deferred = cursor.fetchone()["deferred"]
+
+        # This is a complex-ish set of operations, so if one fails, we can
+        # roll back the changes made.
+        try:
+            # Because of foreign key constraints, the credential/deferred
+            # tables need to be updated first.
+            if was_deferred:
+                # Before calling update, this credential was deferred
+                if cred.is_deferred:
+                    # This credential is still deferred.
+                    # The transaction ID wouldn't change. Last request
+                    # definitely will, the other two might in a real-world
+                    # scenario.
+                    cursor.execute(
+                    """
+                    UPDATE deferred_credentials
+                    SET deferred_endpoint = :deferred_credential_endpoint
+                        last_request = :last_request,
+                        access_token = :access_token
+                    WHERE credential_id = :id
+                    """,
+                    params
+                    )
+                else:
+                    # This credential was deferred but has just been received.
+                    # Delete the deferred credential records for this credential
+                    cursor.execute(
+                    "DELETE FROM deferred_credentials WHERE credential_id = :cred_id",
+                    {"cred_id": cred.id}
+                    )
+                    # Populate the recieved credential table
+                    cursor.execute(
+                    """
+                    INSERT INTO credentials (credential_id, raw_vc, received_at)
+                    VALUES (:id, :raw_sdjwtvc, :received_at)
+                    """,
+                    params
+                    )
+            else:
+                # The credential was received previously.
+                # In our implementation as is, the VC should not change, but
+                # in THEORY an issuer might support refreshing or renewing
+                # credentials.
+                cursor.execute(
+                    """
+                    UPDATE credentials
+                    SET raw_vc = :raw_sdjwtvc,
+                        received_at = :received_at
+                    WHERE credential_id = :id
+                    """,
+                    params
+                    )
+
+            # Perform rest of the update.
+            cursor.execute(
+                """
+                UPDATE credential_info
+                SET issuer_name = :issuer_name,
+                    issuer_url = :issuer_url,
+                    config_id = :credential_configuration_id,
+                    config_name = :credential_configuration_name
+                    deferred = :is_deferred
+                    type = :c_type
+                WHERE id = :id
+                """,
+                params
+            )
+        except Exception as e:
+            # Roll back if something went awry along the way.
+            self.get_db_conn().rollback()
+            raise Exception(f"Credential {cred.id} could not be updated: {e}")
+        cursor.close()
+        if save_after:
+            self.save()
+
+    def upsert_credential(
+            self,
+            cred: Credential | DeferredCredential,
+            *,
+            save_after=True
+            ):
+        """
+        Updates OR adds a credential, depending on if it is already in storage
+        or not.
+
+        ### Parameters
+        - cred(`Credential | DeferredCredential`): The credential to add or update
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
         """
         self._check_active_user()
-        self.save()
 
-    def save(self, *, close=False):
+        check_exists = """
+        SELECT id, deferred FROM credential_info
+        WHERE id = :c_id
+        """
+        cursor: Cursor
+        with self.get_db_conn().execute(check_exists, {"c_id": cred.id}) as cursor:
+            exists = cursor.fetchone()
+            if not exists:
+                self.add_credential(cred, save_after)
+            else:
+                self.update_credential(cred, save_after)
+
+    # Most of these 'many' methods could be optomised if we have time.
+    # They're being provided like this so that file I/O operations
+    # can be reduced.
+
+    def add_many(
+            self,
+            creds: list[Credential | DeferredCredential],
+            *,
+            save_after=True
+            ):
+        """
+        Adds many credentials to storage
+
+        ### Parameters
+        - creds(`list[Credential | DeferredCredential]`): The credentials to add
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
+        """
+        try:
+            [self.add_credential(c, save_after=False) for c in creds]
+        except Exception as e:
+            self.get_db_conn().rollback()
+            raise e
+        if save_after:
+            self.save()
+
+    def delete_many(
+            self,
+            cred_ids: list[str],
+            *,
+            save_after=True
+            ):
+        """
+        Deletes selected credentials from storage, by IDs
+
+        ### Parameters
+        - cred_ids(`List[str]`): The IDs of the credentials to delete.
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
+        """
+        try:
+            self.get_db_conn().executemany(
+            "DELETE FROM credential_info WHERE credential_id = :cred_id",
+            tuple([(c_id,) for c_id in cred_ids])
+            )
+        except Exception as e:
+            self.get_db_conn().rollback()
+            raise Exception(f"Problem when deleting credentials: {e}")
+
+        if save_after:
+            self.save()
+
+    def update_many(
+            self,
+            creds: list[Credential | DeferredCredential],
+            *,
+            save_after=True
+            ):
+        """
+        Update many credentials.
+
+        ### Parameters
+        - creds(`list[Credential | DeferredCredential]`): The credentials to add
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
+        """
+        try:
+            [self.update_credential(c, save_after=False) for c in creds]
+        except Exception as e:
+            self.get_db_conn().rollback()
+            raise e
+        if save_after:
+            self.save()
+
+    def upsert_many(
+            self,
+            creds: list[Credential | DeferredCredential],
+            *,
+            save_after=True
+            ):
+        """
+        Update or add many credentials to storage
+
+        ### Parameters
+        - creds(`list[Credential | DeferredCredential]`): Credentials to add or update
+        - save_after(`bool = True`): If True (default), will call `save()` on finish.
+        """
+        try:
+            [self.upsert_credential(c, save_after=False) for c in creds]
+        except Exception as e:
+            self.get_db_conn().rollback()
+            raise e
+        if save_after:
+            self.save()
+
+    def save(self, *, to_disk=True, close_after=False):
         """
         Performs operations to push data to persistent storage (e.g. flushing to a
         database).
         Implementation specific.
         """
         self.active_user.db.commit()
-        self._save_db_to_zip()
-        if close:
+        if to_disk:
+            self._save_db_to_zip()
+        if close_after:
             self.active_user.db.close()
-            del self.active_user
-            self.active_user = None
 
 
