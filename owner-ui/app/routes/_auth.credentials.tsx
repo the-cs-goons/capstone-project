@@ -36,7 +36,7 @@ export const meta: MetaFunction = ({ error }) => {
 
 export async function loader() {
   const resp = await fetch(
-    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials`,
+    `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/credentials`,
     { method: "GET" },
   );
   const data: Array<BaseCredential> = await resp.json();
@@ -46,7 +46,7 @@ export async function loader() {
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
   await fetch(
-    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${body.get("id")}`,
+    `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/credentials/${body.get("id")}`,
     { method: "DELETE" },
   );
   return null;

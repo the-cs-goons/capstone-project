@@ -30,7 +30,7 @@ import { ReactNode } from "react";
 
 export async function loader({ params }: LoaderFunctionArgs) {
   const resp = await fetch(
-    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${params.cred_id}`,
+    `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/credentials/${params.cred_id}`,
     { method: "GET" },
   );
   const credential: BaseCredential = await resp.json();
