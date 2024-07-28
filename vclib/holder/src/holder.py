@@ -36,7 +36,7 @@ class Holder:
     containing an issuer's metadata, stored under the issuer's URI.
 
     - auth_metadata_store(`dict[str, AuthorizationMetadata]`): A dictionary of objects
-    containing an issuer's authorization server, stored under the issuer's URI.
+    containing an issuer's authorization server metadata, stored under the issuer's URI.
     """
 
     def __init__(
@@ -207,12 +207,12 @@ class Holder:
         """
         # Interpret the credential offer
         if credential_offer and credential_offer_uri:
-            raise Exception(
+            raise ValueError(
                 "Can't accept both credential_offer and credential_offer_uri"
             )
 
         if not credential_offer and not credential_offer_uri:
-            raise Exception(
+            raise ValueError(
                 "Neither credential_offer nor credential_offer_uri were provided"
             )
 
@@ -310,7 +310,7 @@ class Holder:
         offer = credential_offer
 
         if credential_configuration_id not in offer.credential_configuration_ids:
-            raise Exception("Not a valid credential_configuration_id")
+            raise ValueError("Not a valid credential_configuration_id")
 
         return await self.get_auth_redirect(
             credential_configuration_id, offer.credential_issuer
@@ -325,7 +325,23 @@ class Holder:
             issuer_url
         )
 
-        # TODO: Check for supported config
+        # Check for supported configurations
+        if not [
+            i
+            for i in self.client_metadata.grant_types
+            if i in auth_metadata.grant_types_supported
+        ]:
+            raise HolderError(
+                "Credential issuer doesn't support any available grant types"
+            )
+        if not [
+            i
+            for i in self.client_metadata.authorization_details_types
+            if i in auth_metadata.authorization_details_types_supported
+        ]:
+            raise HolderError(
+                "Credential issuer doesn't support any available auth_details types"
+            )
 
         # Register as OAuth client
         wallet_metadata = await self.register_client(

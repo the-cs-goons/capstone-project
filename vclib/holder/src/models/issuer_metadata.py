@@ -10,7 +10,6 @@ class IssuerMetadata(BaseModel):
     deferred_credential_endpoint: str | None = Field(default=None)
     notification_endpoint: str | None = Field(default=None)
     credential_configurations_supported: dict
-    credential_identifiers_supported: bool | None = Field(default=None)
     display: Any | None = Field(default=None)
 
 

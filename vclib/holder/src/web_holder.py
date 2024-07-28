@@ -50,8 +50,7 @@ class WebIdentityOwner(Holder):
         """
 
         # Referenced in `get_server`
-        offer_path = urlparse(cred_offer_endpoint).path
-        self._credential_offer_endpoint = offer_path
+        self._credential_offer_endpoint = urlparse(cred_offer_endpoint).path
 
         oauth_client_info = oauth_client_options
         oauth_client_info["redirect_uris"] = redirect_uris
