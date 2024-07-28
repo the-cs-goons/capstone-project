@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from json import dumps, loads
 from pathlib import Path
 from sqlite3 import (
+    PARSE_DECLTYPES,
     Connection,
     Cursor,
     Row,
@@ -58,7 +60,7 @@ CREATE TABLE deferred_credentials (
     tx_id TEXT NOT NULL,
     deferred_endpoint TEXT NOT NULL,
     last_request DATETIME NOT NULL,
-    access_token TEXT NOT NULL,
+    access_token JSON NOT NULL,
 
     FOREIGN KEY (credential_id)
     REFERENCES credential_info (id)
@@ -74,9 +76,18 @@ def dict_factory(cursor: Cursor, row: Row):
     fields = [column[0] for column in cursor.description]
     return {key: value for key, value in zip(fields, row)} # noqa: C416
 
+def convert_boolean(b) -> bool:
+    return bool(int(b))
+
+def convert_json(j) -> dict | list:
+    return loads(j)
+
 # SQLite uses booleans as an alias for int (0, 1)
 register_adapter(bool, int)
-register_converter("BOOLEAN", lambda v: bool(int(v)))
+register_converter("BOOLEAN", convert_boolean)
+
+register_adapter(dict, lambda d: dumps(d))
+register_converter("JSON", convert_json)
 
 class LocalStorageProvider(AbstractStorageProvider):
     """
@@ -184,7 +195,8 @@ class LocalStorageProvider(AbstractStorageProvider):
         if storage_dir_path:
             # If a different path is specified, it's up to the developer to ensure
             # they're doing the right thing with any relative paths
-            self.storage_dir_path = Path(storage_dir_path).resolve()
+            self.storage_dir_path = Path(
+                storage_dir_path).resolve().joinpath(DEFAULT_WALLET_DIRECTORY)
         else:
             # If a path isn't given, the directory will be named
             # DEFAULT_WALLET_DIRECTORY and located under the user's home path.
@@ -201,7 +213,7 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     def _initialise_storage_directory(self):
         # Create directory
-        self.storage_dir_path.mkdir(mode=0o660)
+        self.storage_dir_path.mkdir(mode=0o777)
 
         # Create the config file. This file is unprotected, nothing sensitive goes
         # in this file. There are password hashes, but they are salted. All you can
@@ -315,7 +327,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             user_store_path = self.storage_dir_path.joinpath(u["user_store"])
 
             # An in-memory SQLite database that can be regularly serialised
-            u_con = connect(":memory:")
+            u_con = connect(":memory:", detect_types=PARSE_DECLTYPES)
             u_con.row_factory = dict_factory
 
             # Create tables
@@ -340,6 +352,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             config.rollback()
             raise Exception("Registration failed")
         finally:
+            config.commit()
             config.close()
 
         self.active_user = self.ActiveUser(
@@ -367,28 +380,27 @@ class LocalStorageProvider(AbstractStorageProvider):
 
         con = connect(str(self.config_db_path))
         con.row_factory = Row
-        with con.execute(
-            """
-            SELECT username, secret_hash, user_store FROM users
-            WHERE username = :uname
-            """, {"uname": username}) as cursor:
-            cursor: Cursor
-            u = cursor.fetchone()
-            if not u:
-                raise Exception("Bad login attempt")
+        res = con.execute(
+        """
+        SELECT username, secret_hash, user_store FROM users
+        WHERE username = :username
+        """, {"username": username})
+        u = res.fetchone()
+        if not u:
+            raise Exception("Bad login attempt")
 
-            p_hash: str = u["secret_hash"]
-            try:
-                self._pwd_hasher.verify(p_hash, password)
-            except Exception:
-                raise Exception("Bad login attempt")
+        p_hash: str = u["secret_hash"]
+        try:
+            self._pwd_hasher.verify(p_hash, password)
+        except Exception:
+            raise Exception("Bad login attempt")
         con.close()
 
         user_store_path = self.storage_dir_path.joinpath(u["user_store"])
         user_secret = password.encode()
 
         # An in-memory SQLite database that can be regularly serialised
-        u_con = connect(":memory:")
+        u_con = connect(":memory:", detect_types=PARSE_DECLTYPES)
 
         # Extract db dump from zip, then close
         with AESZipFile(
@@ -435,28 +447,26 @@ class LocalStorageProvider(AbstractStorageProvider):
         SELECT id, deferred FROM credential_info
         WHERE id = :c_id
         """
-        cursor: Cursor
-        with self.get_db_conn().execute(check_exists, {"c_id": cred_id}) as cursor:
-            c = cursor.fetchone()
-            if not c:
-                raise Exception(f"Credential {cred_id} not found.")
-            if c["deferred"]:
-                return self._get_deferred_cred(cred_id)
-            return self._get_received_cred(cred_id)
+        res = self.get_db_conn().execute(check_exists, {"c_id": cred_id})
+        c = res.fetchone()
+        res.close()
+        if not c:
+            raise Exception(f"Credential {cred_id} not found.")
+        if c["deferred"]:
+            return self._get_deferred_cred(cred_id)
+        return self._get_received_cred(cred_id)
 
     def _get_received_cred(self, cred_id: str) -> Credential:
         query = self.CREDENTIAL_QUERY + "WHERE c_info.id = :cred_id"
-        cursor: Cursor
-        with self.get_db_conn().execute(query, {"cred_id": cred_id}) as cursor:
-            c = cursor.fetchone()
-            return Credential.model_validate(c)
+        cursor = self.get_db_conn().execute(query, {"cred_id": cred_id})
+        c = cursor.fetchone()
+        return Credential.model_validate(c)
 
     def _get_deferred_cred(self, cred_id: str) -> DeferredCredential:
         query = self.DEFERRED_QUERY + "WHERE c_info.id = :cred_id"
-        cursor: Cursor
-        with self.get_db_conn().execute(query, {"cred_id": cred_id}) as cursor:
-            c = cursor.fetchone()
-            return DeferredCredential.model_validate(c)
+        cursor = self.get_db_conn().execute(query, {"cred_id": cred_id})
+        c = cursor.fetchone()
+        return DeferredCredential.model_validate(c)
 
     def get_received_credentials(self) -> list[Credential]:
         """
@@ -467,10 +477,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         self._check_active_user()
         query = self.CREDENTIAL_QUERY
-        cursor: Cursor
-        with self.get_db_conn().execute(query) as cursor:
-            creds = cursor.fetchall()
-            return [Credential.model_validate(c) for c in creds]
+        cursor = self.get_db_conn().execute(query)
+        creds = cursor.fetchall()
+        return [Credential.model_validate(c) for c in creds]
 
     def get_deferred_credentials(self) -> list[DeferredCredential]:
         """
@@ -481,10 +490,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         self._check_active_user()
         query = self.DEFERRED_QUERY
-        cursor: Cursor
-        with self.get_db_conn().execute(query) as cursor:
-            creds = cursor.fetchall()
-            return [DeferredCredential.model_validate(c) for c in creds]
+        cursor = self.get_db_conn().execute(query)
+        creds = cursor.fetchall()
+        return [DeferredCredential.model_validate(c) for c in creds]
 
     def all_credentials(self) -> list[Credential | DeferredCredential]:
         """
@@ -493,7 +501,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         ### Returns
         - (`List[DeferredCredential | Credential]`): A list of the user's credentials
         """
-        return self.get_received_credentials().extend(self.get_deferred_credentials())
+        all_creds = self.get_received_credentials()
+        all_creds.extend(self.get_deferred_credentials())
+        return all_creds
 
     def add_credential(
             self,
@@ -516,7 +526,7 @@ class LocalStorageProvider(AbstractStorageProvider):
                 INSERT INTO credential_info (id, issuer_name, issuer_url, config_id,
                 config_name, type, deferred)
                 VALUES (:id, :issuer_name, :issuer_url, :credential_configuration_id,
-                :credential_configuration_name, :is_deferred, :c_type)
+                :credential_configuration_name, :c_type, :is_deferred)
                 """,
                 params
             )
@@ -562,7 +572,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         self._check_active_user()
         # Other tables will be handled thanks to CASCADE
         cursor = self.get_db_conn().execute(
-            "DELETE FROM credential_info WHERE credential_id = :cred_id",
+            "DELETE FROM credential_info WHERE id = :cred_id",
             {"cred_id": cred_id}
             )
         cursor.close()
@@ -688,13 +698,12 @@ class LocalStorageProvider(AbstractStorageProvider):
         SELECT id, deferred FROM credential_info
         WHERE id = :c_id
         """
-        cursor: Cursor
-        with self.get_db_conn().execute(check_exists, {"c_id": cred.id}) as cursor:
-            exists = cursor.fetchone()
-            if not exists:
-                self.add_credential(cred, save_after)
-            else:
-                self.update_credential(cred, save_after)
+        cursor = self.get_db_conn().execute(check_exists, {"c_id": cred.id})
+        exists = cursor.fetchone()
+        if not exists:
+            self.add_credential(cred, save_after)
+        else:
+            self.update_credential(cred, save_after)
 
     # Most of these 'many' methods could be optomised if we have time.
     # They're being provided like this so that file I/O operations
@@ -736,7 +745,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         try:
             self.get_db_conn().executemany(
-            "DELETE FROM credential_info WHERE credential_id = :cred_id",
+            "DELETE FROM credential_info WHERE id = ?",
             tuple([(c_id,) for c_id in cred_ids])
             )
         except Exception as e:
