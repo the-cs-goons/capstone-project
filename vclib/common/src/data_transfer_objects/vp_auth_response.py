@@ -20,4 +20,4 @@ class PresentationSubmissionObject(BaseModel):
 class AuthorizationResponseObject(BaseModel):
     vp_token: str | list[str]
     presentation_submission: PresentationSubmissionObject
-    state: str
+    state: str | None

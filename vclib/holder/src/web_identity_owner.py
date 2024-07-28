@@ -182,7 +182,7 @@ class WebIdentityOwner(Holder):
             )
 
         async with httpx.AsyncClient() as client:
-            response = await client.get(f"{request_uri}")
+            response = await client.post(f"{request_uri}")
 
         # just send the auth request to the frontend for now
         # what the backend sends to the fronend should be up to implementation
@@ -199,7 +199,7 @@ class WebIdentityOwner(Holder):
     ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
-
+        print(self.current_transaction)
         # list[Field]
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved

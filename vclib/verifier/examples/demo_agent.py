@@ -7,17 +7,16 @@ from fastapi import Form, HTTPException
 
 from vclib.common import vp_auth_request
 from vclib.verifier import (
-    ServiceProvider,
+    Verifier,
 )
 
 
-class ExampleServiceProvider(ServiceProvider):
+class DemoVerifier(Verifier):
     # this is an example of how a service provider (verifier) might
     # send/request etc. their presentations etc.
     # For now, I will move forward using request URIs for the wallet
     # to fetch the authorization request
     def __init__(self):
-        super().__init__()
         self.current_transactions = {}
 
         # mapping of req name to req
@@ -48,35 +47,15 @@ class ExampleServiceProvider(ServiceProvider):
 
         super().__init__(
             presentation_definitions={"verify_over_18": verify_over_18_pd},
-            base_url=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}",
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
-
-    @override
-    async def fetch_authorization_request(
-        self,
-        request_type: str,
-        wallet_metadata: str = Form(...),
-        wallet_nonce: str = Form(...),
-    ) -> vp_auth_request.AuthorizationRequestObject:
-        if request_type not in self.auth_requests:
-            raise HTTPException(status_code=404, detail="Request type not found")
-
-        # wallet metadata can be used for auth_request to
-        # conform to wallet's capabilities
-        request = self.auth_requests[request_type]
-
-        transaction_id = f"{uuid.uuid4()}_{int(time.time())}"
-        request.state = transaction_id
-        request.wallet_nonce = wallet_nonce
-        self.current_transactions[transaction_id] = "age_verification"
-        return request
 
     def __create_request_uri_qr(self, request_type: str):
         pass
 
 
-service_provider = ExampleServiceProvider()
+verifier = DemoVerifier()
 
 verify_over_18_pd = {
     "id": "verify_over_18",
@@ -89,7 +68,10 @@ verify_over_18_pd = {
             "constraints": {
                 "fields": [
                     {
-                        "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
+                        "path": [
+                            "$.credentialSubject.is_over_18",
+                            "$.is_over_18"
+                            "$"],
                         "filter": {"type": "string", "enum": ["true"]},
                     }
                 ]
@@ -132,6 +114,6 @@ age_request_data = {
 
 age_request = vp_auth_request.AuthorizationRequestObject(**age_request_data)
 
-service_provider.auth_requests["over_18"] = age_request
+verifier.auth_requests["over_18"] = age_request
 
-service_provider_server = service_provider.get_server()
+verifier_server = verifier.get_server()

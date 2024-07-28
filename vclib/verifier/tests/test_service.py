@@ -5,7 +5,7 @@ from fastapi import HTTPException
 from jwcrypto.jwk import JWK
 
 from vclib.common import vp_auth_request, vp_auth_response
-from vclib.verifier import ServiceProvider
+from vclib.verifier import Verifier
 
 
 @pytest.fixture
@@ -32,15 +32,15 @@ def presentation_definition() -> vp_auth_request.PresentationDefinition:
 
 
 @pytest.fixture
-def service_provider(presentation_definition) -> ServiceProvider:
-    class ExampleServiceProvider(ServiceProvider):
+def verifier(presentation_definition) -> Verifier:
+    class ExampleVerifier(Verifier):
         def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
             with open(
                 f"{os.path.dirname(os.path.abspath(__file__))}/test_issuer_jwk.json"
             ) as f:
                 return JWK.from_json(f.read())  # the only JWK we accept
 
-    return ExampleServiceProvider(
+    return ExampleVerifier(
         presentation_definitions={presentation_definition.id: presentation_definition},
         base_url=f"https://provider-lib:{os.getenv('CS3900_SERVICE_AGENT_PORT')}",
         diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/test_diddoc.json",
@@ -55,25 +55,25 @@ def vp_token() -> str:
 
 @pytest.mark.asyncio
 async def test_get_valid_presentation_definition(
-    service_provider, presentation_definition
+    verifier, presentation_definition
 ):
     assert (
-        await service_provider.get_presentation_definition(presentation_definition.id)
+        await verifier.get_presentation_definition(presentation_definition.id)
         == presentation_definition
     )
 
 
 @pytest.mark.asyncio
-async def test_get_invalid_presentation_definition(service_provider):
+async def test_get_invalid_presentation_definition(verifier):
     with pytest.raises(HTTPException):
-        await service_provider.get_presentation_definition("invalid_definition_id")
+        await verifier.get_presentation_definition("invalid_definition_id")
 
 
 @pytest.mark.asyncio
 async def test_fetch_valid_authorization_request(
-    service_provider, presentation_definition
+    verifier, presentation_definition
 ):
-    res = await service_provider.fetch_authorization_request(
+    res = await verifier.fetch_authorization_request(
         ref=presentation_definition.id
     )
     assert res.presentation_definition == presentation_definition
@@ -81,17 +81,17 @@ async def test_fetch_valid_authorization_request(
 
 @pytest.mark.asyncio
 async def test_fetch_invalid_authorization_request(
-    service_provider, presentation_definition
+    verifier, presentation_definition
 ):
     with pytest.raises(HTTPException):
-        await service_provider.fetch_authorization_request(ref="invalid_definition_id")
+        await verifier.fetch_authorization_request(ref="invalid_definition_id")
 
 
 @pytest.mark.asyncio
 async def test_parse_valid_authorization_response(
-    service_provider, presentation_definition, vp_token
+    verifier, presentation_definition, vp_token
 ):
-    res = await service_provider.parse_authorization_response(
+    res = await verifier.parse_authorization_response(
         auth_response=vp_auth_response.AuthorizationResponseObject(
             vp_token=vp_token,
             presentation_submission=vp_auth_response.PresentationSubmissionObject(
@@ -111,10 +111,10 @@ async def test_parse_valid_authorization_response(
 
 @pytest.mark.asyncio
 async def test_parse_authorization_response_with_invalid_jwt(
-    service_provider, presentation_definition, vp_token
+    verifier, presentation_definition, vp_token
 ):
     with pytest.raises(HTTPException):
-        await service_provider.parse_authorization_response(
+        await verifier.parse_authorization_response(
             auth_response=vp_auth_response.AuthorizationResponseObject(
                 vp_token=vp_token.capitalize(),  # invalid jwt
                 presentation_submission=vp_auth_response.PresentationSubmissionObject(
@@ -134,10 +134,10 @@ async def test_parse_authorization_response_with_invalid_jwt(
 
 @pytest.mark.asyncio
 async def test_parse_authorization_response_with_invalid_id(
-    service_provider, presentation_definition, vp_token
+    verifier, presentation_definition, vp_token
 ):
     with pytest.raises(HTTPException):
-        await service_provider.parse_authorization_response(
+        await verifier.parse_authorization_response(
             auth_response=vp_auth_response.AuthorizationResponseObject(
                 vp_token=vp_token,
                 presentation_submission=vp_auth_response.PresentationSubmissionObject(
@@ -157,10 +157,10 @@ async def test_parse_authorization_response_with_invalid_id(
 
 @pytest.mark.asyncio
 async def test_parse_authorization_response_with_invalid_path(
-    service_provider, presentation_definition, vp_token
+    verifier, presentation_definition, vp_token
 ):
     with pytest.raises(HTTPException):
-        await service_provider.parse_authorization_response(
+        await verifier.parse_authorization_response(
             auth_response=vp_auth_response.AuthorizationResponseObject(
                 vp_token=vp_token,
                 presentation_submission=vp_auth_response.PresentationSubmissionObject(

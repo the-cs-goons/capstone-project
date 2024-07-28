@@ -8,7 +8,7 @@ from vclib.common import SDJWTVCVerifier, vp_auth_request, vp_auth_response
 from vclib.common.src.metadata import DIDJSONResponse
 
 
-class ServiceProvider:
+class Verifier:
     valid_nonces: set[str]
 
     def __init__(
@@ -19,7 +19,7 @@ class ServiceProvider:
         extra_provider_metadata: dict = {},
     ):
         """
-        Initialise the service provider.
+        Initialise the verifier (service provider).
 
         ### Parameters
         - presentation_definitions(`dict[str, PresentationDefinition]`): A map
@@ -68,6 +68,7 @@ class ServiceProvider:
         wallet_metadata: dict | None = None,
         wallet_nonce: str | None = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=400,
