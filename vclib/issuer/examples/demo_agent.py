@@ -161,7 +161,7 @@ class DefaultIssuer(CredentialIssuer):
             "credential_configuration_ids": ["ID"],
         }
         await self.offer_credential(
-            "https://owner-lib:8081/offer", json.dumps(cred_offer)
+            "https://holder-lib:8081/offer", json.dumps(cred_offer)
         )
 
     @override
