@@ -57,6 +57,7 @@ class UniqueCredentialIdentifier(BaseModel):
     claims: dict[str, dict[str, Any] | list[dict[str, Any]]]
 
 
+# TODO: change this to a more specific name
 class MetadataResponse(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -70,6 +71,7 @@ class MetadataResponse(BaseModel):
     # display: str
 
 
+# TODO: change to OAuth2 and more specific name
 class OAuthMetadataResponse(BaseModel):
     issuer: str
     authorization_endpoint: str

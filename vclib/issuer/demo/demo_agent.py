@@ -4,8 +4,16 @@ from typing import override
 from uuid import uuid4
 
 from fastapi import FastAPI
+from jwcrypto.jwk import JWK
+from pydantic import ValidationError
 
 from vclib.common import hello_world
+from vclib.common.src.metadata import (
+    DIDConfigResponse,
+    DIDJSONResponse,
+    MetadataResponse,
+    OAuthMetadataResponse,
+)
 from vclib.issuer import CredentialIssuer, StatusResponse
 from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
@@ -27,24 +35,84 @@ class DefaultIssuer(CredentialIssuer):
       to associated ticket and transaction ID.
     """
 
-    statuses: dict[int, (str, dict)]
-    time: datetime
+    statuses: dict[int, tuple[str, dict]]
+    time: datetime.datetime
 
     @override
     def __init__(
         self,
-        jwt_path: str,
+        private_jwt_path: str,
         diddoc_path: str,
         did_config_path: str,
-        metadata_path: str,
-        oauth_metadata_path: str,
+        oid4vci_metadata_path: str,
+        oauth2_metadata_path: str,
     ):
+        private_jwk: JWK
+        diddoc: DIDJSONResponse
+        did_config: DIDConfigResponse
+        oid4vci_metadata: MetadataResponse
+        oauth2_metadata: OAuthMetadataResponse
+
+        try:
+            with open(private_jwt_path, "rb") as key_file:
+                private_jwk = JWK.from_pem(key_file.read())
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find private jwt: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid private jwt: {e}")
+
+        try:
+            with open(diddoc_path, "rb") as diddoc_file:
+                diddoc = DIDJSONResponse.model_validate(json.load(diddoc_file))
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find DIDDoc: {e}")
+        except ValidationError as e:
+            raise ValueError(f"Invalid DIDDoc provided: {e}")
+        except ValueError as e:
+            raise ValueError(f"Malformed DIDDoc json provided: {e}")
+
+        try:
+            with open(did_config_path, "rb") as did_config_file:
+                did_config = DIDConfigResponse.model_validate(
+                    json.load(did_config_file)
+                )
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find DID configuration json: {e}")
+        except ValidationError as e:
+            raise ValueError(f"Invalid DID configuration provided: {e}")
+        except ValueError as e:
+            raise ValueError(f"Malformed DID configuration json provided: {e}")
+
+        try:
+            with open(oid4vci_metadata_path, "rb") as oid4vci_metadata_file:
+                oid4vci_metadata = MetadataResponse.model_validate(
+                    json.load(oid4vci_metadata_file)
+                )
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find OID4VCI metadata json: {e}")
+        except ValidationError as e:
+            raise ValueError(f"Invalid OID4VCI metadata provided: {e}")
+        except ValueError as e:
+            raise ValueError(f"Malformed OID4VCI metadata json provided: {e}")
+
+        try:
+            with open(oauth2_metadata_path, "rb") as oauth2_metadata_file:
+                oauth2_metadata = OAuthMetadataResponse.model_validate(
+                    json.load(oauth2_metadata_file)
+                )
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Could not find OAuth2 metadata json: {e}")
+        except ValidationError as e:
+            raise ValueError(f"Invalid OAuth2 metadata provided: {e}")
+        except ValueError as e:
+            raise ValueError(f"Invalid OAuth2 metadata json provided: {e}")
+
         super().__init__(
-            jwt_path,
-            diddoc_path,
-            did_config_path,
-            metadata_path,
-            oauth_metadata_path,
+            private_jwk,
+            diddoc,
+            did_config,
+            oid4vci_metadata,
+            oauth2_metadata,
         )
         self.ticket = 0
 

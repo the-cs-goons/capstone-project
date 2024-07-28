@@ -33,10 +33,7 @@ from .models.requests import (
     CredentialRequestBody,
     DeferredCredentialRequestBody,
 )
-from .models.responses import (
-    FormResponse,
-    StatusResponse,
-)
+from .models.responses import FormResponse, StatusResponse
 
 
 class CredentialIssuer:
@@ -45,67 +42,32 @@ class CredentialIssuer:
 
     def __init__(
         self,
-        key_pem_filepath: str,
-        diddoc_path: str,
-        did_config_path: str,
-        metadata_path: str,
-        oauth_metadata_path: str,
+        private_jwk: JWK,
+        diddoc: DIDJSONResponse,
+        did_config: DIDConfigResponse,
+        oid4vci_metadata: MetadataResponse,
+        oauth2_metadata: OAuthMetadataResponse,
     ):
         """Base class used for the credential issuer agent.
 
         ### Parameters
-        - key_pem_filepath(`str`): Path to PEM-encoded private JWT.
-        - diddoc_path(`str`): Path to DIDDoc JSON object.
-        - did_config_path(`str`): Path to DID configuraton JSON object.
-        - metadata_path(`str`): Path to OpenID credential issuer metadata JSON object.
-        - oauth_metadata_path(`str`): Path to OAuth metadata JSON object.
+        - private_jwk(`JWK`): Issuer's private key in JWK format.
+        - diddoc(`DIDJSONResponse`): DIDDoc JSON object.
+        - did_config_path(`DIDConfigResponse`): DID configuration JSON object.
+        - metadata_path(`MetadataResponse`): OpenID credential issuer metadata object.
+        - oauth2_metadata(`OAuthMetadataResponse`): OAuth2 metadata JSON object.
         """
+        self.jwk = private_jwk
+        self.diddoc = diddoc
+        self.did_config = did_config
+        self.metadata = oid4vci_metadata
+        self.oauth_metadata = oauth2_metadata
 
-        try:
-            with open(key_pem_filepath, "rb") as key_file:
-                self.jwk = JWK.from_pem(key_file.read())
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find private jwt: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid private jwt: {e}")
-
-        try:
-            with open(diddoc_path, "rb") as diddoc_file:
-                self.diddoc = json.load(diddoc_file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find DIDDoc: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid DIDDoc provided: {e}")
-
-        try:
-            with open(did_config_path, "rb") as did_config_file:
-                self.did_config = json.load(did_config_file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find DID configuration json: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid DID configuration json provided: {e}")
-
-        try:
-            with open(metadata_path, "rb") as metadata_file:
-                self.metadata = json.load(metadata_file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find metadata json: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid metadata json provided: {e}")
-
-        try:
-            with open(oauth_metadata_path, "rb") as oauth_metadata_file:
-                self.oauth_metadata = json.load(oauth_metadata_file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"Could not find OAuth metadata json: {e}")
-        except ValueError as e:
-            raise ValueError(f"Invalid OAuth metadata json provided: {e}")
-
-        self.uri = self.metadata["credential_issuer"]
+        self.uri = self.metadata.credential_issuer
 
         self.credentials = {}
-        for key, value in self.metadata["credential_configurations_supported"].items():
-            self.credentials[key.replace(self.uri + "/", "")] = value["claims"]
+        for key, value in self.metadata.credential_configurations_supported.items():
+            self.credentials[key.replace(self.uri + "/", "")] = value.claims
 
         self.secret = secrets.token_hex(32)
 
@@ -137,13 +99,14 @@ class CredentialIssuer:
         and the issuer's URI.
         """
 
+        validated_request: WalletClientMetadata
         try:
-            request = WalletClientMetadata.model_validate(request)
+            validated_request = WalletClientMetadata.model_validate(request)
         except ValidationError:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_client_metadata"}
 
-        for uri in request.redirect_uris:
+        for uri in validated_request.redirect_uris:
             if not self.validate_uri(uri):
                 response.status_code = status.HTTP_400_BAD_REQUEST
                 return {"error": "invalid_redirect_uri"}
@@ -151,7 +114,7 @@ class CredentialIssuer:
         response.status_code = status.HTTP_201_CREATED
 
         try:
-            return self.register_client(request)
+            return self.register_client(validated_request)
         except IssuerError as e:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": e.message}
@@ -226,7 +189,7 @@ class CredentialIssuer:
         state: str | None = None,
         authorization_details: str | None = None,
         information: dict | None = None,
-    ) -> RedirectResponse:
+    ):
         """Receives requests to authorize the wallet.
 
         This is the second half of the authorization flow and is called
@@ -545,11 +508,11 @@ class CredentialIssuer:
 
     def _check_authorization_details(
         self,
-        response_type: str,
-        client_id: str,
-        redirect_uri: str,
-        state,
-        authorization_details: str,
+        response_type: str | None,
+        client_id: str | None,
+        redirect_uri: str | None,
+        state: str | None,
+        authorization_details: str | None,
     ):
         """Checks provided details to authorization endpoint are correct."""
         if None in (
