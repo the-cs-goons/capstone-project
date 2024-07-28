@@ -401,6 +401,7 @@ class LocalStorageProvider(AbstractStorageProvider):
 
         # An in-memory SQLite database that can be regularly serialised
         u_con = connect(":memory:", detect_types=PARSE_DECLTYPES)
+        u_con.row_factory = dict_factory
 
         # Extract db dump from zip, then close
         with AESZipFile(

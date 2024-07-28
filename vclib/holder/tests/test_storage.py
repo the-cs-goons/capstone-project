@@ -93,8 +93,12 @@ def test_add_credential(storage_provider, cred_1):
     storage_provider.register("add_one", "add_one")
     storage_provider.add_credential(cred_1)
 
+    storage_provider.logout()
+    storage_provider.login("add_one", "add_one")
+
     c = storage_provider.get_credential(cred_1.id)
     assert c.id == cred_1.id
+    assert c.received_at == cred_1.received_at
 
 def test_add_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("add_many", "add_many")
@@ -102,6 +106,9 @@ def test_add_credentials(storage_provider, cred_1, cred_2, cred_3):
 
     c = storage_provider.get_credential(cred_1.id)
     assert c.id == cred_1.id
+
+    storage_provider.logout()
+    storage_provider.login("add_many", "add_many")
 
     assert len(storage_provider.all_credentials()) == 3
     assert len(storage_provider.get_deferred_credentials()) == 2
@@ -124,5 +131,8 @@ def test_delete_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.delete_many([cred_1.id, cred_2.id, cred_3.id])
     with pytest.raises(Exception):
         storage_provider.get_credential(cred_1.id)
+
+    storage_provider.logout()
+    storage_provider.login("delete_many", "delete_many")
 
     assert len(storage_provider.all_credentials()) == 0
