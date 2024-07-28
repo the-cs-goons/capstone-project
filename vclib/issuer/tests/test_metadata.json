@@ -1,41 +1,37 @@
 {
-    "credential_issuer": "https://issuer-lib:8082",
-    "credential_endpoint": "https://issuer-lib:8082/credentials",
-    "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
-    "credential_configurations_supported": {
-        "https://issuer-lib:8082/default": {
-            "format": "vc+sd-jwt",
-            "vct": "https://issuer-lib:8082/default",
-            "cryptographic_binding_methods_supported": [
-                "did:peer"
-            ],
-            "credential_signing_alg_values_supported": [
-                "ES256"
-            ],
-            "proof_types_supported": {
-                "jwt": {
-                    "proof_signing_alg_values_supported": "EdDSA"
-                }
-            },
-            "claims": {
-                "string": {
-                    "mandatory": true,
-                    "value_type": "string"
-                },
-                "number": {
-                    "mandatory": true,
-                    "value_type": "number"
-                },
-                "boolean": {
-                    "mandatory": true,
-                    "value_type": "boolean"
-                },
-                "optional": {
-                    "mandatory": false,
-                    "value_type": "string"
-                }
-            }
+  "credential_issuer": "https://issuer-lib:8082",
+  "credential_endpoint": "https://issuer-lib:8082/credentials",
+  "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
+  "credential_configurations_supported": {
+    "https://issuer-lib:8082/default": {
+      "format": "vc+sd-jwt",
+      "vct": "https://issuer-lib:8082/default",
+      "cryptographic_binding_methods_supported": ["did:peer"],
+      "credential_signing_alg_values_supported": ["ES256"],
+      "proof_types_supported": {
+        "jwt": {
+          "proof_signing_alg_values_supported": "EdDSA"
         }
-    },
-    "credential_identifiers_supported": true
+      },
+      "claims": {
+        "string": {
+          "mandatory": true,
+          "value_type": "string"
+        },
+        "number": {
+          "mandatory": true,
+          "value_type": "number"
+        },
+        "boolean": {
+          "mandatory": true,
+          "value_type": "boolean"
+        },
+        "optional": {
+          "mandatory": false,
+          "value_type": "string"
+        }
+      }
+    }
+  },
+  "credential_identifiers_supported": true
 }

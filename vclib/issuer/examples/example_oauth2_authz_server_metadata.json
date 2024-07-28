@@ -1,11 +1,11 @@
 {
-    "issuer": "https://issuer-lib:8082",
-    "authorization_endpoint": "https://issuer-lib:8082/oauth2/authorize",
-    "token_endpoint": "https://issuer-lib:8082/oauth2/token",
-    "registration_endpoint": "https://issuer-lib:8082/oauth2/register",
-    "authorization_details_types_supported": ["openid_credential"],
-    "grant_types_supported": ["authorization_code"],
-    "response_types_supported": ["code"],
-    "token_endpoint_auth_methods_supported": ["client_secret_basic"],
-    "pre-authorized_grant_anonymous_access_supported": false
+  "issuer": "https://issuer-lib:8082",
+  "authorization_endpoint": "https://issuer-lib:8082/oauth2/authorize",
+  "token_endpoint": "https://issuer-lib:8082/oauth2/token",
+  "registration_endpoint": "https://issuer-lib:8082/oauth2/register",
+  "authorization_details_types_supported": ["openid_credential"],
+  "grant_types_supported": ["authorization_code"],
+  "response_types_supported": ["code"],
+  "token_endpoint_auth_methods_supported": ["client_secret_basic"],
+  "pre-authorized_grant_anonymous_access_supported": false
 }

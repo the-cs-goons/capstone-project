@@ -1,26 +1,26 @@
 {
-    "@context": [
-        "https://www.w3.org/ns/did/v1",
-        "https://w3id.org/security/suites/jws-2020/v1"
-    ],
-    "id": "did:web:issuer-lib%3A8082",
-    "verificationMethod": [
-        {
-            "id": "did:web:issuer-lib%3A8082#WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
-            "type": "JsonWebKey2020",
-            "controller": "did:web:issuer-lib%3A8082",
-            "publicKeyJwk": {
-                "alg": "ES256",
-                "crv": "P-256",
-                "kid": "WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
-                "kty": "EC",
-                "use": "sig",
-                "x": "oOmYWw-UUal2Z-A4T803-e-gYMNwl9iCpI2p9LaWzbU",
-                "y": "yEQn-csNFH9C-02AL0NgZjC_3LMniZw7huJk1kISJl0"
-            }
-        }
-    ],
-    "authentication": [
-        "did:web:issuer-lib%3A8082#WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc"
-    ]
+  "@context": [
+    "https://www.w3.org/ns/did/v1",
+    "https://w3id.org/security/suites/jws-2020/v1"
+  ],
+  "id": "did:web:issuer-lib%3A8082",
+  "verificationMethod": [
+    {
+      "id": "did:web:issuer-lib%3A8082#WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
+      "type": "JsonWebKey2020",
+      "controller": "did:web:issuer-lib%3A8082",
+      "publicKeyJwk": {
+        "alg": "ES256",
+        "crv": "P-256",
+        "kid": "WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
+        "kty": "EC",
+        "use": "sig",
+        "x": "oOmYWw-UUal2Z-A4T803-e-gYMNwl9iCpI2p9LaWzbU",
+        "y": "yEQn-csNFH9C-02AL0NgZjC_3LMniZw7huJk1kISJl0"
+      }
+    }
+  ],
+  "authentication": [
+    "did:web:issuer-lib%3A8082#WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc"
+  ]
 }

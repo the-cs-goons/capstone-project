@@ -1,7 +1,7 @@
 {
-    "crv": "P-256",
-    "kid": "WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
-    "kty": "EC",
-    "x": "oOmYWw-UUal2Z-A4T803-e-gYMNwl9iCpI2p9LaWzbU",
-    "y": "yEQn-csNFH9C-02AL0NgZjC_3LMniZw7huJk1kISJl0"
+  "crv": "P-256",
+  "kid": "WOlrt396fF4d2FS9vY3QxhBe5UFCrxGbRp3iKQbGkpc",
+  "kty": "EC",
+  "x": "oOmYWw-UUal2Z-A4T803-e-gYMNwl9iCpI2p9LaWzbU",
+  "y": "yEQn-csNFH9C-02AL0NgZjC_3LMniZw7huJk1kISJl0"
 }
