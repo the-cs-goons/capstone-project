@@ -7,7 +7,7 @@ from urllib.parse import urlencode
 
 import jsonpath_ng
 import jwt
-from requests import Response, Session
+from httpx import Client, Response
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
 from sd_jwt.common import SDJWTCommon
@@ -15,6 +15,7 @@ from sd_jwt.common import SDJWTCommon
 from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
 from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
+from .models.exceptions import HolderError
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
 
@@ -218,8 +219,8 @@ class Holder:
         offer: CredentialOffer
         if credential_offer_uri:
             # Create a credential offer obj from the URI
-            with Session() as s:
-                res: Response = s.get(credential_offer_uri)
+            with Client() as c:
+                res: Response = c.get(credential_offer_uri)
                 res.raise_for_status()
                 offer = CredentialOffer.model_validate_json(res.content)
         else:
@@ -231,38 +232,30 @@ class Holder:
         self, issuer_uri: str, *, force_refresh: bool = False
     ) -> tuple[IssuerMetadata, AuthorizationMetadata]:
         """
-        Retrieves issuer metadata & authorization metadata, given a credential offer.
-        Validates that the issuer_uri in the offer matches what's given in the
-        credential offer.
+        Retrieves OpenID4VCI issuer metadata and OAuth2 authorization server metadata.
+        Validates that the issuer_uri known by the holder matches what's given in the
+        issuer metadata.
 
         ### Parameters:
-        - issuer_uri(`str`): The issuer's URI
-        - force_refresh(`bool = False`): If `True`, will force the `IdentityOwner`
+        - issuer_uri(`str`): The issuer's URI, as known by the holder - either
+         pre-obtained for the wallet-initiated issuance flow, or provided by a
+         credential offer for the issuer-initiated issuance flow.
+        - force_refresh(`bool = False`): If `True`, will force the `Holder`
          to request from the issuer's metadata endpoints. Otherwise, it will
          attempt to load the metadata from memory, and only request it if it cannot
          be found.
 
         ### Returns:
         - Tuple[`IssuerMetadata`, `AuthorizationMetadata`]: A tuple containing two
-        elements: The issuer's metadata, & the issuer's authorization server metadata.
+        elements: The issuer's metadata, and the issuer's authorization server metadata.
         """
+        # TODO: add exception info above
         issuer_metadata: IssuerMetadata | None = None
         auth_metadata: AuthorizationMetadata | None = None
 
         if not force_refresh:
             issuer_metadata = self.issuer_metadata_store.get(issuer_uri, None)
             auth_metadata = self.auth_metadata_store.get(issuer_uri, None)
-
-        # If not already retrieved, get issuer metadata
-        if not issuer_metadata:
-            issuer_metadata = IssuerMetadata.model_validate(
-                await self.get_issuer_metadata(issuer_uri)
-            )
-            # Check that the metadata matches
-            if issuer_uri != issuer_metadata.credential_issuer:
-                raise Exception("Bad Issuer Metadata")
-            # Store it for easier access later if valid
-            self.issuer_metadata_store[issuer_uri] = issuer_metadata
 
         # If not already retrieved, get authorization metadata
         if not auth_metadata:
@@ -273,9 +266,24 @@ class Holder:
             )
             # Check that the metadata matches
             if issuer_uri != auth_metadata.issuer:
-                raise Exception("Bad Issuer Authorization Metadata")
+                raise HolderError(
+                    "Issuer auth server metadata doesn't match known Issuer identifier"
+                )
             # Store it for easier access later if valid
             self.auth_metadata_store[issuer_uri] = auth_metadata
+
+        # If not already retrieved, get issuer metadata
+        if not issuer_metadata:
+            issuer_metadata = IssuerMetadata.model_validate(
+                await self.get_issuer_metadata(issuer_uri)
+            )
+            # Check that the metadata matches
+            if issuer_uri != issuer_metadata.credential_issuer:
+                raise HolderError(
+                    "Issuer metadata doesn't match known Issuer identifier"
+                )
+            # Store it for easier access later if valid
+            self.issuer_metadata_store[issuer_uri] = issuer_metadata
 
         return (issuer_metadata, auth_metadata)
 
@@ -510,11 +518,11 @@ class Holder:
         return new_credentials
 
     async def get_issuer_metadata(
-        self, issuer_uri, path="/.well-known/openid-credential-issuer"
-    ):
+        self, issuer_uri: str, path: str = "/.well-known/openid-credential-issuer"
+    ) -> Any:
         body: Any
-        with Session() as s:
-            res: Response = s.get(f"{issuer_uri}{path}")
+        with Client() as c:
+            res: Response = c.get(f"{issuer_uri}{path}")
             body = res.json()
         return body
 
@@ -525,8 +533,8 @@ class Holder:
         registered: RegisteredClientMetadata
         if not metadata:
             metadata = self.client_metadata.model_dump()
-        with Session() as s:
-            res: Response = s.post(registration_url, json=metadata)
+        with Client() as c:
+            res: Response = c.post(registration_url, json=metadata)
             body: dict = res.json()
             body["issuer_uri"] = issuer_uri
             registered = RegisteredClientMetadata.model_validate(body)

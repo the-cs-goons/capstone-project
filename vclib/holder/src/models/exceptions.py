@@ -1,1 +1,4 @@
-# TODO: Add exception types for better handling later
+class HolderError(Exception):
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
