@@ -129,11 +129,12 @@ class CredentialIssuer:
         """Receives a request to register a new client.
 
         ### Parameters
-        - request(`WalletClientMetadata`): Expected metadata provided by the wallet, to
-          be used in registering a new client.
+        - request(`WalletClientMetadata`): Expected metadata provided by
+        the wallet, to be used in registering a new client.
 
-        Returns a `RegisteredClientMetadata` object, containing all provided wallet
-        metadata as well as the new client id, secret and the issuer's URI.
+        Returns a `RegisteredClientMetadata` object, containing all
+        provided wallet metadata as well as the new client id, secret
+        and the issuer's URI.
         """
 
         try:
@@ -166,22 +167,26 @@ class CredentialIssuer:
     ):
         """Receives requests to authorize the wallet.
 
-        This is the first half of the authorization flow and is called when the wallet
-        posts a `GET` request to the authorization endpoint.
+        This is the first half of the authorization flow and is called
+        when the wallet posts a `GET` request to the authorization
+        endpoint.
 
         ### Parameters
         - response_type(`str`): Expected to be `"code"`.
-        - client_id(`str`): Client ID as assigned by the issuer by registration.
-        - redirect-uri(`str`): URI to redirect the wallet to after successful
-          authorization.
-        - state(`str`): A string used to verify the state of the request. It MUST remain
-          the same throughout the authorization process and be returned to the wallet at
-          the end of the process.
-        - authorization_details(`str`): A string representing a list of JSON objects.
+        - client_id(`str`): Client ID as assigned by the issuer by
+          registration.
+        - redirect-uri(`str`): URI to redirect the wallet to after
+          successful authorization.
+        - state(`str`): A string used to verify the state of the request.
+          It MUST remain
+          the same throughout the authorization process and be returned
+          to the wallet at the end of the process.
+        - authorization_details(`str`): A string representing a list of
+          JSON objects.
           Each object MUST have the two fields in order as follows:
            - `"type"`: Expected to be `"openid_credential"`.
-           - `"credential_configuration_id"`: Contains the ID of a credential type taken
-             from the issuer's metadata endpoint.
+           - `"credential_configuration_id"`: Contains the ID of a
+             credential type taken from the issuer's metadata endpoint.
 
         Returns the schema of the `credential_configuration_id` given.
 
@@ -224,29 +229,35 @@ class CredentialIssuer:
     ) -> RedirectResponse:
         """Receives requests to authorize the wallet.
 
-        This is the second half of the authorization flow and is called when the wallet
-        posts a `POST` request to the authorization endpoint, with the information
-        needed to issue a credential in the body.
+        This is the second half of the authorization flow and is called
+        when the wallet posts a `POST` request to the authorization
+        endpoint, with the information needed to issue a credential in
+        the body.
 
         ### Parameters
         - response_type(`str`): Expected to be `"code"`.
-        - client_id(`str`): Client ID as assigned by the issuer by registration.
-        - redirect-uri(`str`): URI to redirect the wallet to after successful
-          authorization.
-        - state(`str`): A string used to verify the state of the request. It MUST remain
-          the same throughout the authorization process and be returned to the wallet at
-          the end of the process.
-        - authorization_details(`str`): A string representing a list of JSON objects.
-          Each object MUST have the two fields in order as follows:
+        - client_id(`str`): Client ID as assigned by the issuer by
+          registration.
+        - redirect-uri(`str`): URI to redirect the wallet to after
+          successful authorization.
+        - state(`str`): A string used to verify the state of the request.
+          It **MUST** remain the same throughout the authorization
+          process and be returned to the wallet at the end of the
+          process.
+        - authorization_details(`str`): A string representing a list of
+          JSON objects. Each object MUST have the two fields in order as
+          follows:
           - `"type"`: Expected to be `"openid_credential"`.
-          - `"credential_configuration_id"`: Contains the ID of a credential type taken
-             from the issuer's metadata endpoint.
-        - information(`dict`): Request body, containing information for the
-          credential being requested.
+          - `"credential_configuration_id"`: Contains the ID of a
+            credential type taken from the issuer's metadata endpoint.
+        - information(`dict`): Request body, containing information for
+          the credential being requested.
 
         ### Return Values
-        Returns a `RedirectResponse`, with the following query parameters:
-        - code: The authorization code to be used at the access token endpoint.
+        Returns a `RedirectResponse`, with the following query
+        parameters:
+        - code: The authorization code to be used at the access token
+          endpoint.
         - state: The state value given to the endpoint.
 
         ### Errors
@@ -310,9 +321,10 @@ class CredentialIssuer:
 
         ### Parameters
         - grant_type(`str`): Expected to be `"authorization_code"`.
-        - code(`str`): Authorization code given by the authorization endpoint.
-        - redirect_uri(`str`): MUST be the same `redirect_uri` given to the
-          authorization endpoint.
+        - code(`str`): Authorization code given by the authorization
+          endpoint.
+        - redirect_uri(`str`): MUST be the same `redirect_uri` given to
+          the authorization endpoint.
         - authorization(`str`): A Base64 encoded string containing
           `Basic client_id:client_secret`.
 
@@ -331,8 +343,10 @@ class CredentialIssuer:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "unsupported_grant_type"}
 
+        # TODO is this a correct variable name?
+        payload = authorization.split(" ")[1]
         client_id, client_secret = (
-            urlsafe_b64decode(authorization.split(" ")[1].encode("utf-8") + b"==")
+            urlsafe_b64decode(payload.encode("utf-8") + b"==")
             .decode("utf-8")
             .split(":")
         )
@@ -385,8 +399,8 @@ class CredentialIssuer:
         - If the credential is ACCEPTED:
           - Return the credential in the form `{"credential": credential}`.
         - If the credential is PENDING:
-          - Return a transaction ID to be used at the deferred endpoint, in
-            the form `{"transaction_id": transaction_id}`.
+          - Return a transaction ID to be used at the deferred endpoint,
+          in the form `{"transaction_id": transaction_id}`.
         - If the credential is DENIED:
           - Return a 400, with `{"error": "credential_request_denied"}`.
 

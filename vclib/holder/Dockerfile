@@ -27,7 +27,7 @@ RUN adduser \
 # copy init files
 COPY --from=vclib-root __init__.py ./vclib/__init__.py
 COPY --from=vclib-root common/__init__.py ./vclib/common/__init__.py
-COPY __init__.py ./vclib/issuer/__init__.py
+COPY __init__.py ./vclib/holder/__init__.py
 
 # install python dependencies
 #COPY --from=root Pipfile.lock ./Pipfile.lock
@@ -48,10 +48,11 @@ USER appuser
 COPY . .
 
 # Expose the port that the application listens on.
-EXPOSE ${CS3900_ISSUER_AGENT_PORT}
+EXPOSE ${CS3900_HOLDER_AGENT_PORT}
 
 # Run the application.
-CMD uvicorn examples.demo_agent:credential_issuer_server --reload \
-    --host=0.0.0.0 --port="$CS3900_ISSUER_AGENT_PORT" --log-level "debug" \
+CMD uvicorn examples.demo_agent:identity_owner_server --reload \
+    --host=0.0.0.0 --port="$CS3900_HOLDER_AGENT_PORT" --log-level "debug" \
     --ssl-certfile=examples/example_ssl_certfile.crt \
-    --ssl-keyfile=examples/example_ssl_keyfile.key
+    --ssl-keyfile=examples/example_ssl_keyfile.key \
+    --ssl-ca-certs=examples/example_ssl_ca_bundle.crt

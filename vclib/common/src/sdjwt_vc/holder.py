@@ -8,9 +8,10 @@ from .exceptions import SDJWTVCNewHolderVCHasKBJWTError
 class SDJWTVCHolder(SDJWTHolder):
     """SD JWT VC class for credential holders (identity owners).
 
-    Built upon the SDJWTHolder class from `sd_jwt`. Adds some extra things, mostly
-    verification of things that the SD JWT specification leaves blank but the SD JWT VC
-    specification requires. Actually attempts to document the parent class.
+    Built upon the SDJWTHolder class from `sd_jwt`. Adds some extra
+    things, mostly verification of things that the SD JWT specification
+    leaves blank but the SD JWT VC specification requires. Actually
+    attempts to document the parent class.
 
     TODO: Document further
     """
@@ -39,7 +40,8 @@ class SDJWTVCHolder(SDJWTHolder):
         self._is_verified = False
 
     def serialise_issuance_compact(self) -> str:
-        """Serialises the credential in a manner that can be stored, in compact format.
+        """Serialises the credential in a manner that can be stored, in
+        compact format.
         NOT for creating a verifiable presentation.
 
         ### Returns
@@ -62,21 +64,27 @@ class SDJWTVCHolder(SDJWTHolder):
     ):
         """Creates a verifiable presentation with a KB JWT.
 
-        Creates a presentation, but differs from `create_presentation` as implemented
-        in the parent class by enforcing the required variables to create a KB-JWT.
-        For creating presentations without enforcing KB JWTs, use `create_presentation`
+        Creates a presentation, but differs from `create_presentation` as
+        implemented in the parent class by enforcing the required
+        variables to create a KB-JWT. For creating presentations without
+        enforcing KB JWTs, use `create_presentation`
 
-        TODO: Improve this so passing the claims_to_disclose obj doesn't suck
+        TODO: Improve this so passing the claims_to_disclose obj doesn't\
+            suck
 
         ### Parameters
-        - claims_to_disclose(`list | dict`): Claims to be disclosed in the presentation
-        - nonce(`str`): The nonce value as supplied by the verifier (provider)
+        - claims_to_disclose(`list | dict`): Claims to be disclosed in
+        the presentation
+        - nonce(`str`): The nonce value as supplied by the verifier
+        (provider)
         - aud(`str`): The intended audience of this presentation
-        - holder_key(`JWK`): The holder's private key, corresponding to the public key
-        given in the `cnf` claim of the SD JWT
-        - sign_alg(`str`): The signing algorithm to use, "ES256" by default.
+        - holder_key(`JWK`): The holder's private key, corresponding to
+        the public key given in the `cnf` claim of the SD JWT
+        - sign_alg(`str`): The signing algorithm to use, "ES256" by
+        default.
 
-        Does not return anything. Retrieve output from `sd_jwt_presentation` attribute.
+        Does not return anything. Retrieve output from
+        `sd_jwt_presentation` attribute.
         """
         if not unsafe and not self._is_verified:
             raise Exception
