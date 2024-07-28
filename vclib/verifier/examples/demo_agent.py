@@ -1,9 +1,4 @@
 import os
-import time
-import uuid
-from typing import override
-
-from fastapi import Form, HTTPException
 
 from vclib.common import vp_auth_request
 from vclib.verifier import (
