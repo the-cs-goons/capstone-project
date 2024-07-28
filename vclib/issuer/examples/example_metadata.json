@@ -1,7 +1,12 @@
 {
     "credential_issuer": "https://issuer-lib:8082",
     "credential_endpoint": "https://issuer-lib:8082/credentials",
-    "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
+    "deferred_credential_endpoint": "https://issuer-lib:8082/credentials/deferred",
+    "display": [
+        {
+            "name": "Example Credential Issuer"
+        }
+    ],
     "credential_configurations_supported": {
         "https://issuer-lib:8082/ID": {
             "format": "vc+sd-jwt",
@@ -14,43 +19,96 @@
             ],
             "proof_types_supported": {
                 "jwt": {
-                    "proof_signing_alg_values_supported": "EdDSA"
+                    "proof_signing_alg_values_supported": [
+                        "EdDSA"
+                    ]
                 }
             },
+            "display": [
+                {
+                    "name": "Example Credential",
+                    "description": "An example credential that the issuer can issue."
+                }
+            ],
             "claims": {
                 "given_name": {
                     "mandatory": true,
-                    "value_type": "string"
+                    "value_type": "string",
+                    "display": [
+                        {
+                            "name": "Given name"
+                        }
+                    ]
                 },
                 "family_name": {
                     "mandatory": true,
-                    "value_type": "string"
+                    "value_type": "string",
+                    "display": [
+                        {
+                            "name": "Family name"
+                        }
+                    ]
                 },
                 "email": {
-                    "value_type": "string"
+                    "value_type": "string",
+                    "display": [
+                        {
+                            "name": "Email address"
+                        }
+                    ]
                 },
                 "phone_number": {
-                    "value_type": "number"
+                    "value_type": "number",
+                    "display": [
+                        {
+                            "name": "Phone number"
+                        }
+                    ]
                 },
                 "address": {
                     "street_address": {
-                        "value_type": "string"
+                        "value_type": "string",
+                        "display": [
+                            {
+                                "name": "Street address"
+                            }
+                        ]
                     },
                     "state": {
-                        "value_type": "string"
+                        "value_type": "string",
+                        "display": [
+                            {
+                                "name": "State"
+                            }
+                        ]
                     },
                     "country": {
-                        "value_type": "string"
+                        "value_type": "string",
+                        "display": [
+                            {
+                                "name": "Country"
+                            }
+                        ]
                     }
                 },
                 "birthdate": {
                     "mandatory": false,
-                    "value_type": "number"
+                    "value_type": "number",
+                    "display": [
+                        {
+                            "name": "Date of birth"
+                        }
+                    ]
                 },
                 "nationalities": [
                     {
                         "mandatory": true,
-                        "value_type": "string"
+                        "value_type": "string",
+                        "display": [
+                            {
+                                "name": "Nationality"
+                            }
+                        ]
                     }
                 ],
                 "is_over_18": {
@@ -59,6 +117,5 @@
                 }
             }
         }
-    },
-    "credential_identifiers_supported": true
+    }
 }
