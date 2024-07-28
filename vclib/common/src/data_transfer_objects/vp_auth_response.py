@@ -11,6 +11,7 @@ class DescriptorMapObject(BaseModel):
 
     # path_nested: any  ## TODO: implement nested paths
 
+
 class PresentationSubmissionObject(BaseModel):
     id: str
     definition_id: str

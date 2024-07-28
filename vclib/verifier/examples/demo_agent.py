@@ -30,9 +30,8 @@ class DemoVerifier(Verifier):
                             vp_auth_request.Field(
                                 path=["$.credentialSubject.is_over_18", "$.is_over_18"],
                                 filter=vp_auth_request.Filter(
-                                    type="string",
-                                    enum=["true"]
-                                    ),
+                                    type="string", enum=["true"]
+                                ),
                             )
                         ]
                     ),
@@ -63,10 +62,7 @@ verify_over_18_pd = {
             "constraints": {
                 "fields": [
                     {
-                        "path": [
-                            "$.credentialSubject.is_over_18",
-                            "$.is_over_18"
-                            "$"],
+                        "path": ["$.credentialSubject.is_over_18", "$.is_over_18" "$"],
                         "filter": {"type": "string", "enum": ["true"]},
                     }
                 ]
@@ -89,17 +85,14 @@ verify_over_18_pd = {
     ],
 }
 
-verify_over_18_pd_object = vp_auth_request.PresentationDefinition(
-    **verify_over_18_pd
-    )
+verify_over_18_pd_object = vp_auth_request.PresentationDefinition(**verify_over_18_pd)
 
 age_request_data = {
     "client_id": "some did",
     "client_id_scheme": "did",
     "client_metadata": {"data": "metadata in this object"},
     "presentation_definition": verify_over_18_pd_object,
-    "response_uri": \
-        f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}/cb",
+    "response_uri": f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}/cb",
     "response_type": "vp_token",
     "response_mode": "direct_post",
     "nonce": "some nonce",
