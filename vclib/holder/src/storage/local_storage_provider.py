@@ -549,11 +549,10 @@ class LocalStorageProvider(AbstractStorageProvider):
                 """,
                 params
                 )
+            cursor.close()
         except Exception as e:
             self.get_db_conn().rollback()
             raise Exception(f"Credential could not be added: {e}")
-        finally:
-            cursor.close()
         if save_after:
             self.save()
 
@@ -597,13 +596,15 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         self._check_active_user()
         params = cred.model_dump()
+        print(params)
 
         check_prev = """
         SELECT id, deferred FROM credential_info
         WHERE id = :id
         """
-        cursor = self.get_db_conn().execute(check_prev, {"c_id": params})
-        was_deferred = cursor.fetchone()["deferred"]
+        cursor = self.get_db_conn().execute(check_prev, {"id": cred.id})
+        res = cursor.fetchone()
+        was_deferred = res["deferred"]
 
         # This is a complex-ish set of operations, so if one fails, we can
         # roll back the changes made.
@@ -664,8 +665,8 @@ class LocalStorageProvider(AbstractStorageProvider):
                 SET issuer_name = :issuer_name,
                     issuer_url = :issuer_url,
                     config_id = :credential_configuration_id,
-                    config_name = :credential_configuration_name
-                    deferred = :is_deferred
+                    config_name = :credential_configuration_name,
+                    deferred = :is_deferred,
                     type = :c_type
                 WHERE id = :id
                 """,
@@ -702,9 +703,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         cursor = self.get_db_conn().execute(check_exists, {"c_id": cred.id})
         exists = cursor.fetchone()
         if not exists:
-            self.add_credential(cred, save_after)
+            self.add_credential(cred, save_after=save_after)
         else:
-            self.update_credential(cred, save_after)
+            self.update_credential(cred, save_after=save_after)
 
     # Most of these 'many' methods could be optomised if we have time.
     # They're being provided like this so that file I/O operations

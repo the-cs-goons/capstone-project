@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import pytest
 
 from vclib.holder import LocalStorageProvider
@@ -89,6 +91,14 @@ def test_register_and_login(storage_provider):
     storage_provider.login("Steve", "hunter2")
     assert storage_provider.get_active_user_name() == "Steve"
 
+def test_no_logged_out_access(storage_provider, cred_1):
+    storage_provider.register("logout", "logout")
+    storage_provider.add_credential(cred_1)
+    storage_provider.logout()
+
+    with pytest.raises(Exception):
+        storage_provider.get_credential(cred_1.id)
+
 def test_add_credential(storage_provider, cred_1):
     storage_provider.register("add_one", "add_one")
     storage_provider.add_credential(cred_1)
@@ -136,3 +146,79 @@ def test_delete_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.login("delete_many", "delete_many")
 
     assert len(storage_provider.all_credentials()) == 0
+
+def test_update_credential(storage_provider, cred_1, cred_2, cred_3):
+    storage_provider.register("update", "update")
+    storage_provider.add_many([cred_1, cred_2, cred_3])
+
+    assert len(storage_provider.get_deferred_credentials()) == 2
+    assert len(storage_provider.get_received_credentials()) == 1
+
+    cred_2.is_deferred = False
+    update_2 = Credential(
+        **cred_2.model_dump(),
+        raw_sdjwtvc="not_real_vc",
+        received_at=datetime.now(tz=UTC).isoformat()
+        )
+    storage_provider.update_credential(update_2)
+
+    assert len(storage_provider.get_deferred_credentials()) == 1
+    assert len(storage_provider.get_received_credentials()) == 2
+
+def test_update_credentials(storage_provider, cred_1, cred_2, cred_3):
+    storage_provider.register("update_many", "update_many")
+    storage_provider.add_many([cred_1, cred_2, cred_3])
+
+    assert len(storage_provider.get_deferred_credentials()) == 2
+    assert len(storage_provider.get_received_credentials()) == 1
+
+    cred_2.is_deferred = False
+    update_2 = Credential(
+        **cred_2.model_dump(),
+        raw_sdjwtvc="not_real_vc",
+        received_at=datetime.now(tz=UTC).isoformat()
+        )
+
+    cred_3.is_deferred = False
+    update_3 = Credential(
+        **cred_3.model_dump(),
+        raw_sdjwtvc="not_real_vc_2",
+        received_at=datetime.now(tz=UTC).isoformat()
+        )
+    storage_provider.update_many([update_2, update_3])
+
+    assert len(storage_provider.get_deferred_credentials()) == 0
+    assert len(storage_provider.get_received_credentials()) == 3
+
+def test_upsert_credential(storage_provider, cred_1, cred_2, cred_3):
+    storage_provider.register("upsert", "upsert")
+    storage_provider.add_many([cred_1, cred_2])
+
+    cred_2.is_deferred = False
+    update_2 = Credential(
+        **cred_2.model_dump(),
+        raw_sdjwtvc="not_real_vc",
+        received_at=datetime.now(tz=UTC).isoformat()
+        )
+    storage_provider.upsert_credential(update_2)
+    storage_provider.upsert_credential(cred_3)
+
+    assert len(storage_provider.get_deferred_credentials()) == 1
+    assert len(storage_provider.get_received_credentials()) == 2
+    assert len(storage_provider.all_credentials()) == 3
+
+def test_upsert_credentials(storage_provider, cred_1, cred_2, cred_3):
+    storage_provider.register("upsert_many", "upsert_many")
+    storage_provider.add_many([cred_1, cred_2])
+
+    cred_2.is_deferred = False
+    update_2 = Credential(
+        **cred_2.model_dump(),
+        raw_sdjwtvc="not_real_vc",
+        received_at=datetime.now(tz=UTC).isoformat()
+        )
+    storage_provider.upsert_many([update_2, cred_3])
+
+    assert len(storage_provider.get_deferred_credentials()) == 1
+    assert len(storage_provider.get_received_credentials()) == 2
+    assert len(storage_provider.all_credentials()) == 3
