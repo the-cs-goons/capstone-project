@@ -1,6 +1,5 @@
-import datetime
 import json
-from typing import override
+from typing import Any, override
 from uuid import uuid4
 
 from fastapi import FastAPI
@@ -11,8 +10,25 @@ from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
 from vclib.issuer.src.models.responses import FormResponse
 
+MOCK_DATA = {
+    123: {
+        "given_name": "Holden",
+        "middle_initial": "A",
+        "family_name": "Walletson",
+        "date_of_birth": 19990101,
+        "address": "123 A Street, A Suburb",
+        "license_type": "C",
+        "is_over_18": True,
+    }
+}
 
-class DefaultIssuer(CredentialIssuer):
+FORM = {
+    "license_no": {"mandatory": True, "value_type": "number"},
+    "date_of_birth": {"mandatory": True, "value_type": "number"},
+}
+
+
+class LicenseIssuer(CredentialIssuer):
     """Example implementation of the `CredentialIssuer` base class.
 
     ### Added Attributes
@@ -29,7 +45,7 @@ class DefaultIssuer(CredentialIssuer):
     """
 
     statuses: dict[int, (str, dict)]
-    time: datetime
+    # time: datetime
 
     @override
     def __init__(
@@ -39,6 +55,7 @@ class DefaultIssuer(CredentialIssuer):
         did_config_path: str,
         metadata_path: str,
         oauth_metadata_path: str,
+        data: dict[int, dict[str, Any]],
     ):
         super().__init__(
             jwt_path,
@@ -47,6 +64,7 @@ class DefaultIssuer(CredentialIssuer):
             metadata_path,
             oauth_metadata_path,
         )
+        self.data = data
         self.ticket = 0
 
         self.statuses = {}
@@ -81,13 +99,32 @@ class DefaultIssuer(CredentialIssuer):
 
     @override
     def get_credential_form(self, credential_config: str) -> FormResponse:
-        form = self.credentials[credential_config]
-        return FormResponse(form=form)
+        # form = self.credentials[credential_config]
+        # return FormResponse(form=form)
+        return FormResponse(form=FORM)
 
+    # TODO: update receive_credential_request to take errors from this function
     @override
     def get_credential_request(
         self, client_id: str, cred_type: str, redirect_uri: str, information: dict
     ) -> str:
+        license_no, date_of_birth = (
+            int(information["license_no"]),
+            int(information["date_of_birth"]),
+        )
+
+        if license_no not in self.data:
+            raise IssuerError(
+                "invalid_request", f"Licence number {license_no} does not exist"
+            )
+
+        holder_information = self.data[license_no]
+
+        if date_of_birth != holder_information["date_of_birth"]:
+            raise IssuerError("invalid_request", f"DOB {date_of_birth} does not match")
+
+        holder_information["license_no"] = license_no
+
         self.ticket += 1
         auth_code = str(uuid4())
         self.auth_codes[auth_code] = client_id
@@ -96,8 +133,8 @@ class DefaultIssuer(CredentialIssuer):
         self.auths_to_ids[auth_code] = (cred_type, cred_id, redirect_uri)
         self.id_to_info[cred_id] = {"ticket": self.ticket, "transaction_id": None}
 
-        self.statuses[self.ticket] = (cred_type, information)
-        self.time = datetime.datetime.now(tz=datetime.UTC)
+        self.statuses[self.ticket] = (cred_type, holder_information)
+        # self.time = datetime.datetime.now(tz=datetime.UTC)
 
         return auth_code
 
@@ -131,13 +168,13 @@ class DefaultIssuer(CredentialIssuer):
 
         status = "ACCEPTED"
 
-        curr_time = datetime.datetime.now(tz=datetime.UTC)
-        if curr_time - self.time < datetime.timedelta(0, 40, 0):
-            if cred_info["transaction_id"] is None:
-                transaction_id = str(uuid4())
-                self.id_to_info[cred_id]["transaction_id"] = transaction_id
-                self.transaction_id_to_cred_id[transaction_id] = cred_id
-            status = "PENDING"
+        # curr_time = datetime.datetime.now(tz=datetime.UTC)
+        # if curr_time - self.time < datetime.timedelta(0, 40, 0):
+        #     if cred_info["transaction_id"] is None:
+        #         transaction_id = str(uuid4())
+        #         self.id_to_info[cred_id]["transaction_id"] = transaction_id
+        #         self.transaction_id_to_cred_id[transaction_id] = cred_id
+        #     status = "PENDING"
 
         return StatusResponse(
             status=status,
@@ -182,11 +219,12 @@ class DefaultIssuer(CredentialIssuer):
         return router
 
 
-credential_issuer = DefaultIssuer(
+credential_issuer = LicenseIssuer(
     "/usr/src/app/examples/demo_data/example_jwk_private.pem",
     "/usr/src/app/examples/demo_data/example_diddoc.json",
     "/usr/src/app/examples/demo_data/example_didconf.json",
-    "/usr/src/app/examples/demo_data/example_metadata.json",
+    "/usr/src/app/examples/demo_data/example_metadata_license.json",
     "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
+    MOCK_DATA,
 )
 credential_issuer_server = credential_issuer.get_server()

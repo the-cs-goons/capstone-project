@@ -20,13 +20,13 @@ class WebIdentityOwner(Holder):
     """
 
     def __init__(
-            self,
-            redirect_uris: list[str],
-            cred_offer_endpoint: str,
-            *,
-            oauth_client_options: dict[str, Any] = {},
-            dev_mode: bool = False,
-            ):
+        self,
+        redirect_uris: list[str],
+        cred_offer_endpoint: str,
+        *,
+        oauth_client_options: dict[str, Any] = {},
+        dev_mode: bool = False,
+    ):
         """
         Create a new Identity Owner
 
@@ -57,8 +57,9 @@ class WebIdentityOwner(Holder):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, dev_mode=dev_mode)
-        self.current_transaction: \
-            vp_auth_request.AuthorizationRequestObject | None = None
+        self.current_transaction: vp_auth_request.AuthorizationRequestObject | None = (
+            None
+        )
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -102,8 +103,7 @@ class WebIdentityOwner(Holder):
             return await super()._get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
-                status_code=400,
-                detail=f"Credential with ID {cred_id} not found."
+                status_code=400, detail=f"Credential with ID {cred_id} not found."
             )
 
     async def get_credentials(self) -> list[Credential | DeferredCredential]:
@@ -144,7 +144,7 @@ class WebIdentityOwner(Holder):
             if credential_selection.issuer_uri:
                 raise HTTPException(
                     status_code=400,
-                    detail="Can't provide both issuer_uri and credential_offer."
+                    detail="Can't provide both issuer_uri and credential_offer.",
                 )
             redirect_url = await self.get_auth_redirect_from_offer(
                 credential_selection.credential_configuration_id,
@@ -188,15 +188,14 @@ class WebIdentityOwner(Holder):
         # what the backend sends to the fronend should be up to implementation
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
-        self.current_transaction = \
+        self.current_transaction = (
             vp_auth_request.AuthorizationRequestObject.model_validate_json(
-            response.text
+                response.text
+            )
         )
         return self.current_transaction
 
-    async def present_selection(
-        self, field_selections: FieldSelectionObject
-    ):
+    async def present_selection(self, field_selections: FieldSelectionObject):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         # print(self.current_transaction)
@@ -273,7 +272,7 @@ class WebIdentityOwner(Holder):
             }
             descriptor_maps.append(
                 vp_auth_response.DescriptorMapObject(**descriptor_map)
-                )
+            )
         elif len(id_vp_tokens) > 1:
             final_vp_token = []
             for input_descriptor_id, vp_token in id_vp_tokens:
@@ -285,7 +284,9 @@ class WebIdentityOwner(Holder):
                     "format": "vc+sd-jwt",
                     "path": f"$.vp_token[{idx}]",
                 }
-                descriptor_maps.append(vp_auth_response.DescriptorMapObject(**descriptor_map))
+                descriptor_maps.append(
+                    vp_auth_response.DescriptorMapObject(**descriptor_map)
+                )
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
             id=str(uuid.uuid4()),

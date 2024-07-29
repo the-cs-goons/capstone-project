@@ -14,15 +14,8 @@ class Filter(BaseModel):
     """
 
     type: (
-        Literal[
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "array",
-            "object"
-            ] | None
-        ) = None
+        Literal["string", "number", "integer", "boolean", "array", "object"] | None
+    ) = None
     format: Literal["date", "date-time", "email", "uri"] | None = None
 
     # String filters

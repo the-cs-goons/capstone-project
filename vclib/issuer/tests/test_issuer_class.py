@@ -3,7 +3,7 @@ from typing import override
 from vclib.issuer.src.credential_issuer import CredentialIssuer
 from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
-from vclib.issuer.src.models.responses import StatusResponse
+from vclib.issuer.src.models.responses import FormResponse, StatusResponse
 
 
 class TestIssuer(CredentialIssuer):
@@ -58,6 +58,11 @@ class TestIssuer(CredentialIssuer):
             return self.client_ids[client_id]
         except IssuerError:
             raise IssuerError("invalid_client")
+
+    @override
+    def get_credential_form(self, credential_config: str) -> FormResponse:
+        form = self.credentials[credential_config]
+        return FormResponse(form=form)
 
     @override
     def get_credential_request(
