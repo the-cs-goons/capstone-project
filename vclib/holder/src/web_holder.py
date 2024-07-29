@@ -27,8 +27,7 @@ class WebIdentityOwner(Holder):
             oauth_client_options: dict[str, Any] = {},
             dev_mode: bool = False,
             ):
-        """
-        Create a new Identity Owner
+        """Create a new Identity Owner
 
         ### Parameters
         - redirect_uris(`list[str]`): A list of redirect URIs to register
@@ -82,8 +81,7 @@ class WebIdentityOwner(Holder):
     async def get_credential(
         self, cred_id: str, refresh: int = 1
     ) -> Credential | DeferredCredential:
-        """
-        Gets a credential by ID, if one exists
+        """Gets a credential by ID, if one exists
 
         ### Parameters
         - cred_id(`str`): The ID of the credential, as kept by the owner
@@ -107,8 +105,7 @@ class WebIdentityOwner(Holder):
             )
 
     async def get_credentials(self) -> list[Credential | DeferredCredential]:
-        """
-        Gets all credentials
+        """Gets all credentials
         TODO: Adjust when storage implemented
 
         ### Returns
@@ -117,20 +114,21 @@ class WebIdentityOwner(Holder):
         return self.credentials.values()
 
     async def delete_credential(self, cred_id: str) -> str:
-        """
-        Delete a credential by ID, if one exists
+        """Delete a credential by ID, if one exists
 
         ### Parameters
         - cred_id(`str`): The ID of the credential to be deleted
 
         ### Returns
-        - `Credential | DeferredCredential`: The requested credential, if it exists.
+        - `Credential | DeferredCredential`: The requested credential, if it
+        exists.
         """
         try:
             return await super()._delete_credential(cred_id)
         except Exception:
             raise HTTPException(
-                status_code=404, detail=f"Credential with ID {cred_id} not found."
+                status_code=404,
+                detail=f"Credential with ID {cred_id} not found."
             )
 
     async def request_authorization(
@@ -285,7 +283,8 @@ class WebIdentityOwner(Holder):
                     "format": "vc+sd-jwt",
                     "path": f"$.vp_token[{idx}]",
                 }
-                descriptor_maps.append(vp_auth_response.DescriptorMapObject(**descriptor_map))
+                descriptor_maps.append(
+                    vp_auth_response.DescriptorMapObject(**descriptor_map))
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
             id=str(uuid.uuid4()),

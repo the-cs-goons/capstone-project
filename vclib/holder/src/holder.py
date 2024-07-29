@@ -20,22 +20,25 @@ from .models.oauth import AccessToken, OAuthTokenResponse
 
 
 class Holder:
-    """
-    ## Base IdentityOwner class
+    """## Base IdentityOwner class
 
     ### Attributes
-    - oauth_clients(`dict[str, RegisteredClientMetadata]`): A dictionary of objects
-    representing registered OAuth2 clients. At any given time, the user may have
-    multiple OAuth contexts, for different issuers. During client registration &
-    constructing the authorization redirect for the end user, the `state` parameter
-    representing the new context is used as the key to store the relevant oauth client
-    data. These only need to be stored in memory, they do not need to persist.
+    - oauth_clients(`dict[str, RegisteredClientMetadata]`): A dictionary
+    of objects representing registered OAuth2 clients. At any given time,
+      the user may have multiple OAuth contexts, for different issuers.
+      During client registration & constructing the authorization
+      redirect for the end user, the `state` parameter representing the
+      new context is used the key to store the relevant oauth client
+      data. These only need to be stored in memory, they do not need to
+      persist.
 
-    - issuer_metadata_store(`dict[str, IssuerMetadata]`): A dictionary of objects
-    containing an issuer's metadata, stored under the issuer's URI.
+    - issuer_metadata_store(`dict[str, IssuerMetadata]`): A dictionary
+    of objects containing an issuer's metadata, stored under the
+    issuer's URI.
 
-    - auth_metadata_store(`dict[str, AuthorizationMetadata]`): A dictionary of objects
-    containing an issuer's authorization server, stored under the issuer's URI.
+    - auth_metadata_store(`dict[str, AuthorizationMetadata]`): A
+    dictionary of objects containing an issuer's authorization server,
+    stored under the issuer's URI.
     """
 
     def __init__(
@@ -44,12 +47,12 @@ class Holder:
         *,
         dev_mode=False,
     ):
-        """
-        Create a new Identity Owner
+        """Create a new Identity Owner
 
         ### Parameters
-        - oauth_client_metadata(`dict`): A dictionary containing at minimum key/values
-        "redirect_uris": `list[str]` and "credential_offer_endpoint": `str`.
+        - oauth_client_metadata(`dict`): A dictionary containing at
+        inimum key/values "redirect_uris": `list[str]` and
+        "credential_offer_endpoint": `str`.
         For additional entries, see `WalletClientMetadata`.
         """
         self.client_metadata = WalletClientMetadata.model_validate(
@@ -356,24 +359,28 @@ class Holder:
         code: str | None = None,
         error: str | None = None,
     ) -> list[Credential | DeferredCredential]:
-        """
-        Retrieves an OAuth2 Access token from a successful authorization response, and
-        then attempts to retrieve one or more credentials from the issuer, depending
-        on what the end user authorized the wallet to access.
+        """Retrieves an OAuth2 Access token from a successful
+        authorization response, and then attempts to retrieve one or
+        more credentials from the issuer, depending on what the end user
+        authorized the wallet to access.
 
-        The retrieved credentials are only saved if every credential request was
-        successful. (TODO: Might change this behaviour later)
+        The retrieved credentials are only saved if every credential
+        request was successful.
+        (TODO: Might change this behaviour later)
 
         ### Parameters:
-        - code(`str`): The authorization code, to be used in the token request.
-        - state(`str`): An opaque string used to identify the context of the
-        authorization response. In addition to the benefits of this parameter in
-        OAuth2, the state identifies the issuer from where the response originated,
-        and is used to identify the client registered for this response.
+        - code(`str`): The authorization code, to be used in the token
+        request.
+        - state(`str`): An opaque string used to identify the context of
+        the authorization response. In addition to the benefits of this
+        parameter in OAuth2, the state identifies the issuer from where
+        the response originated, and is used to identify the client
+        registered for this response.
 
         ### Returns:
-        - (`List[Credential | DeferredCredential]`): A list containing the
-        credential(s) retrieved from the issuer using the acquired access token.
+        - (`List[Credential | DeferredCredential]`): A list containing
+        the credential(s) retrieved from the issuer using the acquired
+        access token.
         """
         if error is not None:
             raise Exception(f"Bad Authorization Request: {error}")
@@ -423,7 +430,10 @@ class Holder:
             # Note - using post instead of fetch_token because fetch_token doesn't
             # return the full request body
             r: Response = oauth2_client.post(
-                token_endpoint, data=urlencode(params), auth=basic_auth, headers=headers
+                token_endpoint,
+                data=urlencode(params),
+                auth=basic_auth,
+                headers=headers
             )
             r.raise_for_status()
 
@@ -439,9 +449,12 @@ class Holder:
                 )
 
             for detail in access_token_res.authorization_details:
+                # TODO: break this function down, it's too large
+
                 cred_type = detail.type
                 # Check if type is supported by wallet, skip if not
-                if cred_type not in self.client_metadata.authorization_details_types:
+                cred_types = self.client_metadata.authorization_details_types
+                if cred_type not in cred_types:
                     continue
 
                 config_id = detail.credential_configuration_id
@@ -539,16 +552,16 @@ class Holder:
     async def _get_credential(
         self, cred_id: str, *, refresh: bool = True
     ) -> Credential | DeferredCredential:
-        """
-        Gets a credential by ID, if one exists
+        """Gets a credential by ID, if one exists
 
         ### Parameters
         - cred_id(`str`): The ID of the credential, as kept by the owner
-        - refresh(`bool = True`): Whether or not to refresh the credential, if
-        currently deferred. `True` by default.
+        - refresh(`bool = True`): Whether or not to refresh the
+        credential, if currently deferred. `True` by default.
 
         ### Returns
-        - `Credential | DeferredCredential`: The requested credential, if it exists.
+        - `Credential | DeferredCredential`: The requested credential,
+        if it exists.
         """
 
         if refresh:
@@ -564,13 +577,15 @@ class Holder:
         """Retrieves all pending credentials.
 
         ### Returns
-        - `list[DeferredCredential]`: A list of credentials that have been deferred.
+        - `list[DeferredCredential]`: A list of credentials that have
+        been deferred.
         """
         return [cred for cred in self.credentials.values() if cred.is_deferred]
 
-    async def refresh_credential(self, cred_id: str) -> Credential | DeferredCredential:
-        """
-        Refreshes a credential.
+    async def refresh_credential(
+            self, cred_id: str
+            ) -> Credential | DeferredCredential:
+        """Refreshes a credential.
 
         If the credential has already been retrieved, the credential
         will be returned unchanged.
@@ -617,10 +632,11 @@ class Holder:
                     err += "Value 'credential' missing from response."
                     raise Exception(err)
 
+                cred_config_id = cred.credential_configuration_id
                 new_credential = Credential(
                     id=cred_id,
                     issuer_url=cred.issuer_url,
-                    credential_configuration_id=cred.credential_configuration_id,
+                    credential_configuration_id=cred_config_id,
                     is_deferred=False,
                     c_type=cred.c_type,
                     received_at=datetime.now(tz=UTC).isoformat(),
@@ -634,14 +650,15 @@ class Holder:
             raise Exception("Invalid credential response")
 
     async def refresh_all_deferred_credentials(self) -> list[str]:
-        """
-        Polls the issuer for updates on all outstanding credential requests.
+        """Polls the issuer for updates on all outstanding credential
+        requests.
 
         ### Returns
-        - `list[str]` A list of credential IDs that a refresh was attempted on. Note
-        that the IDs all credentials that were deferred before calling this method will
-        be returned; even if the credential is still deferred, because the
-        `last_request` attribute will be updated.
+        - `list[str]` A list of credential IDs that a refresh was
+        attempted on. Note that the IDs all credentials that were
+        deferred before calling this method will be returned; even if
+        the credential is still deferred, because the `last_request`
+        attribute will be updated.
         """
         updated = []
         for cred in self.get_deferred_credentials():
@@ -662,8 +679,8 @@ class Holder:
         ### Parameters
         - cred(`Credential`): A `Credential`
 
-        IMPORTANT: Do not store unsecured credentials in a production environment.
-        Use `self.serialise` to convert the `Credential` to
+        IMPORTANT: Do not store unsecured credentials in a production
+        environment. Use `self.serialise` to convert `Credential` to
         something that can be stored.
         """
         return
@@ -674,7 +691,8 @@ class Holder:
         """## !!! This function MUST be `@override`n !!!
 
         Function to load a specific credential from storage.
-        Use `self.load_from` to convert the stored credential to a `Credential` object.
+        Use `self.load_from` to convert the stored credential to a
+        `Credential` object.
 
         ### Parameters
         - cred_id(`str`): an identifier for the credential
@@ -693,6 +711,7 @@ class Holder:
         to retrieve all credentials.
 
         ### Returns
-        - `list[Credential | DeferredCredential]`: A list of Credential objects.
+        - `list[Credential | DeferredCredential]`: A list of Credential
+        objects.
         """
         return []
