@@ -12,8 +12,8 @@ services:
         source: owner-ui/app
         target: /usr/src/app/app
       - type: bind
-        source: ./vclib/holder/examples/example_ssl_certfile.crt
-        target: /usr/src/app/example_ssl_ca_bundle.crt
+        source: ./vclib/holder/demo/demo_ssl_certfile.crt
+        target: /usr/src/app/demo_ssl_ca_bundle.crt
         read_only: true
     env_file:
       - path: example.env
@@ -22,7 +22,7 @@ services:
         required: false
     environment:
       - PORT=$CS3900_OWNER_UI_PORT
-      - NODE_EXTRA_CA_CERTS=/usr/src/app/example_ssl_ca_bundle.crt
+      - NODE_EXTRA_CA_CERTS=/usr/src/app/demo_ssl_ca_bundle.crt
 
   holder-lib:
     build:
@@ -47,8 +47,8 @@ services:
       - path: .env
         required: false
     environment:
-      - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
-      - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt
+      - REQUESTS_CA_BUNDLE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
+      - SSL_CERT_FILE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
 
   issuer-lib:
     build:
@@ -96,5 +96,5 @@ services:
       - path: .env
         required: false
     environment:
-      - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
-      - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt
+      - REQUESTS_CA_BUNDLE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
+      - SSL_CERT_FILE=/usr/src/app/demo/demo_ssl_ca_bundle.crt

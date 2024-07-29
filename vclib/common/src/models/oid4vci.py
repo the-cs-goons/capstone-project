@@ -1,3 +1,4 @@
+# TODO: uncomment these once they can be handled properly
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -23,29 +24,29 @@ class CredentialDisplayMetadataObject(DisplayMetadataObject):
 
 class CredentialConfigurationsObject(BaseModel):
     format: str
-    scope: str | None = Field(default=None)
+    # scope: str | None = Field(default=None)
     cryptographic_binding_methods_supported: list[str] | None = Field(default=None)
     credential_signing_alg_values_supported: list[str] | None = Field(default=None)
     proof_types_supported: dict[str, dict[str, list[str]]] | None = Field(default=None)
-    display: list[CredentialDisplayMetadataObject] | None = Field(default=None)
+    # display: list[CredentialDisplayMetadataObject] | None = Field(default=None)
 
 
 class SDJWTVCCredentialConfigurationsObject(CredentialConfigurationsObject):
     vct: str
     claims: dict[str, Any] | None = Field(default=None)
-    order: list[str] | None = Field(default=None)
+    # order: list[str] | None = Field(default=None)
 
 
 class IssuerOpenID4VCIMetadata(BaseModel):
     credential_issuer: str
-    authorization_servers: list[str] | None = Field(default=None)
+    # authorization_servers: list[str] | None = Field(default=None)
     credential_endpoint: str
     deferred_credential_endpoint: str | None = Field(default=None)
-    notification_endpoint: str | None = Field(default=None)
-    credential_response_encryption: dict | None = Field(default=None)
-    batch_credential_issuance: dict | None = Field(default=None)
-    signed_metadata: str | None = Field(default=None)
-    display: list[DisplayMetadataObject] | None = Field(default=None)
+    # notification_endpoint: str | None = Field(default=None)
+    # credential_response_encryption: dict | None = Field(default=None)
+    # batch_credential_issuance: dict | None = Field(default=None)
+    # signed_metadata: str | None = Field(default=None)
+    # display: list[DisplayMetadataObject] | None = Field(default=None)
     credential_configurations_supported: dict[
         str, CredentialConfigurationsObject | SDJWTVCCredentialConfigurationsObject
     ] = Field(discriminator="format")

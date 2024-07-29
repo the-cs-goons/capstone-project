@@ -10,7 +10,7 @@
       "credential_signing_alg_values_supported": ["ES256"],
       "proof_types_supported": {
         "jwt": {
-          "proof_signing_alg_values_supported": "EdDSA"
+          "proof_signing_alg_values_supported": ["EdDSA"]
         }
       },
       "claims": {
@@ -32,6 +32,5 @@
         }
       }
     }
-  },
-  "credential_identifiers_supported": true
+  }
 }

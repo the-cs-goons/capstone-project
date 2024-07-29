@@ -1,3 +1,4 @@
+# TODO: uncomment these once they can be handled properly
 from jwcrypto.jwk import JWKSet
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -6,36 +7,36 @@ class AuthorizationServerMetadata(BaseModel):
     issuer: str
     authorization_endpoint: str | None = Field(default=None)
     token_endpoint: str | None = Field(default=None)
-    jwks_uri: str | None = Field(default=None)
+    # jwks_uri: str | None = Field(default=None)
     registration_endpoint: str | None = Field(default=None)
     scopes_supported: list[str] | None = Field(default=None)
     response_types_supported: list[str]
-    response_modes_supported: list[str] = Field(default=["query", "fragment"])
+    # response_modes_supported: list[str] = Field(default=["query", "fragment"])
     grant_types_supported: list[str] = Field(default=["authorization_code", "implicit"])
-    token_endpoint_auth_methods_supported: list[str] = Field(
-        default=["client_secret_basic"]
-    )
-    token_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
-        default=None
-    )
-    service_documentation: str | None = Field(default=None)
-    ui_locales_supported: list[str] | None = Field(default=None)
-    op_policy_uri: str | None = Field(default=None)
-    op_tos_uri: str | None = Field(default=None)
-    revocation_endpoint: str | None = Field(default=None)
-    revocation_endpoint_auth_methods_supported: list[str] | None = Field(default=None)
-    revocation_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
-        default=None
-    )
-    introspection_endpoint: str | None = Field(default=None)
-    introspection_endpoint_auth_methods_supported: list[str] | None = Field(
-        default=None
-    )
-    introspection_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
-        default=None
-    )
-    code_challenge_methods_supported: list[str] | None = Field(default=None)
-    request_object_signing_alg_values_supported: list[str] | None = Field(default=None)
+    # token_endpoint_auth_methods_supported: list[str] = Field(
+    #     default=["client_secret_basic"]
+    # )
+    # token_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
+    #     default=None
+    # )
+    # service_documentation: str | None = Field(default=None)
+    # ui_locales_supported: list[str] | None = Field(default=None)
+    # op_policy_uri: str | None = Field(default=None)
+    # op_tos_uri: str | None = Field(default=None)
+    # revocation_endpoint: str | None = Field(default=None)
+    # revocation_endpoint_auth_methods_supported: list[str] | None = Field(default=None)
+    # revocation_endpoint_auth_signing_alg_values_supported: list[str] | None = Field(
+    #     default=None
+    # )
+    # introspection_endpoint: str | None = Field(default=None)
+    # introspection_endpoint_auth_methods_supported: list[str] | None = Field(
+    #    default=None
+    # )
+    # introspection_endpoint_auth_signing_alg_values_supported: list[str]| None = Field(
+    #    default=None
+    # )
+    # code_challenge_methods_supported: list[str] | None = Field(default=None)
+    # request_object_signing_alg_values_supported: list[str] | None= Field(default=None)
 
 
 class IssuerOAuth2ServerMetadata(AuthorizationServerMetadata):

@@ -4,12 +4,10 @@ from typing import override
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
 
-from vclib.common import oauth2, responses
+from vclib.common import oauth2, oid4vci, responses
 from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
-    MetadataResponse,
-    OAuthMetadataResponse,
 )
 from vclib.issuer.src.credential_issuer import CredentialIssuer
 from vclib.issuer.src.models.exceptions import IssuerError
@@ -32,8 +30,8 @@ class TestIssuer(CredentialIssuer):
         private_jwk: JWK
         diddoc: DIDJSONResponse
         did_config: DIDConfigResponse
-        oid4vci_metadata: MetadataResponse
-        oauth2_metadata: OAuthMetadataResponse
+        oid4vci_metadata: oid4vci.IssuerOpenID4VCIMetadata
+        oauth2_metadata: oauth2.IssuerOAuth2ServerMetadata
 
         try:
             with open(private_jwt_path, "rb") as key_file:
@@ -67,7 +65,7 @@ class TestIssuer(CredentialIssuer):
 
         try:
             with open(oid4vci_metadata_path, "rb") as oid4vci_metadata_file:
-                oid4vci_metadata = MetadataResponse.model_validate(
+                oid4vci_metadata = oid4vci.IssuerOpenID4VCIMetadata.model_validate(
                     json.load(oid4vci_metadata_file)
                 )
         except FileNotFoundError as e:
@@ -79,7 +77,7 @@ class TestIssuer(CredentialIssuer):
 
         try:
             with open(oauth2_metadata_path, "rb") as oauth2_metadata_file:
-                oauth2_metadata = OAuthMetadataResponse.model_validate(
+                oauth2_metadata = oauth2.IssuerOAuth2ServerMetadata.model_validate(
                     json.load(oauth2_metadata_file)
                 )
         except FileNotFoundError as e:

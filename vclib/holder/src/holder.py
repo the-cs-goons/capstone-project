@@ -119,7 +119,7 @@ class Holder:
             for credential in list(self.credentials.values())
             if type(credential) is credentials.Credential
             and "." in credential.raw_sdjwtvc
-        ]  # dying because some of the example
+        ]  # TODO: dying because some of the example
         # raw sdjwts aren't sdjwts?
         # will ask mack l8r
         matched_credentials = {}
