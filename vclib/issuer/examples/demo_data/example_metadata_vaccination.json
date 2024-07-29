@@ -3,9 +3,9 @@
     "credential_endpoint": "https://issuer-lib:8082/credentials",
     "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
     "credential_configurations_supported": {
-        "https://issuer-lib:8082/DriverLicense": {
+        "https://issuer-lib:8082/VaccinationCertificate": {
             "format": "vc+sd-jwt",
-            "vct": "https://issuer-lib:8082/DriverLicense",
+            "vct": "https://issuer-lib:8082/VaccinationCertificate",
             "cryptographic_binding_methods_supported": [
                 "did:peer"
             ],
@@ -38,9 +38,9 @@
                     "mandatory": true,
                     "value_type": "number"
                 },
-                "valid_from": {
+                "vaccination_name": {
                     "mandatory": true,
-                    "value_type": "number"
+                    "value_type": "string"
                 },
                 "vaccination_date": {
                     "mandatory": true,
