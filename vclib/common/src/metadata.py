@@ -60,32 +60,3 @@ class UniqueCredentialIdentifier(BaseModel):
     credential_signing_alg_values_supported: list[str]
     proof_types_supported: dict[str, ProofTypesSupported]
     claims: dict[str, dict[str, Any] | list[dict[str, Any]]]
-
-
-# TODO: change this to a more specific name
-class MetadataResponse(BaseModel):
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-    credential_issuer: str
-    credential_endpoint: str
-    # batch_credential_endpoint: str
-    deferred_credential_endpoint: str
-    # notification_endpoint: str
-    credential_configurations_supported: dict[str, UniqueCredentialIdentifier]
-    credential_identifiers_supported: bool
-    # display: str
-
-
-# TODO: change to OAuth2 and more specific name
-class OAuthMetadataResponse(BaseModel):
-    issuer: str
-    authorization_endpoint: str
-    token_endpoint: str
-    registration_endpoint: str
-    scopes_supported: Any | None = Field(default=None)
-    response_types_supported: list[str]
-    grant_types_supported: list[str]
-    authorization_details_types_supported: list[str]
-    pre_authorized_supported: bool = Field(
-        alias="pre-authorized_grant_anonymous_access_supported"
-    )

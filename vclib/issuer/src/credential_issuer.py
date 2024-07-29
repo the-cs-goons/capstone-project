@@ -16,8 +16,6 @@ from vclib.common import SDJWTVCIssuer, oauth2, oid4vci, responses
 from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
-    MetadataResponse,
-    OAuthMetadataResponse,
 )
 
 from .models.exceptions import IssuerError
@@ -32,8 +30,8 @@ class CredentialIssuer:
         private_jwk: JWK,
         diddoc: DIDJSONResponse,
         did_config: DIDConfigResponse,
-        oid4vci_metadata: MetadataResponse,
-        oauth2_metadata: OAuthMetadataResponse,
+        oid4vci_metadata: oid4vci.IssuerOpenID4VCIMetadata,
+        oauth2_metadata: oauth2.IssuerOAuth2ServerMetadata,
     ):
         """Base class used for the credential issuer agent.
 
@@ -41,8 +39,9 @@ class CredentialIssuer:
         - private_jwk(`JWK`): Issuer's private key in JWK format.
         - diddoc(`DIDJSONResponse`): DIDDoc JSON object.
         - did_config_path(`DIDConfigResponse`): DID configuration JSON object.
-        - metadata_path(`MetadataResponse`): OpenID credential issuer metadata object.
-        - oauth2_metadata(`OAuthMetadataResponse`): OAuth2 metadata JSON object.
+        - metadata_path(`IssuerOpenID4VCIMetadata`): OpenID credential issuer metadata
+          object.
+        - oauth2_metadata(`IssuerOAuth2ServerMetadata`): OAuth2 metadata JSON object.
         """
         self.jwk = private_jwk
         self.diddoc = diddoc
@@ -54,7 +53,12 @@ class CredentialIssuer:
 
         self.credentials = {}
         for key, value in self.metadata.credential_configurations_supported.items():
-            self.credentials[key.replace(self.uri + "/", "")] = value.claims
+            if value.format == "vc+sd-jwt" and isinstance(
+                value, oid4vci.SDJWTVCCredentialConfigurationsObject
+            ):
+                self.credentials[key.replace(self.uri + "/", "")] = value.claims
+            else:
+                raise IssuerError(f"{value.format} format unsupported at this time")
 
         self.secret = secrets.token_hex(32)
 
@@ -64,10 +68,10 @@ class CredentialIssuer:
     async def get_did_config(self) -> DIDConfigResponse:
         return self.did_config
 
-    async def get_issuer_metadata(self) -> MetadataResponse:
+    async def get_issuer_metadata(self) -> oid4vci.IssuerOpenID4VCIMetadata:
         return self.metadata
 
-    async def get_oauth_metadata(self) -> OAuthMetadataResponse:
+    async def get_oauth_metadata(self) -> oauth2.IssuerOAuth2ServerMetadata:
         return self.oauth_metadata
 
     async def register(
@@ -471,12 +475,28 @@ class CredentialIssuer:
         """Gets the server for the issuer."""
         router = FastAPI()
 
-        auth_endpoint = urlparse(self.oauth_metadata["authorization_endpoint"]).path
-        token_endpoint = urlparse(self.oauth_metadata["token_endpoint"]).path
-        register_endpoint = urlparse(self.oauth_metadata["registration_endpoint"]).path
+        auth_endpoint = (
+            urlparse(self.oauth_metadata.authorization_endpoint).path
+            if self.oauth_metadata.authorization_endpoint
+            else None
+        )
+        token_endpoint = (
+            urlparse(self.oauth_metadata.token_endpoint).path
+            if self.oauth_metadata.token_endpoint
+            else None
+        )
+        register_endpoint = (
+            urlparse(self.oauth_metadata.registration_endpoint).path
+            if self.oauth_metadata.registration_endpoint
+            else None
+        )
 
-        credential_endpoint = urlparse(self.metadata["credential_endpoint"]).path
-        deferred_endpoint = urlparse(self.metadata["deferred_credential_endpoint"]).path
+        credential_endpoint = urlparse(self.metadata.credential_endpoint).path
+        deferred_endpoint = (
+            urlparse(self.metadata.deferred_credential_endpoint).path
+            if self.metadata.deferred_credential_endpoint
+            else None
+        )
 
         # Metadata must be hosted at these endpoints
         router.get("/.well-known/did.json")(self.get_did_json)
@@ -485,13 +505,17 @@ class CredentialIssuer:
         router.get("/.well-known/oauth-authorization-server")(self.get_oauth_metadata)
 
         # OAuth2 endpoints
-        router.get(auth_endpoint)(self.authorize)
-        router.post(auth_endpoint)(self.receive_credential_request)
-        router.post(token_endpoint)(self.token)
-        router.post(register_endpoint)(self.register)
+        if auth_endpoint:
+            router.get(auth_endpoint)(self.authorize)
+            router.post(auth_endpoint)(self.receive_credential_request)
+        if token_endpoint:
+            router.post(token_endpoint)(self.token)
+        if register_endpoint:
+            router.post(register_endpoint)(self.register)
 
         router.post(credential_endpoint)(self.get_credential)
-        router.post(deferred_endpoint)(self.get_deferred_credential)
+        if deferred_endpoint:
+            router.post(deferred_endpoint)(self.get_deferred_credential)
 
         return router
 

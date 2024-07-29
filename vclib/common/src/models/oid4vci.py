@@ -46,7 +46,9 @@ class IssuerOpenID4VCIMetadata(BaseModel):
     batch_credential_issuance: dict | None = Field(default=None)
     signed_metadata: str | None = Field(default=None)
     display: list[DisplayMetadataObject] | None = Field(default=None)
-    credential_configurations_supported: dict[str, CredentialConfigurationsObject]
+    credential_configurations_supported: dict[
+        str, CredentialConfigurationsObject | SDJWTVCCredentialConfigurationsObject
+    ] = Field(discriminator="format")
 
 
 class CredentialOfferObject(BaseModel):
