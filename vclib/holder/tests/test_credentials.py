@@ -1,6 +1,7 @@
 import pytest
 
-from vclib.holder import Credential, DeferredCredential, Holder
+from vclib.common import credentials
+from vclib.holder import Holder
 
 MOCK_STORE = {
     "example1": {
@@ -43,8 +44,8 @@ def deferred_credential_obj():
 
 
 def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj):
-    credential = Credential.model_validate(credential_obj)
-    deferred = DeferredCredential.model_validate(deferred_credential_obj)
+    credential = credentials.Credential.model_validate(credential_obj)
+    deferred = credentials.DeferredCredential.model_validate(deferred_credential_obj)
 
     id_owner = Holder(
         {"redirect_uris": ["example"], "credential_offer_endpoint": "example"}
@@ -54,11 +55,11 @@ def test_serialise_and_load_credentials(credential_obj, deferred_credential_obj)
     credential2 = id_owner.load_from_serial(store)
     deferred2 = id_owner.load_from_serial(deferred_store)
 
-    assert isinstance(credential2, Credential)
-    assert not isinstance(credential2, DeferredCredential)
+    assert isinstance(credential2, credentials.Credential)
+    assert not isinstance(credential2, credentials.DeferredCredential)
 
-    assert isinstance(deferred2, DeferredCredential)
-    assert not isinstance(deferred2, Credential)
+    assert isinstance(deferred2, credentials.DeferredCredential)
+    assert not isinstance(deferred2, credentials.Credential)
 
     assert credential.id == credential2.id
     assert credential.issuer_url == credential2.issuer_url

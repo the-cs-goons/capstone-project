@@ -6,12 +6,9 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
-from vclib.common import vp_auth_request, vp_auth_response
+from vclib.common import credentials, vp_auth_request, vp_auth_response
 
 from .holder import Holder
-from .models.credentials import Credential, DeferredCredential
-from .models.field_selection_object import FieldSelectionObject
-from .models.request_body import CredentialSelection
 
 
 class WebIdentityOwner(Holder):
@@ -81,7 +78,7 @@ class WebIdentityOwner(Holder):
 
     async def get_credential(
         self, cred_id: str, refresh: int = 1
-    ) -> Credential | DeferredCredential:
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """
         Gets a credential by ID, if one exists
 
@@ -105,7 +102,9 @@ class WebIdentityOwner(Holder):
                 status_code=400, detail=f"Credential with ID {cred_id} not found."
             )
 
-    async def get_credentials(self) -> list[Credential | DeferredCredential]:
+    async def get_credentials(
+        self,
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """
         Gets all credentials
         TODO: Adjust when storage implemented
@@ -133,7 +132,7 @@ class WebIdentityOwner(Holder):
             )
 
     async def request_authorization(
-        self, credential_selection: CredentialSelection
+        self, credential_selection: credentials.CredentialSelection
     ):  # -> RedirectResponse:
         """
         Redirects the user to authorize.
@@ -194,7 +193,9 @@ class WebIdentityOwner(Holder):
         )
         return self.current_transaction
 
-    async def present_selection(self, field_selections: FieldSelectionObject):
+    async def present_selection(
+        self, field_selections: vp_auth_request.FieldSelectionObject
+    ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         # print(self.current_transaction)
@@ -304,7 +305,7 @@ class WebIdentityOwner(Holder):
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                f"{response_uri}", data=authorization_response.model_dump_json()
+                f"{response_uri}", content=authorization_response.model_dump_json()
             )
 
         self.current_transaction = None

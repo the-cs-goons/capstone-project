@@ -1,5 +1,5 @@
 from jwcrypto.jwk import JWKSet
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class AuthorizationServerMetadata(BaseModel):
@@ -40,7 +40,8 @@ class AuthorizationServerMetadata(BaseModel):
 
 class IssuerOAuth2ServerMetadata(AuthorizationServerMetadata):
     pre_authorized_supported: bool = Field(
-        alias="pre-authorized_grant_anonymous_access_supported", default=False
+        serialization_alias="pre-authorized_grant_anonymous_access_supported",
+        default=False,
     )
     authorization_details_types_supported: list[str] | None = Field(default=None)
 
@@ -53,6 +54,8 @@ class HolderOAuth2ServerMetadata(AuthorizationServerMetadata):
 
 
 class ClientMetadata(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
     redirect_uris: list[str]
     token_endpoint_auth_method: str = Field(default="client_secret_basic")
     grant_types: list[str] = Field(default=["authorization_code"])

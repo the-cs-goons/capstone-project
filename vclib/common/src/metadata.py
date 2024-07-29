@@ -27,8 +27,13 @@ class DIDJSONResponse(BaseModel):
 
     context: list[str] = Field(alias="@context")
     id: str
-    verificationMethod: list[VerificationMethod]  # noqa: N815
-    authentication: list[str]
+    # alsoKnownAs: list[str] | None = Field(default=None)
+    verificationMethod: list[VerificationMethod] | None = Field(default=None)  # noqa: N815
+    # authentication: list[str | VerificationMethod] | None = Field(default=None)
+    assertionMethod: list[str | VerificationMethod] | None = Field(default=None)  # noqa: N815
+    # keyAgreement: list[str | VerificationMethod] | None = Field(default=None)
+    # capabilityInvocation: list[str | VerificationMethod] | None = Field(default=None)
+    # capabilityDelegation: list[str | VerificationMethod] | None = Field(default=None)
 
 
 class ConfigEntries(BaseModel):

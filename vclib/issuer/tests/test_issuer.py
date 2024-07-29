@@ -5,8 +5,7 @@ from base64 import urlsafe_b64encode
 import pytest
 from fastapi import Response
 
-from vclib.issuer import CredentialIssuer
-from vclib.issuer.src.models.oauth import WalletClientMetadata
+from vclib.common import oauth2
 from vclib.issuer.tests.test_issuer_class import TestIssuer
 
 exp_diddoc: dict
@@ -43,21 +42,21 @@ def credential_issuer():
 @pytest.mark.asyncio()
 async def test_metadata(credential_issuer):
     diddoc = await credential_issuer.get_did_json()
-    assert exp_diddoc == diddoc
+    assert exp_diddoc == diddoc.model_dump(by_alias=True)
 
     didconf = await credential_issuer.get_did_config()
-    assert exp_didconf == didconf
+    assert exp_didconf == didconf.model_dump(by_alias=True)
 
     meta = await credential_issuer.get_issuer_metadata()
-    assert exp_meta == meta
+    assert exp_meta == meta.model_dump(by_alias=True)
 
     ometa = await credential_issuer.get_oauth_metadata()
-    assert exp_ometa == ometa
+    assert exp_ometa == ometa.model_dump(by_alias=True)
 
 
 @pytest.mark.asyncio()
 async def test_request_credential(credential_issuer):
-    metadata = WalletClientMetadata(
+    metadata = oauth2.HolderOAuth2ClientMetadata(
         redirect_uris=[],
         credential_offer_endpoint="",
         token_endpoint_auth_method="",
@@ -111,7 +110,7 @@ async def test_request_credential(credential_issuer):
 @pytest.mark.asyncio()
 async def test_nonexistent_files():
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(
+        TestIssuer(
             "not/a/key.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -120,7 +119,7 @@ async def test_nonexistent_files():
         )
 
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "not/a/diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -129,7 +128,7 @@ async def test_nonexistent_files():
         )
 
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "not/a/didconf.json",
@@ -138,7 +137,7 @@ async def test_nonexistent_files():
         )
 
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -147,7 +146,7 @@ async def test_nonexistent_files():
         )
 
     with pytest.raises(FileNotFoundError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -159,7 +158,7 @@ async def test_nonexistent_files():
 @pytest.mark.asyncio()
 async def test_invalid_files():
     with pytest.raises(ValueError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_invalid_private_key.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -168,7 +167,7 @@ async def test_invalid_files():
         )
 
     with pytest.raises(ValueError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_invalid_private_key.pem",
             "vclib/issuer/tests/test_didconf.json",
@@ -177,7 +176,7 @@ async def test_invalid_files():
         )
 
     with pytest.raises(ValueError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_invalid_private_key.pem",
@@ -186,7 +185,7 @@ async def test_invalid_files():
         )
 
     with pytest.raises(ValueError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",
@@ -195,7 +194,7 @@ async def test_invalid_files():
         )
 
     with pytest.raises(ValueError):
-        CredentialIssuer(
+        TestIssuer(
             "vclib/issuer/tests/test_jwk_private.pem",
             "vclib/issuer/tests/test_diddoc.json",
             "vclib/issuer/tests/test_didconf.json",

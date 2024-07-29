@@ -7,16 +7,15 @@ from fastapi import FastAPI
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
 
-from vclib.common import hello_world
+from vclib.common import hello_world, oauth2, responses
 from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
     MetadataResponse,
     OAuthMetadataResponse,
 )
-from vclib.issuer import CredentialIssuer, StatusResponse
+from vclib.issuer import CredentialIssuer
 from vclib.issuer.src.models.exceptions import IssuerError
-from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -126,7 +125,9 @@ class DefaultIssuer(CredentialIssuer):
         self.transaction_id_to_cred_id = {}
 
     @override
-    def register_client(self, data: WalletClientMetadata) -> RegisteredClientMetadata:
+    def register_client(
+        self, data: oauth2.HolderOAuth2ClientMetadata
+    ) -> oauth2.HolderOAuth2RegisteredClientMetadata:
         client_id = str(uuid4())
         client_secret = str(uuid4())
         self.client_ids[client_id] = client_secret
@@ -137,7 +138,9 @@ class DefaultIssuer(CredentialIssuer):
             "issuer_uri": self.uri,
         }
 
-        return RegisteredClientMetadata.model_validate(data.model_dump() | client_info)
+        return oauth2.HolderOAuth2RegisteredClientMetadata.model_validate(
+            data.model_dump() | client_info
+        )
 
     @override
     def check_client_id(self, client_id: str) -> str:
@@ -184,7 +187,7 @@ class DefaultIssuer(CredentialIssuer):
         return {"credential_type": cred_type, "credential_id": cred_id}
 
     @override
-    def get_credential_status(self, cred_id: str) -> StatusResponse:
+    def get_credential_status(self, cred_id: str) -> responses.StatusResponse:
         cred_info = self.id_to_info[cred_id]
         ticket = cred_info["ticket"]
         cred_type, information = self.statuses[ticket]
@@ -199,7 +202,7 @@ class DefaultIssuer(CredentialIssuer):
                 self.transaction_id_to_cred_id[transaction_id] = cred_id
             status = "PENDING"
 
-        return StatusResponse(
+        return responses.StatusResponse(
             status=status,
             cred_type=cred_type,
             information=information,
@@ -209,7 +212,7 @@ class DefaultIssuer(CredentialIssuer):
     @override
     def get_deferred_credential_status(
         self, transaction_id: str, credential_identifier: str
-    ) -> StatusResponse:
+    ) -> responses.StatusResponse:
         try:
             cred_id = self.transaction_id_to_cred_id[transaction_id]
             if cred_id != credential_identifier:

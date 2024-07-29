@@ -1,14 +1,8 @@
 from os import environ
 from typing import override
 
-from vclib.holder import (
-    AuthorizationMetadata,
-    Credential,
-    IssuerMetadata,
-    RegisteredClientMetadata,
-    WebIdentityOwner,
-)
-from vclib.holder.src.models.credentials import DeferredCredential
+from vclib.common import credentials, oauth2, oid4vci
+from vclib.holder import WebIdentityOwner
 
 MOCK_STORE = {
     "example1": {
@@ -69,33 +63,34 @@ class DemoWebIdentityOwner(WebIdentityOwner):
     @override
     def load_all_credentials_from_storage(
         self,
-    ) -> list[Credential | DeferredCredential]:
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         creds = []
         cred: dict
         for cred in self.MOCK_STORE.values():
-            new: Credential | DeferredCredential
+            new: credentials.Credential | credentials.DeferredCredential
             if cred.get("is_deferred"):
-                new = DeferredCredential.model_validate(cred)
+                new = credentials.DeferredCredential.model_validate(cred)
             else:
-                new = Credential.model_validate(cred)
+                new = credentials.Credential.model_validate(cred)
             creds.append(new)
         return creds
 
     @override
-    def load_credential_from_storage(self, cred_id: str) -> Credential:
+    def load_credential_from_storage(self, cred_id: str) -> credentials.Credential:
         return self.MOCK_STORE[cred_id]
 
     @override
-    def store_credential(self, cred: Credential):
+    def store_credential(self, cred: credentials.Credential):
         self.MOCK_STORE[cred.id] = cred
 
     @override
     async def register_client(
         self, registration_url, issuer_uri, wallet_metadata=None
-    ) -> RegisteredClientMetadata:
+    ) -> oauth2.HolderOAuth2RegisteredClientMetadata:
         if registration_url == "https://example.com/oauth2/register":
-            return RegisteredClientMetadata(
+            return oauth2.HolderOAuth2RegisteredClientMetadata(
                 redirect_uris=[f"{self.mock_uri}/add"],
+                response_types=["code"],
                 credential_offer_endpoint=f"{self.mock_uri}/offer",
                 issuer_uri=issuer_uri,
                 client_id="example_client_id",
@@ -109,12 +104,16 @@ class DemoWebIdentityOwner(WebIdentityOwner):
 identity_owner = DemoWebIdentityOwner(
     [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", mock_data=MOCK_STORE
 )
-identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
+identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = oid4vci.IssuerOpenID4VCIMetadata(
     credential_issuer=EXAMPLE_ISSUER,
-    credential_configurations_supported={"ExampleCredential": {}},
+    credential_configurations_supported={
+        "ExampleCredential": oid4vci.CredentialConfigurationsObject.model_validate(
+            {"format": "vc+sd-jwt"}
+        )
+    },
     credential_endpoint=EXAMPLE_ISSUER + "/get_credential",
 )
-identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
+identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = oauth2.IssuerOAuth2ServerMetadata(
     issuer=EXAMPLE_ISSUER,
     authorization_endpoint=EXAMPLE_ISSUER + "/oauth2/authorize",
     registration_endpoint=EXAMPLE_ISSUER + "/oauth2/register",
@@ -122,10 +121,10 @@ identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     response_types_supported=["code"],
     grant_types_supported=["authorization_code"],
     authorization_details_types_supported=["openid_credential"],
-    **{"pre-authorized_grant_anonymous_access_supported": False},
+    pre_authorized_supported=False,
 )
 
-cred = Credential(
+cred = credentials.Credential(
     id="yalo",
     raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",
     issuer_url="https://example.com",

@@ -11,9 +11,8 @@ from fastapi import FastAPI, Form, Header, Response, status
 from fastapi.responses import RedirectResponse
 from jwcrypto.jwk import JWK
 from pydantic import ValidationError
-from requests import Session
 
-from vclib.common import SDJWTVCIssuer
+from vclib.common import SDJWTVCIssuer, oauth2, oid4vci, responses
 from vclib.common.src.metadata import (
     DIDConfigResponse,
     DIDJSONResponse,
@@ -22,18 +21,6 @@ from vclib.common.src.metadata import (
 )
 
 from .models.exceptions import IssuerError
-from .models.oauth import (
-    AuthorizationDetails,
-    OAuthTokenResponse,
-    RegisteredClientMetadata,
-    WalletClientMetadata,
-)
-from .models.requests import (
-    AuthorizationRequestDetails,
-    CredentialRequestBody,
-    DeferredCredentialRequestBody,
-)
-from .models.responses import FormResponse, StatusResponse
 
 
 class CredentialIssuer:
@@ -91,17 +78,19 @@ class CredentialIssuer:
         """Receives a request to register a new client.
 
         ### Parameters
-        - request(`WalletClientMetadata`): Expected metadata provided by
+        - request(`HolderOAuth2ClientMetadata`): Expected metadata provided by
         the wallet, to be used in registering a new client.
 
-        Returns a `RegisteredClientMetadata` object, containing all
+        Returns a `HolderOAuth2RegisteredClientMetadata` object, containing all
         provided wallet metadata as well as the new client id, secret
         and the issuer's URI.
         """
 
-        validated_request: WalletClientMetadata
+        validated_request: oauth2.HolderOAuth2ClientMetadata
         try:
-            validated_request = WalletClientMetadata.model_validate(request)
+            validated_request = oauth2.HolderOAuth2ClientMetadata.model_validate(
+                request
+            )
         except ValidationError:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_client_metadata"}
@@ -178,7 +167,7 @@ class CredentialIssuer:
         cred_id = json.loads(authorization_details)[0]["credential_configuration_id"]
         form = self.credentials[cred_id]
 
-        return FormResponse(form=form)
+        return responses.FormResponse(form=form)
 
     async def receive_credential_request(
         self,
@@ -326,13 +315,13 @@ class CredentialIssuer:
 
                 access_token = jwt.encode(payload, secret, algorithm="HS256")
 
-                auth_details = AuthorizationDetails(
+                auth_details = oauth2.OpenIDAuthorizationDetailsObject(
                     type="openid_credential",
                     credential_configuration_id=credential_info["credential_type"],
                     credential_identifiers=[credential_info["credential_id"]],
                 )
 
-                return OAuthTokenResponse(
+                return oid4vci.HolderOpenID4VCITokenResponseObject(
                     access_token=access_token,
                     token_type="bearer",
                     expires_in=self.TOKEN_EXPIRY,
@@ -384,7 +373,7 @@ class CredentialIssuer:
             return None
 
         try:
-            CredentialRequestBody.model_validate(request)
+            oid4vci.CredentialRequestObject.model_validate(request)
         except ValidationError:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_credential_request"}
@@ -448,12 +437,12 @@ class CredentialIssuer:
             return None
 
         try:
-            DeferredCredentialRequestBody.model_validate(request)
+            oid4vci.DeferredCredentialRequestObject.model_validate(request)
         except ValidationError:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "invalid_credential_request"}
 
-        cred_status: StatusResponse
+        cred_status: responses.StatusResponse
 
         cred_id = access_token_payload["credential_id"]
 
@@ -536,7 +525,7 @@ class CredentialIssuer:
             raise IssuerError("invalid_uri")  # NOT defined in spec, self added
 
         try:
-            AuthorizationRequestDetails.model_validate(
+            oauth2.OpenIDAuthorizationDetailsObject.model_validate(
                 json.loads(authorization_details)[0]
             )
         except Exception:
@@ -627,16 +616,19 @@ class CredentialIssuer:
     ###
     ### User-defined functions, designed to be overwritten
     ###
-    def register_client(self, data: WalletClientMetadata) -> RegisteredClientMetadata:
+    def register_client(
+        self, data: oauth2.HolderOAuth2ClientMetadata
+    ) -> oauth2.HolderOAuth2RegisteredClientMetadata:
         """## !!! This function must be `@override`n !!!
 
         Function to register clients with the application.
 
         ### Parameters
-        - data(`WalletClientMetadata`): Provided data by the requester for registration.
+        - data(`HolderOAuth2ClientMetadata`): Provided data by the requester for
+        registration.
 
-        Returns a `RegisteredClientMetadata` object containing the given wallet
-        metadata, as well as client information as specified in
+        Returns a `HolderOAuth2RegisteredClientMetadata` object containing the given
+        wallet metadata, as well as client information as specified in
         [Section 3.2.1 of RFC7591](https://datatracker.ietf.org/doc/html/rfc7591#section-3.2.1).
 
         ### Errors
@@ -725,7 +717,7 @@ class CredentialIssuer:
         ```
         """
 
-    def get_credential_status(self, _cred_id: int) -> StatusResponse:
+    def get_credential_status(self, _cred_id: int) -> responses.StatusResponse:
         """## !!! This function must be `@override`n !!!
 
         Function to process requests for credential application status updates, as
@@ -761,7 +753,7 @@ class CredentialIssuer:
 
     def get_deferred_credential_status(
         self, _transaction_id: str, _credential_identifier: str
-    ) -> StatusResponse:
+    ) -> responses.StatusResponse:
         """## !!! This function must be `@override`n !!!
 
         Function to process referred requests for credential application status updates,

@@ -12,12 +12,9 @@ from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
 from sd_jwt.common import SDJWTCommon
 
-from .models.client_metadata import RegisteredClientMetadata, WalletClientMetadata
-from .models.credential_offer import CredentialOffer
-from .models.credentials import Credential, DeferredCredential
+from vclib.common import credentials, oauth2, oid4vci
+
 from .models.exceptions import HolderError
-from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
-from .models.oauth import AccessToken, OAuthTokenResponse
 
 
 class Holder:
@@ -25,18 +22,19 @@ class Holder:
     ## Base IdentityOwner class
 
     ### Attributes
-    - oauth_clients(`dict[str, RegisteredClientMetadata]`): A dictionary of objects
-    representing registered OAuth2 clients. At any given time, the user may have
+    - oauth_clients(`dict[str, HolderOAuth2RegisteredClientMetadata]`): A dictionary of
+    objects representing registered OAuth2 clients. At any given time, the user may have
     multiple OAuth contexts, for different issuers. During client registration &
     constructing the authorization redirect for the end user, the `state` parameter
     representing the new context is used as the key to store the relevant oauth client
     data. These only need to be stored in memory, they do not need to persist.
 
-    - issuer_metadata_store(`dict[str, IssuerMetadata]`): A dictionary of objects
-    containing an issuer's metadata, stored under the issuer's URI.
+    - issuer_metadata_store(`dict[str, OpenID4VCIIssuerMetadata]`): A dictionary of
+    objects containing an issuer's metadata, stored under the issuer's URI.
 
-    - auth_metadata_store(`dict[str, AuthorizationMetadata]`): A dictionary of objects
-    containing an issuer's authorization server metadata, stored under the issuer's URI.
+    - auth_metadata_store(`dict[str, IssuerOAuth2ServerMetadata]`): A dictionary of
+    objects containing an issuer's authorization server metadata, stored under the
+    issuer's URI.
     """
 
     def __init__(
@@ -51,20 +49,22 @@ class Holder:
         ### Parameters
         - oauth_client_metadata(`dict`): A dictionary containing at minimum key/values
         "redirect_uris": `list[str]` and "credential_offer_endpoint": `str`.
-        For additional entries, see `WalletClientMetadata`.
+        For additional entries, see `HolderOAuth2ClientMetadata`.
         """
-        self.client_metadata = WalletClientMetadata.model_validate(
+        self.client_metadata = oauth2.HolderOAuth2ClientMetadata.model_validate(
             oauth_client_metadata
         )
 
-        self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
-        self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
-        self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
+        self.oauth_clients: dict[str, oauth2.HolderOAuth2RegisteredClientMetadata] = {}
+        self.issuer_metadata_store: dict[str, oid4vci.IssuerOpenID4VCIMetadata] = {}
+        self.auth_metadata_store: dict[str, oauth2.IssuerOAuth2ServerMetadata] = {}
         # Currently unused
         self.dev_mode = dev_mode
         # TODO: Replace with storage implementation
         # dict[credential id, credential]
-        self.credentials: dict[str, Credential | DeferredCredential] = {}
+        self.credentials: dict[
+            str, credentials.Credential | credentials.DeferredCredential
+        ] = {}
         for cred in self.load_all_credentials_from_storage():
             self.credentials[cred.id] = cred
 
@@ -117,7 +117,8 @@ class Holder:
         sdjwts = [
             credential.raw_sdjwtvc
             for credential in list(self.credentials.values())
-            if type(credential) is Credential and "." in credential.raw_sdjwtvc
+            if type(credential) is credentials.Credential
+            and "." in credential.raw_sdjwtvc
         ]  # dying because some of the example
         # raw sdjwts aren't sdjwts?
         # will ask mack l8r
@@ -149,7 +150,7 @@ class Holder:
     ### Storage and persistence
     ###
 
-    def serialise(self, cred: Credential | DeferredCredential):
+    def serialise(self, cred: credentials.Credential | credentials.DeferredCredential):
         """
         # NOT YET IMPLEMENTED IN FULL
         TODO: Implement encryption for safe storage using key attr
@@ -166,7 +167,7 @@ class Holder:
 
     def load_from_serial(
         self, dump: str | bytes | bytearray
-    ) -> Credential | DeferredCredential:
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """# NOT YET IMPLEMENTED IN FULL
         TODO: Implement decryption in accordance with implementation in
         `serialise`
@@ -181,8 +182,8 @@ class Holder:
         """
         obj: dict = loads(b64decode(dump))
         if obj.get("is_deferred"):
-            return DeferredCredential.model_validate(obj)
-        return Credential.model_validate(obj)
+            return credentials.DeferredCredential.model_validate(obj)
+        return credentials.Credential.model_validate(obj)
 
     ###
     ### Credential Issuance (OAuth2)
@@ -192,7 +193,7 @@ class Holder:
         self,
         credential_offer_uri: str | None = None,
         credential_offer: str | None = None,
-    ) -> CredentialOffer:
+    ) -> credentials.CredentialOfferObject:
         """
         Parses a credential offer.
 
@@ -203,7 +204,7 @@ class Holder:
         `credential_offer_uri` MUST be none.
 
         ### Returns
-        `CredentialOffer`: The credential offer.
+        `CredentialOfferObject`: The credential offer.
         """
         # Interpret the credential offer
         if credential_offer and credential_offer_uri:
@@ -216,21 +217,25 @@ class Holder:
                 "Neither credential_offer nor credential_offer_uri were provided"
             )
 
-        offer: CredentialOffer
+        offer: credentials.CredentialOfferObject
         if credential_offer_uri:
             # Create a credential offer obj from the URI
             with Client() as c:
                 res: Response = c.get(credential_offer_uri)
                 res.raise_for_status()
-                offer = CredentialOffer.model_validate_json(res.content)
+                offer = credentials.CredentialOfferObject.model_validate_json(
+                    res.content
+                )
         else:
-            offer = CredentialOffer.model_validate_json(credential_offer)
+            offer = credentials.CredentialOfferObject.model_validate_json(
+                credential_offer
+            )
 
         return offer
 
     async def get_issuer_and_auth_metadata(
         self, issuer_uri: str, *, force_refresh: bool = False
-    ) -> tuple[IssuerMetadata, AuthorizationMetadata]:
+    ) -> tuple[oid4vci.IssuerOpenID4VCIMetadata, oauth2.IssuerOAuth2ServerMetadata]:
         """
         Retrieves OpenID4VCI issuer metadata and OAuth2 authorization server metadata.
         Validates that the issuer_uri known by the holder matches what's given in the
@@ -246,12 +251,13 @@ class Holder:
          be found.
 
         ### Returns:
-        - Tuple[`IssuerMetadata`, `AuthorizationMetadata`]: A tuple containing two
-        elements: The issuer's metadata, and the issuer's authorization server metadata.
+        - Tuple[`OpenID4VCIIssuerMetadata`, `IssuerOAuth2ServerMetadata`]: A tuple
+        containing two elements: The issuer's metadata, and the issuer's authorization
+        server metadata.
         """
         # TODO: add exception info above
-        issuer_metadata: IssuerMetadata | None = None
-        auth_metadata: AuthorizationMetadata | None = None
+        issuer_metadata: oid4vci.IssuerOpenID4VCIMetadata | None = None
+        auth_metadata: oauth2.IssuerOAuth2ServerMetadata | None = None
 
         if not force_refresh:
             issuer_metadata = self.issuer_metadata_store.get(issuer_uri, None)
@@ -259,7 +265,7 @@ class Holder:
 
         # If not already retrieved, get authorization metadata
         if not auth_metadata:
-            auth_metadata = AuthorizationMetadata.model_validate(
+            auth_metadata = oauth2.IssuerOAuth2ServerMetadata.model_validate(
                 await self.get_issuer_metadata(
                     issuer_uri, path="/.well-known/oauth-authorization-server"
                 )
@@ -274,7 +280,7 @@ class Holder:
 
         # If not already retrieved, get issuer metadata
         if not issuer_metadata:
-            issuer_metadata = IssuerMetadata.model_validate(
+            issuer_metadata = oid4vci.IssuerOpenID4VCIMetadata.model_validate(
                 await self.get_issuer_metadata(issuer_uri)
             )
             # Check that the metadata matches
@@ -290,7 +296,7 @@ class Holder:
     async def get_auth_redirect_from_offer(
         self,
         credential_configuration_id: str,
-        credential_offer: CredentialOffer,
+        credential_offer: credentials.CredentialOfferObject,
     ):
         """
         Takes a user's selection of credential configurations for a previously
@@ -301,7 +307,7 @@ class Holder:
 
         ### Parameters:
         - credential_configuration_id: The selected credential configuration.
-        - credential_offer(`CredentialOffer`): The credential
+        - credential_offer(`CredentialOfferObject`): The credential
 
         ### Returns
         - `str`: The issuer authorization URL to redirect the end user to
@@ -319,8 +325,8 @@ class Holder:
     async def get_auth_redirect(
         self, credential_configuration_id: str, issuer_url: str
     ):
-        issuer_metadata: IssuerMetadata
-        auth_metadata: AuthorizationMetadata
+        issuer_metadata: oid4vci.IssuerOpenID4VCIMetadata
+        auth_metadata: oauth2.IssuerOAuth2ServerMetadata
         (issuer_metadata, auth_metadata) = await self.get_issuer_and_auth_metadata(
             issuer_url
         )
@@ -334,11 +340,23 @@ class Holder:
             raise HolderError(
                 "Credential issuer doesn't support any available grant types"
             )
-        if not [
-            i
-            for i in self.client_metadata.authorization_details_types
-            if i in auth_metadata.authorization_details_types_supported
-        ]:
+        # TODO: move this checking to its own function
+        if (
+            (not auth_metadata.authorization_details_types_supported)
+            or (
+                auth_metadata.authorization_details_types_supported
+                and not self.client_metadata.authorization_details_types
+            )
+            or (
+                auth_metadata.authorization_details_types_supported
+                and self.client_metadata.authorization_details_types
+                and not [
+                    i
+                    for i in self.client_metadata.authorization_details_types
+                    if i in auth_metadata.authorization_details_types_supported
+                ]
+            )
+        ):
             raise HolderError(
                 "Credential issuer doesn't support any available auth_details types"
             )
@@ -379,7 +397,7 @@ class Holder:
         state: str,
         code: str | None = None,
         error: str | None = None,
-    ) -> list[Credential | DeferredCredential]:
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """
         Retrieves an OAuth2 Access token from a successful authorization response, and
         then attempts to retrieve one or more credentials from the issuer, depending
@@ -425,7 +443,7 @@ class Holder:
             )
             auth_metadata = self.auth_metadata_store.get(issuer_uri, None)
             if not auth_metadata:
-                auth_metadata = AuthorizationMetadata.model_validate(
+                auth_metadata = oauth2.IssuerOAuth2ServerMetadata.model_validate(
                     await self.get_issuer_metadata(
                         issuer_uri, path="/.well-known/oauth-authorization-server"
                     )
@@ -451,14 +469,18 @@ class Holder:
             )
             r.raise_for_status()
 
-            access_token_res = OAuthTokenResponse.model_validate_json(r.content)
+            access_token_res = (
+                oid4vci.HolderOpenID4VCITokenResponseObject.model_validate_json(
+                    r.content
+                )
+            )
             # Update session
             oauth2_client.token = access_token_res.model_dump()
 
             # Make requests for credentials
             issuer_metadata = self.issuer_metadata_store.get(issuer_uri, None)
             if not issuer_metadata:
-                issuer_metadata = IssuerMetadata.model_validate(
+                issuer_metadata = oid4vci.IssuerOpenID4VCIMetadata.model_validate(
                     await self.get_issuer_metadata(issuer_uri)
                 )
 
@@ -487,7 +509,7 @@ class Holder:
                             err += "Value 'credential' missing from response."
                             raise Exception(err)
 
-                        new_credential = Credential(
+                        new_credential = credentials.Credential(
                             issuer_url=issuer_uri,
                             credential_configuration_id=config_id,
                             is_deferred=False,
@@ -506,12 +528,12 @@ class Holder:
                             err += "Value 'transaction_id' missing from response."
                             raise Exception(err)
                         deferred = issuer_metadata.deferred_credential_endpoint
-                        token = AccessToken(
+                        token = oauth2.TokenResponseObject(
                             access_token=access_token_res.access_token,
                             token_type=access_token_res.token_type,
                             expires_in=access_token_res.expires_in,
                         )
-                        new_credential = DeferredCredential(
+                        new_credential = credentials.DeferredCredential(
                             issuer_url=issuer_uri,
                             credential_configuration_id=config_id,
                             is_deferred=True,
@@ -526,7 +548,7 @@ class Holder:
 
                     else:
                         raise Exception("Invalid credential response")
-        c: Credential | DeferredCredential
+        c: credentials.Credential | credentials.DeferredCredential
         for c in new_credentials:
             self.credentials[c.id] = c
             self.store_credential(c)
@@ -544,16 +566,18 @@ class Holder:
 
     async def register_client(
         self, registration_url, issuer_uri, wallet_metadata=None
-    ) -> RegisteredClientMetadata:
+    ) -> oauth2.HolderOAuth2RegisteredClientMetadata:
         metadata = wallet_metadata
-        registered: RegisteredClientMetadata
+        registered: oauth2.HolderOAuth2RegisteredClientMetadata
         if not metadata:
             metadata = self.client_metadata.model_dump()
         with Client() as c:
             res: Response = c.post(registration_url, json=metadata)
             body: dict = res.json()
             body["issuer_uri"] = issuer_uri
-            registered = RegisteredClientMetadata.model_validate(body)
+            registered = oauth2.HolderOAuth2RegisteredClientMetadata.model_validate(
+                body
+            )
         return registered
 
     ###
@@ -562,7 +586,7 @@ class Holder:
 
     async def _get_credential(
         self, cred_id: str, *, refresh: bool = True
-    ) -> Credential | DeferredCredential:
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """
         Gets a credential by ID, if one exists
 
@@ -584,7 +608,7 @@ class Holder:
 
         return credential
 
-    def get_deferred_credentials(self) -> list[DeferredCredential]:
+    def get_deferred_credentials(self) -> list[credentials.DeferredCredential]:
         """Retrieves all pending credentials.
 
         ### Returns
@@ -592,7 +616,9 @@ class Holder:
         """
         return [cred for cred in self.credentials.values() if cred.is_deferred]
 
-    async def refresh_credential(self, cred_id: str) -> Credential | DeferredCredential:
+    async def refresh_credential(
+        self, cred_id: str
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """
         Refreshes a credential.
 
@@ -609,7 +635,7 @@ class Holder:
         cred = self.credentials.get(cred_id, None)
         if not cred:
             raise Exception("Credential Not Found")
-        if not cred.is_deferred or isinstance(cred, Credential):
+        if not cred.is_deferred or isinstance(cred, credentials.Credential):
             return cred
 
         token = cred.access_token.model_dump()
@@ -641,7 +667,7 @@ class Holder:
                     err += "Value 'credential' missing from response."
                     raise Exception(err)
 
-                new_credential = Credential(
+                new_credential = credentials.Credential(
                     id=cred_id,
                     issuer_url=cred.issuer_url,
                     credential_configuration_id=cred.credential_configuration_id,
@@ -678,7 +704,7 @@ class Holder:
     ### User-defined functions, designed to be overwritten
     ###
 
-    def store_credential(self, cred: Credential):
+    def store_credential(self, cred: credentials.Credential):
         """## !!! This function MUST be `@override`n !!!
 
         Function to store a serialised credential in some manner.
@@ -694,7 +720,7 @@ class Holder:
 
     def load_credential_from_storage(
         self, cred_id: str
-    ) -> Credential | DeferredCredential:
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """## !!! This function MUST be `@override`n !!!
 
         Function to load a specific credential from storage.
@@ -710,7 +736,7 @@ class Holder:
 
     def load_all_credentials_from_storage(
         self,
-    ) -> list[Credential | DeferredCredential]:
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """## !!! This function MUST be `@override`n !!!
 
         Function to retrieve all credentials. Overwrite this method
