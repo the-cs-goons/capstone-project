@@ -2,7 +2,10 @@ from uuid import uuid4
 
 from pydantic import BaseModel, Field
 
-from .oauth import AccessToken
+from vclib.common.src.models.oid4vci import (
+    CredentialOfferObject,
+    HolderOpenID4VCITokenResponseObject,
+)
 
 
 class BaseCredential(BaseModel):
@@ -19,9 +22,15 @@ class DeferredCredential(BaseCredential):
     transaction_id: str
     deferred_credential_endpoint: str
     last_request: str
-    access_token: AccessToken
+    access_token: HolderOpenID4VCITokenResponseObject
 
 
 class Credential(BaseCredential):
     raw_sdjwtvc: str
     received_at: str
+
+
+class CredentialSelection(BaseModel):
+    credential_configuration_id: str
+    credential_offer: CredentialOfferObject | None = Field(default=None)
+    issuer_uri: str | None = Field(default=None)

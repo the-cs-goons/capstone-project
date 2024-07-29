@@ -92,3 +92,13 @@ class AuthorizationRequestObject(BaseModel):
     nonce: str
     wallet_nonce: str | None = None
     state: str | None = None  # transaction id
+
+
+class FieldRequest(BaseModel):
+    field: Field
+    input_descriptor_id: str
+    approved: bool = False
+
+
+class FieldSelectionObject(BaseModel):
+    field_requests: list[FieldRequest]
