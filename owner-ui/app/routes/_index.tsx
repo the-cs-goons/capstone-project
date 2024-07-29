@@ -3,14 +3,13 @@ import { isRouteErrorResponse } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/react";
 import { authHeaderFromRequest } from "~/utils";
 
-
 export async function loader({ request }: LoaderFunctionArgs) {
   try {
     await fetch(
       `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/session`,
       { headers: await authHeaderFromRequest(request) },
     );
-    return redirect("/credentials")
+    return redirect("/credentials");
   } catch {
     return redirect("/login");
   }

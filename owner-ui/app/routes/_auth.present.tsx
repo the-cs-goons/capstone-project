@@ -13,24 +13,19 @@ export async function action({ request }: ActionFunctionArgs) {
     | { intent: "choose-cred"; query: string }
     | { intent: "present-cred"; data: FieldSelectionObject } =
     await request.json();
-  let resp: AxiosResponse
+  let resp: AxiosResponse;
   let data: AuthorizationRequestObject;
   switch (body.intent) {
     case "choose-cred":
-      resp = await walletBackendClient.get(
-        `/presentation/init?${body.query}`,
-      );
+      resp = await walletBackendClient.get(`/presentation/init?${body.query}`);
       data = await resp.data;
       return json(data);
 
     case "present-cred":
-      resp = await walletBackendClient.post(
-        `/presentation`,
-        {
-          headers: authHeaderFromRequest(request),
-          body: body.data,
-        },
-      );
+      resp = await walletBackendClient.post(`/presentation`, {
+        headers: authHeaderFromRequest(request),
+        body: body.data,
+      });
       // TODO: implement proper redirect
       console.log(resp.data);
       return redirect("/credentials");

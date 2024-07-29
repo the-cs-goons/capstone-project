@@ -9,21 +9,19 @@ type SessionFlashData = {
 };
 
 const { getSession, commitSession, destroySession } =
-  createCookieSessionStorage<SessionData, SessionFlashData>(
-    {
-      // Basic cookie to wrap around python backend session token
-      cookie: {
-        name: "_session",
-        httpOnly: true,
-        secure: true,
-      },
-    }
-  );
+  createCookieSessionStorage<SessionData, SessionFlashData>({
+    // Basic cookie to wrap around python backend session token
+    cookie: {
+      name: "_session",
+      httpOnly: true,
+      secure: true,
+    },
+  });
 
-const authHeaderFromRequest = async (request: Request)  => {
-  const session = await getSession(request.headers.get('Cookie'));
+const authHeaderFromRequest = async (request: Request) => {
+  const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("token");
-  return { 'Authorization': `Bearer ${token}` }
-}
+  return { Authorization: `Bearer ${token}` };
+};
 
 export { getSession, commitSession, destroySession, authHeaderFromRequest };

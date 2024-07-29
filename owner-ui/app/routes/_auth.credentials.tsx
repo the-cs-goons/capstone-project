@@ -37,20 +37,18 @@ export const meta: MetaFunction = ({ error }) => {
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const resp: AxiosResponse = await walletBackendClient.get(
-    `/credentials`,
-    { headers: await authHeaderFromRequest(request) },
-  );
+  const resp: AxiosResponse = await walletBackendClient.get(`/credentials`, {
+    headers: await authHeaderFromRequest(request),
+  });
   const data: Array<BaseCredential> = await resp.data;
   return json(data);
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
-  await walletBackendClient.delete(
-    `/credentials/${body.get("id")}`,
-    { headers: await authHeaderFromRequest(request) },
-  );
+  await walletBackendClient.delete(`/credentials/${body.get("id")}`, {
+    headers: await authHeaderFromRequest(request),
+  });
   return null;
 }
 
