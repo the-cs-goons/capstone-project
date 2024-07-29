@@ -151,7 +151,10 @@ class WebIdentityOwner(Holder):
         (token_type, token) = authorization.split(' ')
         if token_type.lower() != "bearer":
             raise HTTPException(status_code=400, detail="Malformed token")
-        return decode(token, self.SECRET, self.SESSION_TOKEN_ALG)
+        try:
+            return decode(token, self.SECRET, self.SESSION_TOKEN_ALG)
+        except Exception:
+            raise HTTPException(status_code=400, detail="Malformed token")
 
     def user_login(self, login: LoginRequest) -> UserAuthenticationResponse:
         try:
@@ -178,7 +181,7 @@ class WebIdentityOwner(Holder):
                 detail=f"Could not register as {reg.username}."
                 )
 
-        return self.generate_token(self, RegisterRequest)
+        return self.generate_token(reg)
 
     def user_logout(self):
         self.logout()
@@ -219,7 +222,7 @@ class WebIdentityOwner(Holder):
             )
 
     @authorize
-    async def get_credentials(
+    def get_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
         ) -> list[Credential | DeferredCredential]:
@@ -256,14 +259,14 @@ class WebIdentityOwner(Holder):
         cred_id: str,
         authorization: Annotated[str | None, Header] = None,
     ) -> Credential | DeferredCredential:
-        return super().refresh_credential(cred_id)
+        return await super().refresh_credential(cred_id)
 
     @authorize
     async def refresh_all_deferred_credentials(
         self,
         authorization: Annotated[str | None, Header] = None,
     ) -> list[str]:
-        return super().refresh_all_deferred_credentials()
+        return await super().refresh_all_deferred_credentials()
 
     @authorize
     async def request_authorization(

@@ -30,6 +30,7 @@
     "@sd-jwt/decode": "^0.7.2",
     "@sd-jwt/sd-jwt-vc": "^0.7.2",
     "@yudiel/react-qr-scanner": "^2.0.4",
+    "axios": "^1.7.2",
     "isbot": "^5.1.13",
     "react": "19.0.0-rc-df5f2736-20240712",
     "react-dom": "19.0.0-rc-df5f2736-20240712"
