@@ -5,6 +5,11 @@ import type { FormEvent } from "react";
 import { FlexContainer } from "~/components/FlexContainer";
 import type { AuthorizationRequestObject } from "~/interfaces/AuthorizationRequestObject";
 import type { FieldSelectionObject } from "~/interfaces/PresentationDefinition/FieldSelectionObject";
+import * as React from 'react';
+import Snackbar from '@mui/material/Snackbar';
+// import IconButton from '@mui/material/IconButton';
+// import CloseIcon from '@mui/icons-material/Close';
+import Alert from '@mui/material/Alert';
 
 export async function action({ request }: ActionFunctionArgs) {
   const body:
@@ -44,6 +49,20 @@ export default function Present() {
   const data = useActionData<typeof action>();
   const definition = data?.presentation_definition;
   const submit = useSubmit();
+
+  const [open, setOpen] = React.useState(false);
+
+  const handleClick = () => {
+    setOpen(true);
+  };
+
+  const handleClose = (event: React.SyntheticEvent | Event, reason?: string) => {
+    if (reason === 'clickaway') {
+      return;
+    }
+
+    setOpen(false);
+  };
 
   function handlePresent(event: FormEvent<HTMLFormElement>): void {
     event.preventDefault();
@@ -99,9 +118,26 @@ export default function Present() {
             </Paper>
           );
         })}
-        <Button type="submit" name="intent" value="present-cred">
+        <Button onClick={handleClick} type="submit" name="intent" value="present-cred">
           Present
         </Button>
+        <div>
+          <Button onClick={handleClick}>Open Snackbar</Button>
+          <Snackbar
+            open={open}
+            autoHideDuration={6000}
+            onClose={handleClose}
+          >
+            <Alert
+              onClose={handleClose}
+              severity="info"
+              variant="filled"
+              sx={{ width: '100%' }}
+            >
+              Verification Pending...
+            </Alert>
+          </Snackbar>
+        </div>
       </Form>
     </FlexContainer>
   );
