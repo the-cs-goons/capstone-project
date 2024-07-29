@@ -165,19 +165,30 @@ def identity_owner(tmp_path_factory, example_credentials):
 
     return id_owner
 
+@pytest.fixture(scope="module")
+def auth_header(identity_owner):
+    store: LocalStorageProvider = identity_owner.store
+    uname = store.get_active_user_name()
+    return f"Bearer {identity_owner._generate_jwt({"username": uname})}"
+
+
 
 ###################
 ### TESTING VPs ###
 ###################
 @pytest.mark.asyncio()
-async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
+async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
     httpx_mock.add_response(
         url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
     )
     identity_owner: DemoWebIdentityOwner
 
     resp = await identity_owner.get_auth_request(
-        "https://example.com/request/verify_over_18", "some did", "did", "post"
+        "https://example.com/request/verify_over_18",
+        "some did",
+        "did",
+        "post",
+        authorization=auth_header
     )
     over_18_mock_auth_req["nonce"] = resp.nonce  # we can't know nonce beforehand
 
@@ -188,22 +199,29 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
         url="https://example.com/cb", json={"status": "OK"}, method="post"
     )
 
-    resp = await identity_owner.present_selection(over_18_mock_field_selection)
+    resp = await identity_owner.present_selection(
+        over_18_mock_field_selection,
+        authorization=auth_header
+        )
 
     assert resp == {"status": "OK"}
 
 @pytest.mark.asyncio
-async def test_get_credential(identity_owner):
-    credential1 = await identity_owner.get_credential("example1", refresh=0)
+async def test_get_credential(identity_owner, auth_header):
+    credential1 = await identity_owner.get_credential(
+        "example1",
+        authorization=auth_header,
+        refresh=0
+        )
     assert credential1.id == "example1"
 
 @pytest.mark.asyncio
-async def test_get_credential_error(identity_owner):
+async def test_get_credential_error(identity_owner, auth_header):
     with pytest.raises(HTTPException):
-        await identity_owner.get_credential("bad_id")
+        await identity_owner.get_credential("bad_id", authorization=auth_header)
 
 @pytest.mark.asyncio
-async def test_get_credentials(identity_owner):
+async def test_get_credentials(identity_owner, auth_header):
     identity_owner: DemoWebIdentityOwner
     credentials = identity_owner.all_credentials()
     cred_ids = [c.id for c in credentials]
@@ -212,7 +230,7 @@ async def test_get_credentials(identity_owner):
     assert "vp_flow_test" in cred_ids
 
 @pytest.mark.asyncio
-async def test_authorize_issuer_initiated(identity_owner):
+async def test_authorize_issuer_initiated(identity_owner, auth_header):
     identity_owner: DemoWebIdentityOwner
     id = "Passport"
 
@@ -259,19 +277,23 @@ async def test_authorize_wallet_initiated(identity_owner):
     assert query_params["state"][0] in identity_owner.oauth_clients
 
 @pytest.mark.asyncio
-async def test_delete_credential_fail(identity_owner):
+async def test_delete_credential_fail(identity_owner, auth_header):
     identity_owner: DemoWebIdentityOwner
     with pytest.raises(Exception):
-        await identity_owner.delete_credential("bad_id")
+        await identity_owner.delete_credential("bad_id", authorization=auth_header)
 
 @pytest.mark.asyncio
-async def test_async_delete_credentials(identity_owner):
+async def test_async_delete_credentials(identity_owner, auth_header):
     identity_owner: DemoWebIdentityOwner
-    cred = await identity_owner.get_credential("delete_1", refresh=0)
+    cred = await identity_owner.get_credential(
+        "delete_1",
+        authorization=auth_header,
+        refresh=0
+        )
     assert isinstance(cred, BaseCredential)
-    await identity_owner.delete_credential("delete_1")
+    await identity_owner.delete_credential("delete_1", authorization=auth_header)
 
     with pytest.raises(Exception):
-        await identity_owner.get_credential("delete_1")
+        await identity_owner.get_credential("delete_1", authorization=auth_header)
     with pytest.raises(Exception):
-        await identity_owner.delete_credential("delete_1")
+        await identity_owner.delete_credential("delete_1", authorization=auth_header)

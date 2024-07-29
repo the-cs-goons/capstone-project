@@ -15,7 +15,7 @@ from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
-from .storage.local_storage_provider import LocalStorageProvider
+from .storage.abstract_storage_provider import AbstractStorageProvider
 
 
 class Holder:
@@ -40,7 +40,7 @@ class Holder:
     def __init__(
         self,
         oauth_client_metadata: dict[str, Any],
-        storage_provider: LocalStorageProvider,
+        storage_provider: AbstractStorageProvider,
         *,
         dev_mode=False,
     ):
@@ -51,6 +51,8 @@ class Holder:
         - oauth_client_metadata(`dict`): A dictionary containing at minimum key/values
         "redirect_uris": `list[str]` and "credential_offer_endpoint": `str`.
         For additional entries, see `WalletClientMetadata`.
+        - storage_provider(`AbstractStorageProvider`): An implementation of the
+        `AbstractStorageProvider` abstract class.
         """
         self.client_metadata = WalletClientMetadata.model_validate(
             oauth_client_metadata
@@ -480,7 +482,7 @@ class Holder:
         return registered
 
     ###
-    ### Internal
+    ### Holder User Authentication (Internal)
     ###
 
     def login(self, username: str, password: str):
@@ -491,6 +493,10 @@ class Holder:
 
     def logout(self):
         self.store.logout()
+
+    ###
+    ### Credential Management & Storage
+    ###
 
     async def get_credential(
         self, cred_id: str, *, refresh: bool = True
