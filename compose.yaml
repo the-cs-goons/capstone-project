@@ -95,6 +95,3 @@ services:
         required: true
       - path: .env
         required: false
-    environment:
-      - REQUESTS_CA_BUNDLE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
-      - SSL_CERT_FILE=/usr/src/app/demo/demo_ssl_ca_bundle.crt

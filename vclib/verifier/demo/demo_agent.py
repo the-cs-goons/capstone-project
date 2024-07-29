@@ -1,9 +1,10 @@
 import os
+from typing import override
+
+from jwcrypto.jwk import JWK
 
 from vclib.common import vp_auth_request
-from vclib.verifier import (
-    Verifier,
-)
+from vclib.verifier import Verifier
 
 
 class DemoVerifier(Verifier):
@@ -12,11 +13,6 @@ class DemoVerifier(Verifier):
     # For now, I will move forward using request URIs for the wallet
     # to fetch the authorization request
     def __init__(self):
-        self.current_transactions = {}
-
-        # mapping of req name to req
-        self.auth_requests: dict[str, vp_auth_request.AuthorizationRequestObject] = {}
-        self.request_history = []
         verify_over_18_pd = vp_auth_request.PresentationDefinition(
             id="verify_over_18",
             input_descriptors=[
@@ -35,7 +31,21 @@ class DemoVerifier(Verifier):
                             )
                         ]
                     ),
-                )
+                ),
+                vp_auth_request.InputDescriptor(
+                    id="dob_descriptor",
+                    name="Birthdate Verification",
+                    purpose="To verify the individual's year of birth",
+                    constraints=vp_auth_request.Constraints(
+                        fields=[
+                            vp_auth_request.Field(
+                                path=["$.credentialSubject.birthdate", "$.birthdate"],
+                                filter=vp_auth_request.Filter(type="string"),
+                                optional=True,
+                            )
+                        ]
+                    ),
+                ),
             ],
         )
 
@@ -45,63 +55,14 @@ class DemoVerifier(Verifier):
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/demo_diddoc.json",
         )
 
-    def __create_request_uri_qr(self, request_type: str):
-        pass
+    @override
+    def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
+        with open(
+            f"{os.path.dirname(os.path.abspath(__file__))}/demo_issuer_jwk.json"
+        ) as f:
+            return JWK.from_json(f.read())  # the only JWK we accept
 
 
 verifier = DemoVerifier()
-
-verify_over_18_pd = {
-    "id": "verify_over_18",
-    "input_descriptors": [
-        {
-            "id": "over_18_descriptor",
-            "name": "Over 18 Verification",
-            "purpose": "To verify that the individual is over 18 years old",
-            "schema": [{"uri": "https://example.com/credentials/age"}],
-            "constraints": {
-                "fields": [
-                    {
-                        "path": ["$.credentialSubject.is_over_18", "$.is_over_18" "$"],
-                        "filter": {"type": "string", "enum": ["true"]},
-                    }
-                ]
-            },
-        },
-        {
-            "id": "dob_descriptor",
-            "constraints": {
-                "fields": [
-                    {
-                        "path": ["$.credentialSubject.birthdate", "$.birthdate"],
-                        "filter": {"type": "string"},
-                        "optional": True,
-                    }
-                ]
-            },
-            "name": "Birthdate Verification",
-            "purpose": "To verify the individual's year of birth",
-        },
-    ],
-}
-
-verify_over_18_pd_object = vp_auth_request.PresentationDefinition(**verify_over_18_pd)
-
-age_request_data = {
-    "client_id": "some did",
-    "client_id_scheme": "did",
-    "client_metadata": {"data": "metadata in this object"},
-    "presentation_definition": verify_over_18_pd_object,
-    "response_uri": f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}/cb",
-    "response_type": "vp_token",
-    "response_mode": "direct_post",
-    "nonce": "some nonce",
-    # wallet nonce will be set when transaction request is initiated
-    # state will be set when transaction is initiated
-}
-
-age_request = vp_auth_request.AuthorizationRequestObject(**age_request_data)
-
-verifier.auth_requests["over_18"] = age_request
 
 verifier_server = verifier.get_server()
