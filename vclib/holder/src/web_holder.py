@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from functools import wraps
 from secrets import token_bytes
 from typing import Annotated, Any
@@ -30,6 +31,7 @@ class WebIdentityOwner(Holder):
 
     # Can be increased, but a minimum of 10 will be used
     MIN_PASSWORD_LENGTH = 10
+    TOKEN_EXP_SECS = 3600
 
     def __init__(
             self,
@@ -89,6 +91,7 @@ class WebIdentityOwner(Holder):
         router.post("/login")(self.user_login)
         router.post("/register")(self.user_register)
         router.get("/logout")(self.user_logout)
+        router.get("/session")(self.check_token)
 
         router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
@@ -127,6 +130,7 @@ class WebIdentityOwner(Holder):
             headers: dict[str, Any] | None = None
             ):
         # Default token generation scheme
+        payload["exp"] = datetime.now(tz=UTC) + timedelta(seconds=self.TOKEN_EXP_SECS)
         return encode(payload, self.SECRET, algorithm="HS256", headers=headers)
 
     def generate_token(self, verified_auth: LoginRequest | RegisterRequest):
@@ -138,7 +142,7 @@ class WebIdentityOwner(Holder):
             access_token=self._generate_jwt({"user": verified_auth.username})
         )
 
-    def check_token(self, authorization: str):
+    def check_token(self, authorization: Annotated[str | None, Header()] = None):
         """
         TODO: Document overwriting
         """
