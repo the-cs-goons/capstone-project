@@ -833,6 +833,4 @@ class CredentialIssuer:
         return new_credential.sd_jwt_issuance
 
     async def offer_credential(self, uri: str, credential_offer: str):
-        with Session() as s:
-            s.get(f"{uri}?credential_offer={credential_offer}")
         return {uri: credential_offer}
