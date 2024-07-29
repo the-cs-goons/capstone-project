@@ -91,17 +91,19 @@ class WebIdentityOwner(Holder):
         router.get("/logout")(self.user_logout)
 
         router.get("/credentials/{cred_id}")(self.get_credential)
-        router.get("/credentials")(self.all_credentials)
+        router.get("/credentials")(self.get_credentials)
         router.delete("/credentials/{cred_id}")(self.delete_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
+
+        # Presentation
         router.get("/presentation/init")(self.get_auth_request)
         router.post("/presentation/")(self.present_selection)
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
         router.post(self._credential_offer_endpoint)(self.request_authorization)
-        # Might change this later from /add to something else
+
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
 
         return router
@@ -213,6 +215,16 @@ class WebIdentityOwner(Holder):
             )
 
     @authorize
+    async def get_credentials(
+        self,
+        authorization: Annotated[str | None, Header()] = None,
+        ) -> list[Credential | DeferredCredential]:
+        """
+        TODO
+        """
+        return self.all_credentials()
+
+    @authorize
     async def delete_credential(
             self,
             cred_id: str,
@@ -233,6 +245,21 @@ class WebIdentityOwner(Holder):
             raise HTTPException(
                 status_code=404, detail=f"Credential with ID {cred_id} not found."
             )
+
+    @authorize
+    async def refresh_credential(
+        self,
+        cred_id: str,
+        authorization: Annotated[str | None, Header] = None,
+    ) -> Credential | DeferredCredential:
+        return super().refresh_credential(cred_id)
+
+    @authorize
+    async def refresh_all_deferred_credentials(
+        self,
+        authorization: Annotated[str | None, Header] = None,
+    ) -> list[str]:
+        return super().refresh_all_deferred_credentials()
 
     @authorize
     async def request_authorization(
