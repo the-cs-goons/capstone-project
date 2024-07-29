@@ -190,18 +190,16 @@ class LocalStorageProvider(AbstractStorageProvider):
         or expect the directory containing wallet data. If provided, this MUST be
         a directory. If not provided, will default to `Path.home()`
         """
-
+        self.active_user = None
         # Resolve storage path
         if storage_dir_path:
             # If a different path is specified, it's up to the developer to ensure
             # they're doing the right thing with any relative paths
-            self.storage_dir_path = Path(
-                storage_dir_path).resolve().joinpath(DEFAULT_WALLET_DIRECTORY)
+            self.storage_dir_path = Path(storage_dir_path) / DEFAULT_WALLET_DIRECTORY
         else:
             # If a path isn't given, the directory will be named
             # DEFAULT_WALLET_DIRECTORY and located under the user's home path.
             self.storage_dir_path = Path.home().joinpath(DEFAULT_WALLET_DIRECTORY)
-
         if self.storage_dir_path.exists():
             if not self.storage_dir_path.is_dir():
                 raise Exception(
@@ -226,11 +224,11 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     def _check_storage_directory(self):
         # Check directory structure
-        config_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
+        self.config_db_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
 
-        if not config_path.exists():
+        if not self.config_db_path.exists():
             raise Exception(
-                f"Wallet data missing {config_path} file."
+                f"Wallet data missing {self.config_db_path} file."
             )
 
     def _save_db_to_zip(self):
@@ -571,10 +569,14 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         self._check_active_user()
         # Other tables will be handled thanks to CASCADE
+
+
         cursor = self.get_db_conn().execute(
-            "DELETE FROM credential_info WHERE id = :cred_id",
+            "DELETE FROM credential_info WHERE id = :cred_id RETURNING id",
             {"cred_id": cred_id}
             )
+        if not cursor.fetchone():
+            raise Exception(f"Credential {cred_id} does not exist.")
         cursor.close()
         if save_after:
             self.save()

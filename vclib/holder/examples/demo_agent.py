@@ -8,7 +8,7 @@ from vclib.holder import (
     RegisteredClientMetadata,
     WebIdentityOwner,
 )
-from vclib.holder.src.models.credentials import DeferredCredential
+from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
 
 MOCK_STORE = {
     "example1": {
@@ -51,43 +51,20 @@ class DemoWebIdentityOwner(WebIdentityOwner):
         self,
         redirect_uris,
         cred_offer_endpoint,
+        storage_provider,
         *,
         mock_uri=OWNER_URI,
         oauth_client_options={},
-        mock_data={},
         dev_mode=False,
     ):
-        self.MOCK_STORE: dict = mock_data
         self.mock_uri = mock_uri
         super().__init__(
             redirect_uris,
             cred_offer_endpoint,
+            storage_provider,
             oauth_client_options=oauth_client_options,
             dev_mode=dev_mode,
         )
-
-    @override
-    def load_all_credentials_from_storage(
-        self,
-    ) -> list[Credential | DeferredCredential]:
-        creds = []
-        cred: dict
-        for cred in self.MOCK_STORE.values():
-            new: Credential | DeferredCredential
-            if cred.get("is_deferred"):
-                new = DeferredCredential.model_validate(cred)
-            else:
-                new = Credential.model_validate(cred)
-            creds.append(new)
-        return creds
-
-    @override
-    def load_credential_from_storage(self, cred_id: str) -> Credential:
-        return self.MOCK_STORE[cred_id]
-
-    @override
-    def store_credential(self, cred: Credential):
-        self.MOCK_STORE[cred.id] = cred
 
     @override
     async def register_client(
@@ -106,10 +83,11 @@ class DemoWebIdentityOwner(WebIdentityOwner):
         )
 
 
-
+WALLET_PATH = environ.get("CS3900_HOLDER_WALLET_PATH", None)
+storage_provider = LocalStorageProvider(storage_dir_path=WALLET_PATH)
 
 identity_owner = DemoWebIdentityOwner(
-    [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", mock_data=MOCK_STORE
+    [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", storage_provider
 )
 identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
     credential_issuer=EXAMPLE_ISSUER,
@@ -136,8 +114,6 @@ cred = Credential(
     received_at="12345",
     c_type="sd_jwt",
 )
-identity_owner.credentials["yalo"] = cred
-
 identity_owner_server = identity_owner.get_server()
 
 

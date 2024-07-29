@@ -175,6 +175,7 @@ cython_debug/
 
 .DS_Store
 
-.vclib_wallet_data
 .ruff_cache
 node_modules
+
+.vclib_wallet_data

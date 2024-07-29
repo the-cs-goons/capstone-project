@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse
 
 from vclib.common import vp_auth_request, vp_auth_response
+from vclib.holder.src.storage.abstract_storage_provider import AbstractStorageProvider
 
 from .holder import Holder
 from .models.credentials import Credential, DeferredCredential
@@ -23,6 +24,7 @@ class WebIdentityOwner(Holder):
             self,
             redirect_uris: list[str],
             cred_offer_endpoint: str,
+            storage_provider: AbstractStorageProvider,
             *,
             oauth_client_options: dict[str, Any] = {},
             dev_mode: bool = False,
@@ -53,13 +55,11 @@ class WebIdentityOwner(Holder):
         offer_path = urlparse(cred_offer_endpoint).path
         self._credential_offer_endpoint = offer_path
         self.wallet_uri = "localhost"
-        self.current_challenge: str | None = None
-        self.passkeys = {}
 
         oauth_client_info = oauth_client_options
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
-        super().__init__(oauth_client_info, dev_mode=dev_mode)
+        super().__init__(oauth_client_info, storage_provider, dev_mode=dev_mode)
         self.current_transaction: \
             vp_auth_request.AuthorizationRequestObject | None = None
 
@@ -67,7 +67,7 @@ class WebIdentityOwner(Holder):
         router = FastAPI()
 
         router.get("/credentials/{cred_id}")(self.get_credential)
-        router.get("/credentials")(self.get_credentials)
+        router.get("/credentials")(self.all_credentials)
         router.delete("/credentials/{cred_id}")(self.delete_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
@@ -102,22 +102,12 @@ class WebIdentityOwner(Holder):
         """
         r = refresh != 0
         try:
-            return await super()._get_credential(cred_id, refresh=r)
+            return await super().get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
                 status_code=400,
                 detail=f"Credential with ID {cred_id} not found."
             )
-
-    async def get_credentials(self) -> list[Credential | DeferredCredential]:
-        """
-        Gets all credentials
-        TODO: Adjust when storage implemented
-
-        ### Returns
-        - `list[Credential | DeferredCredential]`: A list of credentials
-        """
-        return self.credentials.values()
 
     async def delete_credential(self, cred_id: str) -> str:
         """
@@ -130,7 +120,7 @@ class WebIdentityOwner(Holder):
         - `Credential | DeferredCredential`: The requested credential, if it exists.
         """
         try:
-            return await super()._delete_credential(cred_id)
+            super().delete_credential(cred_id)
         except Exception:
             raise HTTPException(
                 status_code=404, detail=f"Credential with ID {cred_id} not found."
