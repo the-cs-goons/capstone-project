@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from json import loads
 from random import choice
 from string import ascii_letters
@@ -17,6 +17,7 @@ from vclib.holder import (
     IssuerMetadata,
 )
 from vclib.holder.examples.demo_agent import DemoWebIdentityOwner
+from vclib.holder.src.models.credentials import BaseCredential
 from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
 
@@ -108,13 +109,33 @@ MOCK_CREDENTIALS = {
         },
     }
 
+@pytest.fixture(scope="module")
+def example_credentials():
+    delete_1 = Credential.model_validate(MOCK_CREDENTIALS["example1"])
+    delete_1.id = "delete_1"
+    vp_flow_test = Credential(
+        id="vp_flow_test",
+        raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",
+        issuer_url="https://example.com",
+        credential_configuration_id="sd+jwt_vc",
+        is_deferred=False,
+        received_at=datetime.now(tz=UTC).isoformat(),
+        c_type="sd_jwt",
+    )
+    return [
+        Credential.model_validate(MOCK_CREDENTIALS["example1"]),
+        DeferredCredential.model_validate(MOCK_CREDENTIALS["example2"]),
+        delete_1,
+        vp_flow_test,
+        ]
+
 EXAMPLE_ISSUER = "https://example.com"
 OWNER_HOST = "https://localhost"
 OWNER_PORT = "8080"
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
-@pytest.fixture(scope="function")
-def identity_owner(tmp_path_factory, example_cred_1, example_cred_2):
+@pytest.fixture(scope="module")
+def identity_owner(tmp_path_factory, example_credentials):
     tmpdir_name = ''.join(choice(ascii_letters) for i in range(10))
     id_owner = DemoWebIdentityOwner(
         [f"{OWNER_URI}/add"],
@@ -140,40 +161,20 @@ def identity_owner(tmp_path_factory, example_cred_1, example_cred_2):
     )
     print(id_owner)
     id_owner.register("test_holder", "test_holder")
-    id_owner.store_many([example_cred_1, example_cred_2])
+    id_owner.store_many(example_credentials)
 
     return id_owner
-
-@pytest.fixture()
-def example_cred_1():
-    return Credential.model_validate(MOCK_CREDENTIALS["example1"])
-
-@pytest.fixture()
-def example_cred_2():
-    return DeferredCredential.model_validate(MOCK_CREDENTIALS["example2"])
 
 
 ###################
 ### TESTING VPs ###
 ###################
 @pytest.mark.asyncio()
-# @pytest.mark.skip()
 async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
     httpx_mock.add_response(
         url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
     )
     identity_owner: DemoWebIdentityOwner
-
-    cred = Credential(
-        id="yalo",
-        raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~", # E501
-        issuer_url="https://example.com",
-        credential_configuration_id="sd+jwt_vc",
-        is_deferred=False,
-        received_at=datetime.now().isoformat(),
-        c_type="sd_jwt",
-    )
-    identity_owner.store_credential(cred)
 
     resp = await identity_owner.get_auth_request(
         "https://example.com/request/verify_over_18", "some did", "did", "post"
@@ -191,28 +192,25 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner):
 
     assert resp == {"status": "OK"}
 
-
-@pytest.mark.skip()
 @pytest.mark.asyncio
-async def test_get_credential(identity_owner, example_cred_1):
-    identity_owner.store_credential(example_cred_1)
+async def test_get_credential(identity_owner):
     credential1 = await identity_owner.get_credential("example1", refresh=0)
     assert credential1.id == "example1"
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_get_credential_error(identity_owner):
     with pytest.raises(HTTPException):
         await identity_owner.get_credential("bad_id")
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_get_credentials(identity_owner):
     identity_owner: DemoWebIdentityOwner
     credentials = identity_owner.all_credentials()
-    assert len(credentials) == 2
+    cred_ids = [c.id for c in credentials]
+    assert "example1" in cred_ids
+    assert "example2" in cred_ids
+    assert "vp_flow_test" in cred_ids
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_authorize_issuer_initiated(identity_owner):
     identity_owner: DemoWebIdentityOwner
@@ -240,11 +238,9 @@ async def test_authorize_issuer_initiated(identity_owner):
     assert details[0]["credential_configuration_id"] == id
     assert query_params["state"][0] in identity_owner.oauth_clients
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_authorize_wallet_initiated(identity_owner):
     identity_owner: DemoWebIdentityOwner
-    identity_owner.register("issuance_w", "issuance_w")
     id = "Passport"
 
     redirect_url = await identity_owner.get_auth_redirect(id, "https://example.com")
@@ -262,19 +258,20 @@ async def test_authorize_wallet_initiated(identity_owner):
     assert details[0]["credential_configuration_id"] == id
     assert query_params["state"][0] in identity_owner.oauth_clients
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_delete_credential_fail(identity_owner):
     identity_owner: DemoWebIdentityOwner
-    assert len(identity_owner.all_credentials()) == 2
     with pytest.raises(Exception):
-        await identity_owner._delete_credential("yalo")
-    assert len(identity_owner.all_credentials()) == 2
+        await identity_owner.delete_credential("bad_id")
 
-@pytest.mark.skip()
 @pytest.mark.asyncio
 async def test_async_delete_credentials(identity_owner):
     identity_owner: DemoWebIdentityOwner
-    assert len(identity_owner.all_credentials()) == 2
-    await identity_owner.delete_credential("example1")
-    assert len(identity_owner.all_credentials()) == 1
+    cred = await identity_owner.get_credential("delete_1", refresh=0)
+    assert isinstance(cred, BaseCredential)
+    await identity_owner.delete_credential("delete_1")
+
+    with pytest.raises(Exception):
+        await identity_owner.get_credential("delete_1")
+    with pytest.raises(Exception):
+        await identity_owner.delete_credential("delete_1")
