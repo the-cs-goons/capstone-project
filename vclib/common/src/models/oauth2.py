@@ -1,4 +1,6 @@
 # TODO: uncomment these once they can be handled properly
+import sqlite3
+
 from jwcrypto.jwk import JWKSet
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -164,3 +166,8 @@ class TokenResponseObject(BaseModel):
     error: str | None = Field(default=None)
     error_description: str | None = Field(default=None)
     error_uri: str | None = Field(default=None)
+
+    def __conform__(self, protocol):
+        if protocol is sqlite3.PrepareProtocol:
+            return self.model_dump_json()
+        return None

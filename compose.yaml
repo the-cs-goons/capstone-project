@@ -49,6 +49,7 @@ services:
     environment:
       - REQUESTS_CA_BUNDLE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
       - SSL_CERT_FILE=/usr/src/app/demo/demo_ssl_ca_bundle.crt
+      - CS3900_HOLDER_WALLET_PATH=
 
   issuer-lib:
     build:

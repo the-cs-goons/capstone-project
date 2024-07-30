@@ -1,38 +1,37 @@
 import { Button, FormControlLabel, Paper, Switch } from "@mui/material";
 import { json, SerializeFrom, type ActionFunctionArgs } from "@remix-run/node";
 import { Form, redirect, useActionData, useSubmit } from "@remix-run/react";
+import { AxiosResponse } from "axios";
 import type { FormEvent } from "react";
 import { FlexContainer } from "~/components/FlexContainer";
 import type { AuthorizationRequestObject } from "~/interfaces/AuthorizationRequestObject";
 import type { FieldSelectionObject } from "~/interfaces/PresentationDefinition/FieldSelectionObject";
+import {
+  authHeaders,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
 
 export async function action({ request }: ActionFunctionArgs) {
   const body:
     | { intent: "choose-cred"; query: string }
     | { intent: "present-cred"; data: FieldSelectionObject } =
     await request.json();
-  let resp, data: AuthorizationRequestObject;
+  let resp: AxiosResponse;
+  let data: AuthorizationRequestObject;
   switch (body.intent) {
     case "choose-cred":
-      resp = await fetch(
-        `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/presentation/init?${body.query}`,
-      );
-      data = await resp.json();
+      resp = await walletBackendClient.get(`/presentation/init?${body.query}`);
+      data = await resp.data;
       return json(data);
 
     case "present-cred":
-      resp = await fetch(
-        `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/presentation`,
-        {
-          method: "post",
-          headers: {
-            "Content-type": "application/json",
-          },
-          body: JSON.stringify(body.data),
-        },
-      );
+      resp = await walletBackendClient.post(`/presentation`, {
+        headers: authHeaders(await getSessionFromRequest(request)),
+        body: body.data,
+      });
       // TODO: implement proper redirect
-      console.log(await resp.json());
+      console.log(resp.data);
       return redirect("/credentials");
 
     default:
