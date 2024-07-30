@@ -85,7 +85,7 @@ export default function SingleCredential() {
         <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end" }}>
           <IconButton
             color="inherit"
-            aria-label="Add new credential"
+            aria-label="Back"
             onClick={() => navigate(-1)}
           >
             <ArrowBackIcon />
