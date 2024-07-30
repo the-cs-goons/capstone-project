@@ -14,6 +14,9 @@ export const walletTheme = createTheme({
             body {
                 flex: 1;
             }
+            main {
+                min-height: 100%;
+            }
             `,
     },
   },
