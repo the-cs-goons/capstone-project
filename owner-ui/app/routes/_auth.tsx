@@ -58,7 +58,6 @@ function HideOnScroll({ children }: Readonly<SlideProps>) {
 
 
 export default function Auth() {
-
   const matches = useMatches();
   // TODO: make this work in individual credential screens
   const [value, setValue] = useState(
@@ -91,7 +90,12 @@ export default function Auth() {
               component={Link}
               to="/scan"
             />
-            <BottomNavigationAction label="Logout" icon={<LogoutIcon />} />
+            <BottomNavigationAction 
+              label="Logout" 
+              icon={<LogoutIcon />}
+              component={Link}
+              to="/logout"
+              />
           </BottomNavigation>
         </Paper>
       </HideOnScroll>
