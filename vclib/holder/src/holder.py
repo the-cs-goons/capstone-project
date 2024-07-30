@@ -608,4 +608,3 @@ class Holder:
             updated.append(cred.id)
 
         return updated
-

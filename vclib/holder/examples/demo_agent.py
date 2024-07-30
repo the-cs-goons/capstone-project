@@ -113,5 +113,3 @@ cred = Credential(
     c_type="sd_jwt",
 )
 identity_owner_server = identity_owner.get_server()
-
-
