@@ -121,9 +121,6 @@ class WebHolder(Holder):
         return encode(payload, self.SECRET, algorithm="HS256", headers=headers)
 
     def generate_token(self, verified_auth: LoginRequest | RegisterRequest):
-        """
-        TODO: Document overwriting
-        """
         return UserAuthenticationResponse(
             username=verified_auth.username,
             access_token=self._generate_jwt({"user": verified_auth.username}),
@@ -131,7 +128,10 @@ class WebHolder(Holder):
 
     def check_token(self, authorization: Annotated[str | None, Header()] = None):
         """
-        TODO: Document overwriting
+        Check session token.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
         """
         if not authorization:
             raise HTTPException(status_code=403, detail="Unauthorized. Please log in.")
@@ -155,6 +155,9 @@ class WebHolder(Holder):
             raise HTTPException(status_code=400, detail="Invalid token" + prompt)
 
     def user_login(self, login: LoginRequest) -> UserAuthenticationResponse:
+        """
+        Log in a user.
+        """
         try:
             self.login(login.username, login.password)
         except Exception:
@@ -163,6 +166,9 @@ class WebHolder(Holder):
         return self.generate_token(login)
 
     def user_register(self, reg: RegisterRequest) -> UserAuthenticationResponse:
+        """
+        Register a user.
+        """
         if reg.password != reg.confirm:
             raise HTTPException(status_code=400, detail="Passwords don't match.")
         # Rudimentary password rule
@@ -181,6 +187,9 @@ class WebHolder(Holder):
         return self.generate_token(reg)
 
     def user_logout(self):
+        """
+        Log out a user.
+        """
         self.logout()
 
     ###
@@ -222,7 +231,13 @@ class WebHolder(Holder):
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[Credential | DeferredCredential]:
         """
-        TODO
+        Get credentials.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
+
+        ### Returns
+        - `list[Credential | DeferredCredential]`: A list of credentials
         """
         self.check_token(authorization)
         return self.store.all_credentials()
@@ -254,6 +269,9 @@ class WebHolder(Holder):
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
     ) -> Credential | DeferredCredential:
+        """
+        Refresh credential.
+        """
         self.check_token(authorization)
         return await self.refresh_credential(cred_id)
 
@@ -261,6 +279,9 @@ class WebHolder(Holder):
         self,
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
+        """
+        Refresh all credentials.
+        """
         self.check_token(authorization)
         return await self.refresh_all_deferred_credentials()
 
