@@ -1,9 +1,17 @@
 import { Button, Stack, TextField, Typography } from "@mui/material";
 import { ActionFunctionArgs } from "@remix-run/node";
-import { Form, redirect, useActionData } from "@remix-run/react";
+import {
+  Form,
+  isRouteErrorResponse,
+  Link,
+  MetaFunction,
+  redirect,
+  useActionData,
+} from "@remix-run/react";
 import { useState } from "react";
 import { commitSession, getSession, walletBackendClient } from "~/utils";
 import { AxiosError, isAxiosError } from "axios";
+import styles from "~/styles/locked.module.css";
 
 interface SuccessfulRegisterAttempt {
   access_token: string;
@@ -13,6 +21,21 @@ interface SuccessfulRegisterAttempt {
 interface FailedRegisterAttempt {
   detail: string;
 }
+
+export const meta: MetaFunction = ({ error }) => {
+  let title = "Register - Verifiable Credentials Wallet";
+  if (error) {
+    title = isRouteErrorResponse(error)
+      ? `${error.status} ${error.statusText}`
+      : "Error!";
+  }
+  return [
+    {
+      title: title,
+    },
+    { name: "description", content: "Log in to your wallet" },
+  ];
+};
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
@@ -46,8 +69,16 @@ export default function RegisterForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const errors = useActionData<typeof action>();
   return (
-    <Stack spacing={2}>
-      <Form method="POST" action="/register">
+    <Stack
+      spacing={2}
+      sx={{
+        height: "50%",
+      }}
+    >
+      <Form method="POST" action="/register" className={styles.form}>
+        <Typography variant="h2" textAlign="center">
+          Register
+        </Typography>
         <TextField
           label="Username"
           id="register-username"
@@ -83,6 +114,9 @@ export default function RegisterForm() {
         </Button>
         {errors && <Typography>{`${errors}`}</Typography>}
       </Form>
+      <Button component={Link} to="/login">
+        {"Login"}
+      </Button>
     </Stack>
   );
 }

@@ -1,9 +1,17 @@
 import { Button, Stack, TextField, Typography } from "@mui/material";
 import { ActionFunctionArgs } from "@remix-run/node";
-import { Form, redirect, useActionData } from "@remix-run/react";
+import {
+  Form,
+  isRouteErrorResponse,
+  Link,
+  MetaFunction,
+  redirect,
+  useActionData,
+} from "@remix-run/react";
 import { useState } from "react";
 import { commitSession, getSession, walletBackendClient } from "~/utils";
 import { AxiosError, isAxiosError } from "axios";
+import styles from "~/styles/locked.module.css";
 
 interface SuccessfulLoginAttempt {
   access_token: string;
@@ -13,6 +21,21 @@ interface SuccessfulLoginAttempt {
 interface FailedLoginAttempt {
   detail: string;
 }
+
+export const meta: MetaFunction = ({ error }) => {
+  let title = "Login - Verifiable Credentials Wallet";
+  if (error) {
+    title = isRouteErrorResponse(error)
+      ? `${error.status} ${error.statusText}`
+      : "Error!";
+  }
+  return [
+    {
+      title: title,
+    },
+    { name: "description", content: "Log in to your wallet" },
+  ];
+};
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
@@ -46,8 +69,11 @@ export default function LoginForm() {
   const errors = useActionData<typeof action>();
 
   return (
-    <Stack spacing={2}>
-      <Form method="POST" action="/login">
+    <Stack spacing={2} sx={{ height: "50%" }}>
+      <Typography variant="h2" textAlign="center">
+        Log in
+      </Typography>
+      <Form method="POST" action="/login" className={styles.form}>
         <TextField
           label="Username"
           id="login-username"
@@ -73,6 +99,10 @@ export default function LoginForm() {
         </Button>
         {errors && <Typography>{`${errors}`}</Typography>}
       </Form>
+
+      <Button component={Link} to="/register">
+        {"Register"}
+      </Button>
     </Stack>
   );
 }
