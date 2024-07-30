@@ -13,61 +13,61 @@ class CarRental(Verifier):
     # For now, I will move forward using request URIs for the wallet
     # to fetch the authorization request
     def __init__(self):
-        rental_car_eligibility = vp_auth_request.PresentationDefinition(**{
+        rental_car_eligibility = vp_auth_request.PresentationDefinition({
             "id": "eligability_to_rent_car_definition",
             "name": "Car rental eligibility check",
-            "purpose": "To check if the customer is eligible to rent a car at Cass' Cars",
+            "purpose": "To check if the customer is eligible to rent a car at Cass' Cars", # noqa: E501
             "input_descriptors": [
-                vp_auth_request.InputDescriptor(**{
+                vp_auth_request.InputDescriptor({
                     "id": "RequestDriversLicense",
                     "name": "Driver's License Request",
-                    "constraints": vp_auth_request.Constraints(**{
+                    "constraints": vp_auth_request.Constraints({
                         "fields": [
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.type",
                                          "$.type"],
                                 "name": "Driver's License",
                                 "filter": {"type": "string",
                                            "const": "DriversLicense"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.license_no",
                                          "$.license_no"],
                                 "name": "License number",
                                 "filter": {"type": "number"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.given_name",
                                          "$.given_name"],
                                 "name": "First name",
                                 "filter": {"type": "string"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.family_name",
                                          "$.family_name"],
                                 "name": "Family name",
                                 "filter": {"type": "string"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.middle_initial",
                                          "$.middle_initial"],
                                 "name": "Middle name",
                                 "filter": {"type": "string"},
                                 "optional": True
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.date_of_birth",
                                          "$.date_of_birth"],
                                 "name": "DOB",
                                 "filter": {"type": "number"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.address",
                                          "$.address"],
                                 "name": "Address",
                                 "filter": {"type": "string"}
                             }),
-                            vp_auth_request.Field(**{
+                            vp_auth_request.Field({
                                 "path": ["$.credentialSubject.license_type",
                                          "$.license_type"],
                                 "name": "License type",
@@ -81,7 +81,7 @@ class CarRental(Verifier):
         })
         super().__init__(
             presentation_definitions={"rental_eligibility": rental_car_eligibility},
-            base_url=f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}", # change this
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 

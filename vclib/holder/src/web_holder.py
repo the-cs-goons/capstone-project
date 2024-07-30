@@ -302,7 +302,6 @@ class WebIdentityOwner(Holder):
             state=transaction_id,
         )
 
-        print(authorization_response)
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:

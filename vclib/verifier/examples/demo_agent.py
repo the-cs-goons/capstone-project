@@ -24,7 +24,8 @@ class DemoVerifier(Verifier):
                     constraints=vp_auth_request.Constraints(
                         fields=[
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.is_over_18", "$.is_over_18"],
+                                path=["$.credentialSubject.is_over_18",
+                                      "$.is_over_18"],
                                 filter={"type": "boolean", "const": True}
                             )
                         ]

@@ -877,7 +877,7 @@ class CredentialIssuer:
         """
 
         other = {
-            "iss": self.uri, 
+            "iss": self.uri,
             "vct": self.uri + "/" + cred_type,
             "iat": mktime(datetime.now(tz=UTC).timetuple())
             }
