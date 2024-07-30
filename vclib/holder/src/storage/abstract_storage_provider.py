@@ -4,7 +4,6 @@ from vclib.holder.src.models.credentials import Credential, DeferredCredential
 
 
 class AbstractStorageProvider(metaclass=ABCMeta):
-
     @abstractmethod
     def register(self, *args, **kwargs):
         """
@@ -30,44 +29,29 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def get_credential(
-            self,
-            cred_id: str,
-            *args,
-            **kwargs
-            ) -> Credential | DeferredCredential | None:
+        self, cred_id: str, *args, **kwargs
+    ) -> Credential | DeferredCredential | None:
         """
         Retrieves corresponding credential
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_received_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[Credential]:
+    def get_received_credentials(self, *args, **kwargs) -> list[Credential]:
         """
         Retrieves all credentials
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_deferred_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[DeferredCredential]:
+    def get_deferred_credentials(self, *args, **kwargs) -> list[DeferredCredential]:
         """
         Retrieves all deferred credentials
         """
         raise NotImplementedError
 
     @abstractmethod
-    def all_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[Credential | DeferredCredential]:
+    def all_credentials(self, *args, **kwargs) -> list[Credential | DeferredCredential]:
         """
         Retrieves all credentials
         """
@@ -81,12 +65,7 @@ class AbstractStorageProvider(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def add_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+    def add_many(self, creds: list[Credential | DeferredCredential], *args, **kwargs):
         """
         Adds many credentials to storage.
         """
@@ -100,12 +79,7 @@ class AbstractStorageProvider(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_many(
-            self,
-            cred_ids: list[str],
-            *args,
-            **kwargs
-            ):
+    def delete_many(self, cred_ids: list[str], *args, **kwargs):
         """
         Deletes many credentials from storage
         """
@@ -119,11 +93,8 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def update_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+        self, creds: list[Credential | DeferredCredential], *args, **kwargs
+    ):
         """
         Update many credentials.
         """
@@ -138,11 +109,8 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def upsert_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+        self, creds: list[Credential | DeferredCredential], *args, **kwargs
+    ):
         """
         Add or update many credentials.
         """
