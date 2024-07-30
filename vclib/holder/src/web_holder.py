@@ -284,7 +284,7 @@ class WebHolder(Holder):
         """
         self.check_token(authorization)
         return await self.get_credential_offer(
-            self, credential_offer_uri, credential_offer
+            credential_offer_uri, credential_offer
         )
 
     async def request_authorization(
