@@ -218,8 +218,11 @@ class WebIdentityOwner(Holder):
             ]
             for field in ordered_approved_fields:
                 paths = field.path
+                filter = field.filter
                 # find all credentials with said field
-                new_valid_creds = self._get_credentials_with_field(paths)
+                new_valid_creds = self._get_credentials_with_field(
+                    paths,
+                    filter)
 
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds
@@ -293,7 +296,6 @@ class WebIdentityOwner(Holder):
             definition_id=definition_id,
             descriptor_map=descriptor_maps,
         )
-
         authorization_response = vp_auth_response.AuthorizationResponseObject(
             vp_token=final_vp_token,
             presentation_submission=presentation_submission,
