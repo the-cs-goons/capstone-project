@@ -6,7 +6,11 @@ import type { FormEvent } from "react";
 import { FlexContainer } from "~/components/FlexContainer";
 import type { AuthorizationRequestObject } from "~/interfaces/AuthorizationRequestObject";
 import type { FieldSelectionObject } from "~/interfaces/PresentationDefinition/FieldSelectionObject";
-import { authHeaders, getSessionFromRequest, walletBackendClient } from "~/utils";
+import {
+  authHeaders,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
 
 export async function action({ request }: ActionFunctionArgs) {
   const body:

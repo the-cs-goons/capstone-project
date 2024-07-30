@@ -1,10 +1,6 @@
 import { Button, Stack, TextField, Typography } from "@mui/material";
 import { ActionFunctionArgs } from "@remix-run/node";
-import {
-  Form,
-  redirect,
-  useActionData,
-} from "@remix-run/react";
+import { Form, redirect, useActionData } from "@remix-run/react";
 import { useState } from "react";
 import { commitSession, getSession, walletBackendClient } from "~/utils";
 import { AxiosError, isAxiosError } from "axios";
@@ -15,7 +11,7 @@ interface SuccessfulLoginAttempt {
 }
 
 interface FailedLoginAttempt {
-    detail: string;
+  detail: string;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -29,14 +25,11 @@ export async function action({ request }: ActionFunctionArgs) {
     const user = (await resp.data) as SuccessfulLoginAttempt;
     const session = await getSession(request.headers.get("Cookie"));
     session.set("token", user.access_token);
-    return redirect(
-      "/credentials",
-      {
-        headers: {
-          "Set-Cookie": await commitSession(session),
-        },
+    return redirect("/credentials", {
+      headers: {
+        "Set-Cookie": await commitSession(session),
       },
-    );
+    });
   } catch (error) {
     if (isAxiosError(error)) {
       const e = error as AxiosError;

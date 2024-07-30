@@ -14,7 +14,12 @@ import {
 import { LoaderFunctionArgs } from "@remix-run/node";
 import { Link, Outlet, redirect, useMatches } from "@remix-run/react";
 import { useState } from "react";
-import { authHeaders, destroySession, getSessionFromRequest, walletBackendClient } from "~/utils";
+import {
+  authHeaders,
+  destroySession,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   // Check the user's session token and redirect them as needed.
@@ -29,11 +34,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
   }
   try {
-    await walletBackendClient.get("/session",
-      {
-        headers: authHeaders(session)
-      }
-    );
+    await walletBackendClient.get("/session", {
+      headers: authHeaders(session),
+    });
     return null;
   } catch {
     await walletBackendClient.get("/logout");
@@ -43,7 +46,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
       },
     });
   }
-  
 }
 
 function HideOnScroll({ children }: Readonly<SlideProps>) {
@@ -55,7 +57,6 @@ function HideOnScroll({ children }: Readonly<SlideProps>) {
     </Slide>
   );
 }
-
 
 export default function Auth() {
   const matches = useMatches();
@@ -90,12 +91,12 @@ export default function Auth() {
               component={Link}
               to="/scan"
             />
-            <BottomNavigationAction 
-              label="Logout" 
+            <BottomNavigationAction
+              label="Logout"
               icon={<LogoutIcon />}
               component={Link}
               to="/logout"
-              />
+            />
           </BottomNavigation>
         </Paper>
       </HideOnScroll>

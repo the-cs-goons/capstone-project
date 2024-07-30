@@ -28,4 +28,10 @@ const authHeaders = (session: Session<SessionData, SessionFlashData>) => {
   return { Authorization: `Bearer ${token}` };
 };
 
-export { getSession, getSessionFromRequest, commitSession, destroySession, authHeaders };
+export {
+  getSession,
+  getSessionFromRequest,
+  commitSession,
+  destroySession,
+  authHeaders,
+};

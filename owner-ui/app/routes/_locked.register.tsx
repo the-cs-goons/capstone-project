@@ -11,9 +11,8 @@ interface SuccessfulRegisterAttempt {
 }
 
 interface FailedRegisterAttempt {
-    detail: string;
+  detail: string;
 }
-
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
@@ -26,14 +25,11 @@ export async function action({ request }: ActionFunctionArgs) {
     const user = (await resp.data) as SuccessfulRegisterAttempt;
     const session = await getSession(request.headers.get("Cookie"));
     session.set("token", user.access_token);
-    return redirect(
-      "/credentials",
-      {
-        headers: {
-          "Set-Cookie": await commitSession(session),
-        },
+    return redirect("/credentials", {
+      headers: {
+        "Set-Cookie": await commitSession(session),
       },
-    );
+    });
   } catch (error) {
     if (isAxiosError(error)) {
       const e = error as AxiosError;

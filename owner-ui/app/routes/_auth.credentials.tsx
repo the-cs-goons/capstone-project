@@ -19,7 +19,11 @@ import { CredentialCard } from "~/components/CredentialCard";
 import { CredentialsGridContainer } from "~/components/CredentialsGridContainer";
 import { FlexContainer } from "~/components/FlexContainer";
 import type { BaseCredential } from "~/interfaces/Credential/BaseCredential";
-import { authHeaders, getSessionFromRequest, walletBackendClient } from "~/utils";
+import {
+  authHeaders,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
 
 export const meta: MetaFunction = ({ error }) => {
   let title = "Credentials - SSI Wallet";
@@ -47,7 +51,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
   await walletBackendClient.delete(`/credentials/${body.get("id")}`, {
-    headers: authHeaders(await getSessionFromRequest(request))
+    headers: authHeaders(await getSessionFromRequest(request)),
   });
   return null;
 }

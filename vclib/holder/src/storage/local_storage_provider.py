@@ -325,7 +325,11 @@ class LocalStorageProvider(AbstractStorageProvider):
             user_store_path = self.storage_dir_path.joinpath(u["user_store"])
 
             # An in-memory SQLite database that can be regularly serialised
-            u_con = connect(":memory:", detect_types=PARSE_DECLTYPES, check_same_thread=False)
+            u_con = connect(
+                ":memory:",
+                detect_types=PARSE_DECLTYPES,
+                check_same_thread=False # We BALL
+                )
             u_con.row_factory = dict_factory
 
             # Create tables
@@ -399,7 +403,11 @@ class LocalStorageProvider(AbstractStorageProvider):
         user_secret = password.encode()
 
         # An in-memory SQLite database that can be regularly serialised
-        u_con = connect(":memory:", detect_types=PARSE_DECLTYPES, check_same_thread=False)
+        u_con = connect(
+                ":memory:",
+                detect_types=PARSE_DECLTYPES,
+                check_same_thread=False # We BALL
+                )
         u_con.row_factory = dict_factory
 
         # Extract db dump from zip, then close
