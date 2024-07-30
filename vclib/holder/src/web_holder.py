@@ -95,8 +95,8 @@ class WebHolder(Holder):
         router.get("/credentials/{cred_id}")(self.get_credential)
         router.get("/credentials")(self.get_credentials)
         router.delete("/credentials/{cred_id}")(self.delete_credential)
-        router.get("/refresh/{cred_id}")(self.refresh_credential)
-        router.get("/refresh")(self.refresh_all_deferred_credentials)
+        router.get("/refresh/{cred_id}")(self.refresh)
+        router.get("/refresh")(self.refresh_all)
 
         # Presentation
         router.get("/presentation/init")(self.get_auth_request)
@@ -113,15 +113,6 @@ class WebHolder(Holder):
     ###
     ### Web-based Authentication / Authorization
     ###
-
-    # @staticmethod
-    # def authorize(func):
-    #     @wraps(func)
-    #     async def _authorize_func(self: 'WebHolder', *args, **kwargs):
-    #         auth = kwargs.get("authorization")
-    #         self.check_token(auth)
-    #         return await func(self, *args, **kwargs)
-    #     return _authorize_func
 
     def _generate_jwt(
             self,
@@ -259,20 +250,20 @@ class WebHolder(Holder):
                 status_code=404, detail=f"Credential with ID {cred_id} not found."
             )
 
-    async def refresh_credential(
+    async def refresh(
         self,
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
     ) -> Credential | DeferredCredential:
         self.check_token(authorization)
-        return await super().refresh_credential(cred_id)
+        return await self.refresh_credential(cred_id)
 
-    async def refresh_all_deferred_credentials(
+    async def refresh_all(
         self,
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
         self.check_token(authorization)
-        return await super().refresh_all_deferred_credentials()
+        return await self.refresh_all_deferred_credentials()
 
     async def credential_offer(self,
         credential_offer_uri: str | None = None,
