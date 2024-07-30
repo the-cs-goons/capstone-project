@@ -348,20 +348,20 @@ class WebHolder(Holder):
     async def get_auth_request(
         self,
         request_uri,
-        client_id,  # TODO
-        client_id_scheme,
-        request_uri_method,  # TODO
+        # client_id,  # TODO
+        # client_id_scheme,
+        # request_uri_method,  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
         """
         Get authorization request from a verifier.
         """
         self.check_token(authorization)
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
+        # if client_id_scheme != "did":
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail=f"client_id_scheme {client_id_scheme} not supported",
+        #     )
 
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{request_uri}")
@@ -471,7 +471,7 @@ class WebHolder(Holder):
                 descriptor_map = {
                     "id": input_descriptor_id,
                     "format": "vc+sd-jwt",
-                    "path": f"$.vp_token[{idx}]",
+                    "path": f"$[{idx}]",
                 }
                 descriptor_maps.append(
                     vp_auth_response.DescriptorMapObject(**descriptor_map)

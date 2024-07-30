@@ -86,7 +86,7 @@ class CarRental(Verifier):
         )
         super().__init__(
             presentation_definitions={"rental_eligibility": rental_car_eligibility},
-            base_url=f"https://verifier-lib:{os.getenv('CS3900_CAR_RENTAL_DEMO_AGENT_PORT')}",
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_CAR_RENTAL_VERIFIER_DEMO_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 

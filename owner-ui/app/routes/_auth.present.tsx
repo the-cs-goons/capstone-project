@@ -28,9 +28,8 @@ export async function action({ request }: ActionFunctionArgs) {
       return json(data);
 
     case "present-cred":
-      resp = await walletBackendClient.post(`/presentation`, {
+      resp = await walletBackendClient.post(`/presentation`, body.data, {
         headers: authHeaders(await getSessionFromRequest(request)),
-        body: body.data,
       });
       // TODO: implement proper redirect
       console.log(resp.data);
