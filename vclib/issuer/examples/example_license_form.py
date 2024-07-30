@@ -12,10 +12,8 @@ html_license_form = """<!DOCTYPE html>
     <!-- You can add your styles and scripts here -->
     <script>
         function submit() {
-            data = Object.fromEntries(formData)
-            let license = 
             axios.post(window.location.href , {
-                license_no: document.getElementById('license_no').value,
+                license_no: +document.getElementById('license_no').value,
                 date_of_birth: document.getElementById('date_of_birth').value,
             });
         }

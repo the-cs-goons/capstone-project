@@ -128,7 +128,7 @@ class LicenseIssuer(DefaultIssuer):
             )
         
         if "DriversLicense" in auth_details.credential_configuration_id:
-            return HTMLResponse(content=html_license_form)
+            return HTMLResponse(content=html_license_form, headers={"Access-Control-Allow-Origin": "*"})
 
         return form
         
