@@ -306,19 +306,16 @@ class LocalStorageProvider(AbstractStorageProvider):
         new_user = {"username": username, "pwd": hash, "store": store}
 
         # Add an entry to config.db
-        cursor = config.execute(
+        config.execute(
             """
             INSERT INTO users VALUES (:username, :pwd, :store)
-            RETURNING username, user_store
             """,
             new_user,
         )
-        u = cursor.fetchone()
-        cursor.close()
 
         # Make sure all steps succeed before comitting new user
         try:
-            user_store_path = self.storage_dir_path.joinpath(u["user_store"])
+            user_store_path = self.storage_dir_path.joinpath(store)
 
             # An in-memory SQLite database that can be regularly serialised
             u_con = connect(
@@ -352,9 +349,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             config.commit()
             config.close()
 
-        self.active_user = self.ActiveUser(
-            u["username"], u_secret, user_store_path, u_con
-        )
+        self.active_user = self.ActiveUser(username, u_secret, user_store_path, u_con)
 
     def login(self, username: str, password: str):
         """
@@ -504,7 +499,6 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         all_creds = self.get_received_credentials()
         all_creds.extend(self.get_deferred_credentials())
-        print(all_creds)
         return all_creds
 
     def add_credential(
@@ -565,12 +559,11 @@ class LocalStorageProvider(AbstractStorageProvider):
         self._check_active_user()
         # Other tables will be handled thanks to CASCADE
 
+        self.get_credential(cred_id)
+
         cursor = self.get_db_conn().execute(
-            "DELETE FROM credential_info WHERE id = :cred_id RETURNING id",
-            {"cred_id": cred_id},
+            "DELETE FROM credential_info WHERE id = :cred_id", {"cred_id": cred_id}
         )
-        if not cursor.fetchone():
-            raise Exception(f"Credential {cred_id} does not exist.")
         cursor.close()
         if save_after:
             self.save()

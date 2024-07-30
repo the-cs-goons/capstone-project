@@ -63,11 +63,11 @@ class LicenseIssuer(DefaultIssuer):
     def get_credential_form(self, credential_config: str) -> FormResponse:
         if credential_config == "DriversLicense":
             return FormResponse(form=FORM)
-        else:
-            raise IssuerError(
-                "invalid_request",
-                f"Credential format {credential_config} not supported",
-            )
+
+        raise IssuerError(
+            "invalid_request",
+            f"Credential format {credential_config} not supported",
+        )
 
     @override
     def get_credential_request(
