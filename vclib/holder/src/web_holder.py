@@ -298,7 +298,6 @@ class WebHolder(Holder):
         """
         self.check_token(authorization)
         redirect_url: str
-        print(credential_selection)
         if credential_selection.credential_offer:
             if credential_selection.issuer_uri:
                 raise HTTPException(
@@ -361,8 +360,6 @@ class WebHolder(Holder):
     ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
-        # print(self.current_transaction)
-        # list[Field]
         self.check_token(authorization)
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
@@ -462,7 +459,6 @@ class WebHolder(Holder):
             state=transaction_id,
         )
 
-        print(authorization_response)
         response_uri = self.current_transaction.response_uri
         # make sure response_mode is direct_post
         async with httpx.AsyncClient() as client:
