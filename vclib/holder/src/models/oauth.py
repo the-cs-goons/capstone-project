@@ -1,3 +1,4 @@
+import sqlite3
 from typing import Any
 
 from pydantic import BaseModel
@@ -13,6 +14,11 @@ class AccessToken(BaseModel):
     access_token: str
     token_type: str
     expires_in: int
+
+    def __conform__(self, protocol):
+        if protocol is sqlite3.PrepareProtocol:
+            return self.model_dump_json()
+        return None
 
 
 class OAuthTokenResponse(AccessToken):

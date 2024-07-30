@@ -25,15 +25,21 @@ import type { BaseCredential } from "~/interfaces/Credential/BaseCredential";
 import { decodeSdJwt, getClaims } from "@sd-jwt/decode";
 import { digest } from "@sd-jwt/crypto-nodejs";
 import { ReactNode } from "react";
+import {
+  authHeaders,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
+import { AxiosResponse } from "axios";
 
 // TODO: fix typing in this component
 
-export async function loader({ params }: LoaderFunctionArgs) {
-  const resp = await fetch(
-    `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/credentials/${params.cred_id}`,
-    { method: "GET" },
-  );
-  const credential: BaseCredential = await resp.json();
+export async function loader({ params, request }: LoaderFunctionArgs) {
+  const resp = await walletBackendClient.get(`/credentials/${params.cred_id}`, {
+    headers: authHeaders(await getSessionFromRequest(request)),
+  });
+  const r = resp as AxiosResponse;
+  const credential: BaseCredential = await r.data;
   let claims;
   if ("raw_sdjwtvc" in credential) {
     const decodedCredential = await decodeSdJwt(
