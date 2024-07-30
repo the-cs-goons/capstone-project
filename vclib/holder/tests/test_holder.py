@@ -11,9 +11,6 @@ from pytest_httpx import HTTPXMock
 from vclib.common.src.data_transfer_objects.vp_auth_request import (
     AuthorizationRequestObject,
 )
-from vclib.common.src.data_transfer_objects.vp_auth_request import (
-    AuthorizationRequestObject,
-)
 from vclib.holder import (
     AuthorizationMetadata,
     Credential,
