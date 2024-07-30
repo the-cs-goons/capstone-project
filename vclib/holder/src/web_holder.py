@@ -67,8 +67,12 @@ class WebIdentityOwner(Holder):
         router.delete("/credentials/{cred_id}")(self.delete_credential)
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
-        router.get("/presentation/init")(self.get_auth_request)
-        router.post("/presentation/", response_model_exclude_none=True)(self.present_selection)
+        router.get("/presentation/init",
+                   response_model_exclude_none=True
+                   )(self.get_auth_request)
+        router.post("/presentation/",
+                    response_model_exclude_none=True
+                    )(self.present_selection)
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)

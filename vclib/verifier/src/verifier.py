@@ -42,8 +42,12 @@ class Verifier:
     def get_server(self) -> FastAPI:
         router = FastAPI()
         router.get("/.well-known/did.json")(self.get_did_json)
-        router.get("/presentationdefs")(self.get_presentation_definition)
-        router.post("/request/{ref}")(self.fetch_authorization_request)
+        router.get("/presentationdefs",
+                   response_model_exclude_none=True,
+                   )(self.get_presentation_definition)
+        router.post("/request/{ref}",
+                    response_model_exclude_none=True
+                    )(self.fetch_authorization_request)
         router.post("/cb")(self.parse_authorization_response)
         return router
 
