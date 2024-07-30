@@ -41,7 +41,7 @@ class DemoVerifier(Verifier):
                         fields=[
                             vp_auth_request.Field(
                                 path=["$.credentialSubject.birthdate", "$.birthdate"],
-                                filter=vp_auth_request.Filter(type="string"),
+                                filter={"type": "number"},
                                 optional=True,
                             )
                         ]
