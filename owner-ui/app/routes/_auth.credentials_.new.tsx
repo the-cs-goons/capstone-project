@@ -3,16 +3,14 @@ import {
   AppBar,
   Box,
   Button,
-  FormControl,
+  FormControlLabel,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
-  SelectChangeEvent,
+  Paper,
+  Switch,
   Toolbar,
   Typography,
 } from "@mui/material";
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, redirect, SerializeFrom } from "@remix-run/node";
 import {
   Form,
   isRouteErrorResponse,
@@ -22,10 +20,11 @@ import {
   type MetaFunction,
 } from "@remix-run/react";
 import { Scanner } from "@yudiel/react-qr-scanner";
-import { AxiosResponse } from "axios";
-import { useState } from "react";
+import { AxiosResponse, isAxiosError } from "axios";
+import { FormEvent } from "react";
 import { FlexContainer } from "~/components/FlexContainer";
 import { CredentialOffer } from "~/interfaces/Credential/CredentialOffer";
+import { CredentialSelection } from "~/interfaces/Credential/CredentialSelection";
 import {
   authHeaders,
   getSessionFromRequest,
@@ -50,9 +49,14 @@ export const meta: MetaFunction = ({ error }) => {
 export async function action({ request }: ActionFunctionArgs) {
   const body:
     | { intent: "get-offer"; query: string }
-    | { intent: "submit-request" } = await request.json();
+    | {
+        intent: "submit-request";
+        configs: Array<string>;
+        offer: CredentialOffer;
+      } = await request.json();
   let resp: AxiosResponse;
   let data: CredentialOffer;
+  let selection: CredentialSelection;
   switch (body.intent) {
     case "get-offer":
       resp = await walletBackendClient.get(`/offer?${body.query}`, {
@@ -62,7 +66,25 @@ export async function action({ request }: ActionFunctionArgs) {
       return data;
 
     case "submit-request":
-      return null;
+      // TODO: fix this hack
+      selection = {
+        credential_configuration_id: body.configs.at(0) ?? "InvalidId",
+        credential_offer: body.offer,
+      };
+
+      try {
+        await walletBackendClient.post("/offer", selection, {
+          headers: authHeaders(await getSessionFromRequest(request)),
+          maxRedirects: 0,
+        });
+      } catch (error) {
+        if (isAxiosError(error)) {
+          if (error.response) {
+            return redirect(error.response.headers["location"]);
+          }
+        }
+      }
+      break;
 
     default:
       break;
@@ -72,8 +94,30 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function NewCredentialForm() {
   const navigate = useNavigate();
   const submit = useSubmit();
-  const data = useActionData<typeof action>();
-  const [config, setConfig] = useState("");
+  const actionData = useActionData<typeof action>();
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>): void {
+    event.preventDefault();
+    const data: SerializeFrom<Array<string>> = [];
+    actionData?.credential_configuration_ids.forEach((config) => {
+      const formControl = event.currentTarget.elements.namedItem(
+        config,
+      ) as HTMLInputElement | null;
+      const requested = formControl?.checked ?? false;
+      if (requested) {
+        data.push(config);
+      }
+    });
+
+    submit(
+      {
+        configs: data,
+        offer: actionData,
+        intent: "submit-request",
+      },
+      { method: "post", encType: "application/json" },
+    );
+  }
 
   return (
     <>
@@ -97,34 +141,20 @@ export default function NewCredentialForm() {
         </Toolbar>
       </AppBar>
       <FlexContainer component="main" maxWidth="xl">
-        {data ? (
-          <Form method="post">
-            <Typography>Select a credential type</Typography>
-            <FormControl fullWidth>
-              <InputLabel id="credential-config-select-label">
-                Credential type
-              </InputLabel>
-              <Select
-                labelId="credential-config-select-label"
-                id="credential-config-select"
-                value={config}
-                label="Credential type"
-                onChange={(e: SelectChangeEvent) => {
-                  setConfig(e.target.value);
-                }}
-              >
-                {data.credential_configuration_ids.map((config) => {
-                  return (
-                    <MenuItem key={config} value={config}>
-                      {config}
-                    </MenuItem>
-                  );
-                })}
-              </Select>
-            </FormControl>
-            <Button type="submit" name="intent" value="submit-request">
-              Send request
-            </Button>
+        {actionData ? (
+          <Form method="post" onSubmit={handleSubmit}>
+            <Typography>Select a credential type(s) to request.</Typography>
+            {actionData.credential_configuration_ids.map((config) => {
+              return (
+                <Paper key={config}>
+                  <FormControlLabel
+                    label={config}
+                    control={<Switch name={config} />}
+                  />
+                </Paper>
+              );
+            })}
+            <Button type="submit">Send request</Button>
           </Form>
         ) : (
           <>
