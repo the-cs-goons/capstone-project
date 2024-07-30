@@ -124,7 +124,7 @@ credential_issuer = LicenseIssuer(
     "/usr/src/app/examples/demo_data/example_diddoc.json",
     "/usr/src/app/examples/demo_data/example_didconf.json",
     "/usr/src/app/examples/demo_data/example_metadata_license.json",
-    "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
+    "/usr/src/app/examples/demo_data/example_oauth_metadata_license.json",
     MOCK_DATA,
 )
 credential_issuer_server = credential_issuer.get_server()

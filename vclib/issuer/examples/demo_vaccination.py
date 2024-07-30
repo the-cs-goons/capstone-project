@@ -99,7 +99,7 @@ credential_issuer = VaccinationIssuer(
     "/usr/src/app/examples/demo_data/example_diddoc.json",
     "/usr/src/app/examples/demo_data/example_didconf.json",
     "/usr/src/app/examples/demo_data/example_metadata_vaccination.json",
-    "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
+    "/usr/src/app/examples/demo_data/example_oauth_metadata_vaccination.json",
     MOCK_DATA,
 )
 credential_issuer_server = credential_issuer.get_server()

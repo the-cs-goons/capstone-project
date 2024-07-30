@@ -1,11 +1,11 @@
 {
-    "credential_issuer": "https://issuer-lib:8082",
-    "credential_endpoint": "https://issuer-lib:8082/credentials",
-    "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
+    "credential_issuer": "https://issuer-lib:8083",
+    "credential_endpoint": "https://issuer-lib:8083/credentials",
+    "deferred_credential_endpoint": "https://issuer-lib:8083/deferred",
     "credential_configurations_supported": {
-        "https://issuer-lib:8082/VaccinationCertificate": {
+        "https://issuer-lib:8083/VaccinationCertificate": {
             "format": "vc+sd-jwt",
-            "vct": "https://issuer-lib:8082/VaccinationCertificate",
+            "vct": "https://issuer-lib:8083/VaccinationCertificate",
             "cryptographic_binding_methods_supported": [
                 "did:peer"
             ],

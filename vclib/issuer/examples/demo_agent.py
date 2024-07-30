@@ -182,11 +182,11 @@ class DefaultIssuer(CredentialIssuer):
         return router
 
 
-credential_issuer = DefaultIssuer(
-    "/usr/src/app/examples/demo_data/example_jwk_private.pem",
-    "/usr/src/app/examples/demo_data/example_diddoc.json",
-    "/usr/src/app/examples/demo_data/example_didconf.json",
-    "/usr/src/app/examples/demo_data/example_metadata.json",
-    "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
-)
-credential_issuer_server = credential_issuer.get_server()
+# credential_issuer = DefaultIssuer(
+#     "/usr/src/app/examples/demo_data/example_jwk_private.pem",
+#     "/usr/src/app/examples/demo_data/example_diddoc.json",
+#     "/usr/src/app/examples/demo_data/example_didconf.json",
+#     "/usr/src/app/examples/demo_data/example_metadata.json",
+#     "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
+# )
+# credential_issuer_server = credential_issuer.get_server()

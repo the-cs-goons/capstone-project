@@ -49,7 +49,7 @@ class DemoVerifier(Verifier):
 
         super().__init__(
             presentation_definitions={"verify_over_18": verify_over_18_pd},
-            base_url=f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}",
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_BAR_DEMO_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 
