@@ -114,14 +114,14 @@ class WebHolder(Holder):
     ### Web-based Authentication / Authorization
     ###
 
-    @staticmethod
-    def authorize(func):
-        @wraps(func)
-        async def _authorize_func(self: 'WebHolder', *args, **kwargs):
-            auth = kwargs.get("authorization")
-            self.check_token(auth)
-            return await func(self, *args, **kwargs)
-        return _authorize_func
+    # @staticmethod
+    # def authorize(func):
+    #     @wraps(func)
+    #     async def _authorize_func(self: 'WebHolder', *args, **kwargs):
+    #         auth = kwargs.get("authorization")
+    #         self.check_token(auth)
+    #         return await func(self, *args, **kwargs)
+    #     return _authorize_func
 
     def _generate_jwt(
             self,
@@ -196,7 +196,6 @@ class WebHolder(Holder):
     ### Interaction with Wallet
     ###
 
-    @authorize
     async def get_credential(
         self,
         cred_id: str,
@@ -218,6 +217,7 @@ class WebHolder(Holder):
         - `Credential | DeferredCredential`: The requested credential,
         if it exists.
         """
+        self.check_token(authorization)
         r = refresh != 0
         try:
             return await super().get_credential(cred_id, refresh=r)
@@ -227,7 +227,6 @@ class WebHolder(Holder):
                 detail=f"Credential with ID {cred_id} not found."
             )
 
-    @authorize
     async def get_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
@@ -235,9 +234,9 @@ class WebHolder(Holder):
         """
         TODO
         """
+        self.check_token(authorization)
         return self.store.all_credentials()
 
-    @authorize
     async def delete_credential(
             self,
             cred_id: str,
@@ -252,6 +251,7 @@ class WebHolder(Holder):
         ### Returns
         - `Credential | DeferredCredential`: The requested credential, if it exists.
         """
+        self.check_token(authorization)
         try:
             self.store.delete_credential(cred_id)
         except Exception:
@@ -259,22 +259,21 @@ class WebHolder(Holder):
                 status_code=404, detail=f"Credential with ID {cred_id} not found."
             )
 
-    @authorize
     async def refresh_credential(
         self,
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
     ) -> Credential | DeferredCredential:
+        self.check_token(authorization)
         return await super().refresh_credential(cred_id)
 
-    @authorize
     async def refresh_all_deferred_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
+        self.check_token(authorization)
         return await super().refresh_all_deferred_credentials()
 
-    @authorize
     async def credential_offer(self,
         credential_offer_uri: str | None = None,
         credential_offer: str | None = None,
@@ -292,9 +291,9 @@ class WebHolder(Holder):
         ### Returns
         `CredentialOffer`: The credential offer.
         """
-        self.get_credential_offer(self, credential_offer_uri, credential_offer)
+        self.check_token(authorization)
+        return await self.get_credential_offer(self, credential_offer_uri, credential_offer)
 
-    @authorize
     async def request_authorization(
         self,
         credential_selection: CredentialSelection,
@@ -303,6 +302,7 @@ class WebHolder(Holder):
         """
         Redirects the user to authorize.
         """
+        self.check_token(authorization)
         redirect_url: str
         print(credential_selection)
         if credential_selection.credential_offer:
@@ -332,7 +332,6 @@ class WebHolder(Holder):
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
 
-    @authorize
     async def get_auth_request(
         self,
         request_uri,
@@ -341,6 +340,7 @@ class WebHolder(Holder):
         request_uri_method,  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        self.check_token(authorization)
         if client_id_scheme != "did":
             raise HTTPException(
                 status_code=400,
@@ -360,7 +360,6 @@ class WebHolder(Holder):
         )
         return self.current_transaction
 
-    @authorize
     async def present_selection(
         self,
         field_selections: FieldSelectionObject,
@@ -370,6 +369,7 @@ class WebHolder(Holder):
         # mark which credential and attribute for disclosure
         # print(self.current_transaction)
         # list[Field]
+        self.check_token(authorization)
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
         ]
