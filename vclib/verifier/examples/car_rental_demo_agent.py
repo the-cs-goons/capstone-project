@@ -16,7 +16,7 @@ class CarRental(Verifier):
         rental_car_eligibility = vp_auth_request.PresentationDefinition(
             id="eligability_to_rent_car_definition",
             name="Car rental eligibility check",
-            purpose="To check if the customer is eligible to rent a car at Cass' Cars", # noqa: E501
+            purpose="To check if the customer is eligible to rent a car at Cass' Cars",
             input_descriptors=[
                 vp_auth_request.InputDescriptor(
                     id="RequestDriversLicense",
@@ -24,60 +24,65 @@ class CarRental(Verifier):
                     constraints=vp_auth_request.Constraints(
                         fields=[
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.type",
-                                         "$.type"],
+                                path=["$.credentialSubject.type", "$.type"],
                                 name="Driver's License",
-                                filter={"type": "string",
-                                           "const": "DriversLicense"}
+                                filter={"type": "string", "const": "DriversLicense"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.license_no",
-                                         "$.license_no"],
+                                path=["$.credentialSubject.license_no", "$.license_no"],
                                 name="License number",
-                                filter={"type": "number"}
+                                filter={"type": "number"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.given_name",
-                                         "$.given_name"],
+                                path=["$.credentialSubject.given_name", "$.given_name"],
                                 name="First name",
-                                filter={"type": "string"}
+                                filter={"type": "string"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.family_name",
-                                         "$.family_name"],
+                                path=[
+                                    "$.credentialSubject.family_name",
+                                    "$.family_name",
+                                ],
                                 name="Family name",
-                                filter={"type": "string"}
+                                filter={"type": "string"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.middle_initial",
-                                         "$.middle_initial"],
+                                path=[
+                                    "$.credentialSubject.middle_initial",
+                                    "$.middle_initial",
+                                ],
                                 name="Middle name",
                                 filter={"type": "string"},
-                                optional=True
+                                optional=True,
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.date_of_birth",
-                                         "$.date_of_birth"],
+                                path=[
+                                    "$.credentialSubject.date_of_birth",
+                                    "$.date_of_birth",
+                                ],
                                 name="DOB",
-                                filter={"type": "number"}
+                                filter={"type": "number"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.address",
-                                         "$.address"],
+                                path=["$.credentialSubject.address", "$.address"],
                                 name="Address",
-                                filter={"type": "string"}
+                                filter={"type": "string"},
                             ),
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.license_type",
-                                         "$.license_type"],
+                                path=[
+                                    "$.credentialSubject.license_type",
+                                    "$.license_type",
+                                ],
                                 name="License type",
-                                filter={"type": "string",
-                                           "enum": ["Car", "car", "C", "c"]}
-                            )
+                                filter={
+                                    "type": "string",
+                                    "enum": ["Car", "car", "C", "c"],
+                                },
+                            ),
                         ]
-                    )
+                    ),
                 )
-            ]
+            ],
         )
         super().__init__(
             presentation_definitions={"rental_eligibility": rental_car_eligibility},

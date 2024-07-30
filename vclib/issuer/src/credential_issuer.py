@@ -582,12 +582,16 @@ class CredentialIssuer:
             raise IssuerError("invalid_request", "Missing required fields")
 
         if response_type != "code":
-            raise IssuerError("unsupported_response_type", "Response type must be 'code'")
+            raise IssuerError(
+                "unsupported_response_type", "Response type must be 'code'"
+            )
 
         self.check_client_id(client_id)
 
         if not self.validate_uri(redirect_uri):
-            raise IssuerError("invalid_uri", "Redirect URIs do not match")  # NOT defined in spec, self added
+            raise IssuerError(
+                "invalid_uri", "Redirect URIs do not match"
+            )  # NOT defined in spec, self added
 
         try:
             AuthorizationRequestDetails.model_validate(
