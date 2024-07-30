@@ -21,12 +21,9 @@ export async function action({ request }: ActionFunctionArgs) {
   let data: AuthorizationRequestObject;
   switch (body.intent) {
     case "choose-cred":
-      resp = await walletBackendClient.get(
-        `/presentation/init?${body.query}`,
-        {
-          headers: authHeaders(await getSessionFromRequest(request)),
-        }
-      );
+      resp = await walletBackendClient.get(`/presentation/init?${body.query}`, {
+        headers: authHeaders(await getSessionFromRequest(request)),
+      });
       data = await resp.data;
       return json(data);
 
