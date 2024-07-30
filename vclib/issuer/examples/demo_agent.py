@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from fastapi import FastAPI
 
-from vclib.common import hello_world
 from vclib.issuer import CredentialIssuer, StatusResponse
 from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
@@ -178,7 +177,6 @@ class DefaultIssuer(CredentialIssuer):
     def get_server(self) -> FastAPI:
         router = super().get_server()
         router.get("/offer")(self.credential_offer)
-        router.get("/hello")(hello_world)
         return router
 
 

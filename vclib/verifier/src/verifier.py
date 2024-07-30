@@ -48,11 +48,26 @@ class Verifier:
         return router
 
     async def get_did_json(self) -> DIDJSONResponse:
+        """
+        Gets verifier's DIDDoc.
+
+        ## Returns
+        - `DIDJSONResponse`: DIDDoc
+        """
         return self.diddoc
 
     async def get_presentation_definition(
         self, ref: str
     ) -> vp_auth_request.PresentationDefinition:
+        """
+        Gets presentation definition.
+
+        ### Parameters
+        - ref(`str`): Credential ID
+
+        ### Returns
+        - `PresentationDefinition`: Presentation definition
+        """
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=404,
@@ -60,13 +75,23 @@ class Verifier:
             )
         return self.presentation_definitions[ref]
 
-    # TODO doc string
     async def fetch_authorization_request(
         self,
         ref: str,
         wallet_metadata: dict | None = None,
         wallet_nonce: str | None = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        """
+        Returns authorization request.
+
+        ### Parameters
+        - ref(`str`): Credential ID
+        - wallet_metadata(`dict | None`): Any wallet metadata
+        - wallet_nonce(`str | None`): A wallet-generated nonce to prevent replay attacks
+
+        ### Returns
+        - `AuthorizationRequestObject`: Authorization request information
+        """
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=400,
@@ -86,10 +111,18 @@ class Verifier:
             wallet_nonce=wallet_nonce,
         )
 
-    # TODO doc string
     async def parse_authorization_response(
         self, auth_response: vp_auth_response.AuthorizationResponseObject
     ):
+        """
+        Recieves authorization response and validates the disclosed fields.
+
+        ### Body
+        - vp_token(`str | list[str]`): Presented credentials
+        - presentation_submission(`PresentationSubmissionObject`): Submission info
+        - state(`str`)
+        """
+
         # get presentation definition
         if (
             auth_response.presentation_submission.definition_id

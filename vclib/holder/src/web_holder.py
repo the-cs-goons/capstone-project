@@ -332,6 +332,9 @@ class WebHolder(Holder):
         request_uri_method,  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        """
+        Get authorization request from a verifier.
+        """
         self.check_token(authorization)
         if client_id_scheme != "did":
             raise HTTPException(
@@ -358,6 +361,9 @@ class WebHolder(Holder):
         field_selections: FieldSelectionObject,
         authorization: Annotated[str | None, Header()] = None,
     ):
+        """
+        Send verifiable presentation to the verifier.
+        """
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         self.check_token(authorization)
