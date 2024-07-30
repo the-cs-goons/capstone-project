@@ -19,7 +19,7 @@ from vclib.holder.src.models.login_register import (
 from vclib.holder.src.storage.abstract_storage_provider import AbstractStorageProvider
 
 from .holder import Holder
-from .models.credential_offer import CredentialSelection
+from .models.credential_offer import CredentialOffer, CredentialSelection
 from .models.credentials import Credential, DeferredCredential
 from .models.field_selection_object import FieldSelectionObject
 
@@ -103,7 +103,7 @@ class WebHolder(Holder):
         router.post("/presentation/")(self.present_selection)
 
         # Issuance (offer) endpoints
-        router.get(self._credential_offer_endpoint)(self.get_credential_offer)
+        router.get(self._credential_offer_endpoint)(self.credential_offer)
         router.post(self._credential_offer_endpoint)(self.request_authorization)
 
         router.get("/add")(self.get_access_token_and_credentials_from_callback)
@@ -273,6 +273,26 @@ class WebHolder(Holder):
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
         return await super().refresh_all_deferred_credentials()
+
+    @authorize
+    async def credential_offer(self,
+        credential_offer_uri: str | None = None,
+        credential_offer: str | None = None,
+        authorization: Annotated[str | None, Header()] = None,
+    ) -> CredentialOffer:
+        """
+        Parses a credential offer.
+
+        ### Parameters
+        - credential_offer_uri(`str | None`): A URL linking to a credential offer
+        object. If provided, `credential_offer` MUST be none.
+        - credential_offer(`str`): A URL-encoded credential offer object. If given,
+        `credential_offer_uri` MUST be none.
+
+        ### Returns
+        `CredentialOffer`: The credential offer.
+        """
+        self.get_credential_offer(self, credential_offer_uri, credential_offer)
 
     @authorize
     async def request_authorization(
