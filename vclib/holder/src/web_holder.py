@@ -357,7 +357,7 @@ class WebHolder(Holder):
         Get authorization request from a verifier.
         """
         self.check_token(authorization)
-        # if client_id_scheme != "did":
+        # if client_id_scheme != "did": # TODO
         #     raise HTTPException(
         #         status_code=400,
         #         detail=f"client_id_scheme {client_id_scheme} not supported",

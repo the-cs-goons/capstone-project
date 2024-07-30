@@ -1,5 +1,7 @@
+from urllib.parse import quote_plus
 from uuid import uuid4
 
+import qrcode
 from fastapi import FastAPI, HTTPException
 from jsonpath_ng.ext import parse as parse_jsonpath
 from jwcrypto.jwk import JWK
@@ -178,8 +180,8 @@ class Verifier:
           dict matching the desired presentation definition
         - image_path(`str`): Where to save the QR code image
         """
-        # img = qrcode.make(f"request_uri={self.base_url}/authorize/presentation_definition_uri={self.base_url}/presentationdefs?ref={presentation_definition_key}")  # noqa: E501
-        # img.save(image_path)
+        img = qrcode.make(f"request_uri={quote_plus(self.base_url)}%2Frequest%2F{presentation_definition_key}")  # noqa: E501
+        img.save(image_path)
 
     def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
         """## !!! This function must be `@override`n !!!

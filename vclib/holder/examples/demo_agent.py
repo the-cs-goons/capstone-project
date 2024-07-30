@@ -112,13 +112,4 @@ cred = Credential(
     received_at="12345",
     c_type="sd_jwt",
 )
-try:
-    identity_owner.store.register("test", "password123")
-except:
-    identity_owner.store.login("test", "password123")
-try:
-    identity_owner.store.add_credential(cred)
-except:
-    pass
-identity_owner.store.logout()
 identity_owner_server = identity_owner.get_server()
