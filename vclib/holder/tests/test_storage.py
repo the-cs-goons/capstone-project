@@ -55,13 +55,16 @@ MOCK_STORE = {
 def storage_provider(tmpdir):
     return LocalStorageProvider(storage_dir_path=tmpdir)
 
+
 @pytest.fixture()
 def cred_1():
     return Credential.model_validate(MOCK_STORE["example1"])
 
+
 @pytest.fixture()
 def cred_2():
     return DeferredCredential.model_validate(MOCK_STORE["example2"])
+
 
 @pytest.fixture()
 def cred_3():
@@ -69,7 +72,6 @@ def cred_3():
 
 
 def test_register_and_login(storage_provider):
-
     with pytest.raises(Exception):
         storage_provider.login("Steve", "hunter2")
 
@@ -91,6 +93,7 @@ def test_register_and_login(storage_provider):
     storage_provider.login("Steve", "hunter2")
     assert storage_provider.get_active_user_name() == "Steve"
 
+
 def test_no_logged_out_access(storage_provider, cred_1):
     storage_provider.register("logout", "logout")
     storage_provider.add_credential(cred_1)
@@ -98,6 +101,7 @@ def test_no_logged_out_access(storage_provider, cred_1):
 
     with pytest.raises(Exception):
         storage_provider.get_credential(cred_1.id)
+
 
 def test_add_credential(storage_provider, cred_1):
     storage_provider.register("add_one", "add_one")
@@ -109,6 +113,7 @@ def test_add_credential(storage_provider, cred_1):
     c = storage_provider.get_credential(cred_1.id)
     assert c.id == cred_1.id
     assert c.received_at == cred_1.received_at
+
 
 def test_add_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("add_many", "add_many")
@@ -124,6 +129,7 @@ def test_add_credentials(storage_provider, cred_1, cred_2, cred_3):
     assert len(storage_provider.get_deferred_credentials()) == 2
     assert len(storage_provider.get_received_credentials()) == 1
 
+
 def test_delete_credential(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("delete", "delete")
     storage_provider.add_many([cred_1, cred_2, cred_3])
@@ -133,6 +139,7 @@ def test_delete_credential(storage_provider, cred_1, cred_2, cred_3):
         storage_provider.get_credential(cred_1.id)
 
     assert len(storage_provider.all_credentials()) == 2
+
 
 def test_delete_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("delete_many", "delete_many")
@@ -147,6 +154,7 @@ def test_delete_credentials(storage_provider, cred_1, cred_2, cred_3):
 
     assert len(storage_provider.all_credentials()) == 0
 
+
 def test_update_credential(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("update", "update")
     storage_provider.add_many([cred_1, cred_2, cred_3])
@@ -158,12 +166,13 @@ def test_update_credential(storage_provider, cred_1, cred_2, cred_3):
     update_2 = Credential(
         **cred_2.model_dump(),
         raw_sdjwtvc="not_real_vc",
-        received_at=datetime.now(tz=UTC).isoformat()
-        )
+        received_at=datetime.now(tz=UTC).isoformat(),
+    )
     storage_provider.update_credential(update_2)
 
     assert len(storage_provider.get_deferred_credentials()) == 1
     assert len(storage_provider.get_received_credentials()) == 2
+
 
 def test_update_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("update_many", "update_many")
@@ -176,19 +185,20 @@ def test_update_credentials(storage_provider, cred_1, cred_2, cred_3):
     update_2 = Credential(
         **cred_2.model_dump(),
         raw_sdjwtvc="not_real_vc",
-        received_at=datetime.now(tz=UTC).isoformat()
-        )
+        received_at=datetime.now(tz=UTC).isoformat(),
+    )
 
     cred_3.is_deferred = False
     update_3 = Credential(
         **cred_3.model_dump(),
         raw_sdjwtvc="not_real_vc_2",
-        received_at=datetime.now(tz=UTC).isoformat()
-        )
+        received_at=datetime.now(tz=UTC).isoformat(),
+    )
     storage_provider.update_many([update_2, update_3])
 
     assert len(storage_provider.get_deferred_credentials()) == 0
     assert len(storage_provider.get_received_credentials()) == 3
+
 
 def test_upsert_credential(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("upsert", "upsert")
@@ -198,14 +208,15 @@ def test_upsert_credential(storage_provider, cred_1, cred_2, cred_3):
     update_2 = Credential(
         **cred_2.model_dump(),
         raw_sdjwtvc="not_real_vc",
-        received_at=datetime.now(tz=UTC).isoformat()
-        )
+        received_at=datetime.now(tz=UTC).isoformat(),
+    )
     storage_provider.upsert_credential(update_2)
     storage_provider.upsert_credential(cred_3)
 
     assert len(storage_provider.get_deferred_credentials()) == 1
     assert len(storage_provider.get_received_credentials()) == 2
     assert len(storage_provider.all_credentials()) == 3
+
 
 def test_upsert_credentials(storage_provider, cred_1, cred_2, cred_3):
     storage_provider.register("upsert_many", "upsert_many")
@@ -215,8 +226,8 @@ def test_upsert_credentials(storage_provider, cred_1, cred_2, cred_3):
     update_2 = Credential(
         **cred_2.model_dump(),
         raw_sdjwtvc="not_real_vc",
-        received_at=datetime.now(tz=UTC).isoformat()
-        )
+        received_at=datetime.now(tz=UTC).isoformat(),
+    )
     storage_provider.upsert_many([update_2, cred_3])
 
     assert len(storage_provider.get_deferred_credentials()) == 1

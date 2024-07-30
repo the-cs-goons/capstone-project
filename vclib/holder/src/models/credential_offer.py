@@ -22,6 +22,7 @@ class CredentialOffer(BaseModel):
     credential_configuration_ids: list[str]
     grants: dict | None = Field(default=None)
 
+
 class CredentialSelection(BaseModel):
     credential_configuration_id: str
     credential_offer: CredentialOffer | None = Field(default=None)

@@ -879,8 +879,8 @@ class CredentialIssuer:
         other = {
             "iss": self.uri,
             "vct": self.uri + "/" + cred_type,
-            "iat": mktime(datetime.now(tz=UTC).timetuple())
-            }
+            "iat": mktime(datetime.now(tz=UTC).timetuple()),
+        }
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwk, None)
 
         return new_credential.sd_jwt_issuance

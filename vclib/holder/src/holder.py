@@ -96,9 +96,7 @@ class Holder:
             encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
-    def _validate_disclosure(
-            self, disclosure: dict[str, Any], filter=None
-            )-> bool:
+    def _validate_disclosure(self, disclosure: dict[str, Any], filter=None) -> bool:
         if filter:
             try:
                 validate(disclosure, filter)
@@ -109,7 +107,7 @@ class Holder:
     def _get_credentials_with_field(
         self,
         paths: list[str],  # list of jsonpath strings
-        filter: dict # a jsonschema
+        filter: dict,  # a jsonschema
     ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
         sdjwts = [
@@ -137,8 +135,8 @@ class Holder:
                     matches = expr.find(disclosure)
                     if matches not in ([], None):
                         disclosure_passes_filter = self._validate_disclosure(
-                            next(iter(disclosure.values())),
-                            filter)
+                            next(iter(disclosure.values())), filter
+                        )
                         if not disclosure_passes_filter:
                             continue
                         disclosure_idx = list(disclosures).index(disclosure)
@@ -608,4 +606,3 @@ class Holder:
             updated.append(cred.id)
 
         return updated
-
