@@ -83,6 +83,7 @@ class LicenseIssuer(DefaultIssuer):
             raise IssuerError("invalid_request", f"DOB {date_of_birth} does not match")
 
         holder_information["license_no"] = license_no
+        holder_information["type"] = "DriversLicense"
 
         self.ticket += 1
         auth_code = str(uuid4())

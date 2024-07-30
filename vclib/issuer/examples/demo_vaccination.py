@@ -72,6 +72,7 @@ class VaccinationIssuer(DefaultIssuer):
             raise IssuerError("invalid_request", f"Code {document_code} is invalid")
 
         holder_information = information | self.data[document_code]
+        holder_information["type"] = "VaccinationCertificate"
 
         self.ticket += 1
         auth_code = str(uuid4())
