@@ -2,7 +2,6 @@ from typing import Any, Literal
 
 from pydantic import BaseModel
 
-
 # class Filter(BaseModel):
 #     """Filters allows providers to further restrict the field they are
 #     asking for to avoid excessively invading the credential-owner's
@@ -34,9 +33,9 @@ from pydantic import BaseModel
 #     # in the range
 #     # can be used on dates
 #     minimum: int | None = None
-#     exclusiveMinimum: bool | None = None  # noqa: N815
+#     exclusiveMinimum: bool | None = None
 #     maximum: int | None = None
-#     exclusiveMaximum: bool | None = None  # noqa: N815
+#     exclusiveMaximum: bool | None = None
 
 
 class Field(BaseModel):

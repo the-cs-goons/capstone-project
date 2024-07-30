@@ -154,11 +154,9 @@ class Holder:
 
                     if matches not in ([], None):
                         disclosure_passes_filter = self._validate_disclosure(
-                            list(disclosure.values())[0],
+                            next(iter(disclosure.values())),
                             filter)
                         if not disclosure_passes_filter:
-                            print(filter)
-                            print(list(disclosure.values())[0], "does not pass")
                             continue
 
                         disclosure_idx = list(disclosures).index(disclosure)
