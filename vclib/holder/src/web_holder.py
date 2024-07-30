@@ -9,7 +9,7 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from jwt import DecodeError, ExpiredSignatureError, decode, encode
 
-from vclib.common import credentials, vp_auth_request, vp_auth_response
+from vclib.common import credentials, oid4vci, vp_auth_request, vp_auth_response
 from vclib.holder.src.models.login_register import (
     LoginRequest,
     RegisterRequest,
@@ -249,7 +249,7 @@ class WebHolder(Holder):
         self,
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
-    ) -> Credential | DeferredCredential:
+    ) -> credentials.Credential | credentials.DeferredCredential:
         self.check_token(authorization)
         return await self.refresh_credential(cred_id)
 
@@ -265,7 +265,7 @@ class WebHolder(Holder):
         credential_offer_uri: str | None = None,
         credential_offer: str | None = None,
         authorization: Annotated[str | None, Header()] = None,
-    ) -> CredentialOffer:
+    ) -> oid4vci.CredentialOfferObject:
         """
         Parses a credential offer.
 
@@ -351,7 +351,7 @@ class WebHolder(Holder):
 
     async def present_selection(
         self,
-        field_selections: FieldSelectionObject,
+        field_selections: vp_auth_request.FieldSelectionObject,
         authorization: Annotated[str | None, Header()] = None,
     ):
         # find which attributes in which credentials fit the presentation definition

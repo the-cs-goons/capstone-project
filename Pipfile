@@ -14,6 +14,7 @@ pytest-httpx = "*"
 requests-oauthlib = "*"
 qrcode = "*"
 argon2-cffi = "*"
+pyzipper = "*"
 
 [dev-packages]
 pytest = "*"

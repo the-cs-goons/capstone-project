@@ -13,8 +13,6 @@ from sd_jwt.common import SDJWTCommon
 from vclib.common import credentials, oauth2, oid4vci
 
 from .models.exceptions import HolderError
-from .models.credential_offer import CredentialOffer
-from .models.oauth import AccessToken, OAuthTokenResponse
 from .storage.abstract_storage_provider import AbstractStorageProvider
 
 
@@ -578,7 +576,7 @@ class Holder:
 
         """
         cred = self.store.get_credential(cred_id)
-        if isinstance(cred, Credential):
+        if isinstance(cred, credentials.Credential):
             return cred
 
         token = cred.access_token.model_dump()

@@ -1,10 +1,9 @@
 from abc import ABCMeta, abstractmethod
 
-from vclib.holder.src.models.credentials import Credential, DeferredCredential
+from vclib.common import credentials
 
 
 class AbstractStorageProvider(metaclass=ABCMeta):
-
     @abstractmethod
     def register(self, *args, **kwargs):
         """
@@ -30,22 +29,15 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def get_credential(
-            self,
-            cred_id: str,
-            *args,
-            **kwargs
-            ) -> Credential | DeferredCredential | None:
+        self, cred_id: str, *args, **kwargs
+    ) -> credentials.Credential | credentials.DeferredCredential | None:
         """
         Retrieves corresponding credential
         """
         raise NotImplementedError
 
     @abstractmethod
-    def get_received_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[Credential]:
+    def get_received_credentials(self, *args, **kwargs) -> list[credentials.Credential]:
         """
         Retrieves all credentials
         """
@@ -53,10 +45,8 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def get_deferred_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[DeferredCredential]:
+        self, *args, **kwargs
+    ) -> list[credentials.DeferredCredential]:
         """
         Retrieves all deferred credentials
         """
@@ -64,17 +54,20 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def all_credentials(
-            self,
-            *args,
-            **kwargs
-            ) -> list[Credential | DeferredCredential]:
+        self, *args, **kwargs
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """
         Retrieves all credentials
         """
         raise NotImplementedError
 
     @abstractmethod
-    def add_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
+    def add_credential(
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *args,
+        **kwargs,
+    ):
         """
         Adds a credential to storage
         """
@@ -82,11 +75,11 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def add_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *args,
+        **kwargs,
+    ):
         """
         Adds many credentials to storage.
         """
@@ -100,37 +93,42 @@ class AbstractStorageProvider(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
-    def delete_many(
-            self,
-            cred_ids: list[str],
-            *args,
-            **kwargs
-            ):
+    def delete_many(self, cred_ids: list[str], *args, **kwargs):
         """
         Deletes many credentials from storage
         """
         [self.delete_credential(c, *args, **kwargs) for c in cred_ids]
 
     @abstractmethod
-    def update_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
+    def update_credential(
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *args,
+        **kwargs,
+    ):
         """
         Updates a credential already in storage.
         """
 
     @abstractmethod
     def update_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *args,
+        **kwargs,
+    ):
         """
         Update many credentials.
         """
         [self.update_credential(c, *args, **kwargs) for c in creds]
 
     @abstractmethod
-    def upsert_credential(self, cred: Credential | DeferredCredential, *args, **kwargs):
+    def upsert_credential(
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *args,
+        **kwargs,
+    ):
         """
         Updates a credential already in storage if it exists, otherwise, adds it.
         """
@@ -138,11 +136,11 @@ class AbstractStorageProvider(metaclass=ABCMeta):
 
     @abstractmethod
     def upsert_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *args,
-            **kwargs
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *args,
+        **kwargs,
+    ):
         """
         Add or update many credentials.
         """

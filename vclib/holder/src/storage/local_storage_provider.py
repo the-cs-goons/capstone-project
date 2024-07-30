@@ -15,7 +15,7 @@ from uuid import uuid4
 from argon2 import PasswordHasher
 from pyzipper import WZ_AES, ZIP_LZMA, AESZipFile
 
-from vclib.holder.src.models.credentials import Credential, DeferredCredential
+from vclib.common import credentials
 
 from .abstract_storage_provider import AbstractStorageProvider
 
@@ -69,18 +69,22 @@ CREATE TABLE deferred_credentials (
 );
 """
 
+
 def dict_factory(cursor: Cursor, row: Row):
     # Ripped straight out of the sqlite3 row factory example, to make model
     # validation easier.
     # https://docs.python.org/3/library/sqlite3.html#sqlite3-howto-row-factory
     fields = [column[0] for column in cursor.description]
-    return {key: value for key, value in zip(fields, row)} # noqa: C416
+    return {key: value for key, value in zip(fields, row)}  # noqa: C416
+
 
 def convert_boolean(b) -> bool:
     return bool(int(b))
 
+
 def convert_json(j) -> dict | list:
     return loads(j)
+
 
 # SQLite uses booleans as an alias for int (0, 1)
 register_adapter(bool, int)
@@ -88,6 +92,7 @@ register_converter("BOOLEAN", convert_boolean)
 
 register_adapter(dict, lambda d: dumps(d))
 register_converter("JSON", convert_json)
+
 
 class LocalStorageProvider(AbstractStorageProvider):
     """
@@ -165,6 +170,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         This is specific to this particular storage implementation, so it's defined
         here.
         """
+
         username: str
         secret: bytes
         store: Path
@@ -177,11 +183,7 @@ class LocalStorageProvider(AbstractStorageProvider):
     # Using argon2 for hashing.
     _pwd_hasher = PasswordHasher()
 
-    def __init__(self,
-                 *args,
-                 storage_dir_path: str | None = None,
-                 **kwargs
-                 ):
+    def __init__(self, *args, storage_dir_path: str | None = None, **kwargs):
         """
         Creates a new local storage provider.
 
@@ -204,7 +206,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             if not self.storage_dir_path.is_dir():
                 raise Exception(
                     f"Invalid file path: {self.storage_dir_path} is not a directory"
-                    )
+                )
             self._check_storage_directory()
         else:
             self._initialise_storage_directory()
@@ -227,9 +229,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         self.config_db_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)
 
         if not self.config_db_path.exists():
-            raise Exception(
-                f"Wallet data missing {self.config_db_path} file."
-            )
+            raise Exception(f"Wallet data missing {self.config_db_path} file.")
 
     def _save_db_to_zip(self):
         # NOTE: AESZipFile is an extension of zipfile.ZipFile, from Python 3.7.
@@ -242,17 +242,16 @@ class LocalStorageProvider(AbstractStorageProvider):
 
         with AESZipFile(
             str(self.active_user.store),
-            mode="a", # Append mode
+            mode="a",  # Append mode
             compression=ZIP_LZMA,
-            encryption=WZ_AES
-            ) as u_zip:
+            encryption=WZ_AES,
+        ) as u_zip:
             u_zip.setpassword(self.active_user.secret)
 
             # Writes the sqlite dump into the AESZipFile Object
             u_zip.writestr(
-                self.LOCAL_U_WALLET_FILENAME,
-                self.active_user.db.serialize()
-                )
+                self.LOCAL_U_WALLET_FILENAME, self.active_user.db.serialize()
+            )
 
     def _check_active_user(self):
         if not self.active_user:
@@ -304,18 +303,15 @@ class LocalStorageProvider(AbstractStorageProvider):
         # works, but it makes error handling on a bad login attempt easier.
         hash = self._pwd_hasher.hash(u_secret)
 
-        new_user = {
-            "username": username,
-            "pwd": hash,
-            "store": store
-            }
+        new_user = {"username": username, "pwd": hash, "store": store}
 
         # Add an entry to config.db
         config.execute(
             """
             INSERT INTO users VALUES (:username, :pwd, :store)
             """,
-            new_user)
+            new_user,
+        )
 
         # Make sure all steps succeed before comitting new user
         try:
@@ -325,8 +321,8 @@ class LocalStorageProvider(AbstractStorageProvider):
             u_con = connect(
                 ":memory:",
                 detect_types=PARSE_DECLTYPES,
-                check_same_thread=False # We BALL
-                )
+                check_same_thread=False,  # We BALL
+            )
             u_con.row_factory = dict_factory
 
             # Create tables
@@ -340,11 +336,10 @@ class LocalStorageProvider(AbstractStorageProvider):
             # Use as context manager to ensure ZIP gets closed.
             with AESZipFile(
                 str(user_store_path),
-                mode="x", # NOT execute, x creates a new file
+                mode="x",  # NOT execute, x creates a new file
                 compression=ZIP_LZMA,
-                encryption=WZ_AES
-                ) as u_zip:
-
+                encryption=WZ_AES,
+            ) as u_zip:
                 u_zip.setpassword(u_secret)
                 u_zip.writestr(self.LOCAL_U_WALLET_FILENAME, u_con.serialize())
         except Exception:
@@ -354,12 +349,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             config.commit()
             config.close()
 
-        self.active_user = self.ActiveUser(
-            username,
-            u_secret,
-            user_store_path,
-            u_con
-            )
+        self.active_user = self.ActiveUser(username, u_secret, user_store_path, u_con)
 
     def login(self, username: str, password: str):
         """
@@ -381,10 +371,12 @@ class LocalStorageProvider(AbstractStorageProvider):
         con = connect(str(self.config_db_path))
         con.row_factory = Row
         res = con.execute(
-        """
+            """
         SELECT username, secret_hash, user_store FROM users
         WHERE username = :username
-        """, {"username": username})
+        """,
+            {"username": username},
+        )
         u = res.fetchone()
         if not u:
             raise Exception("Bad login attempt")
@@ -401,29 +393,26 @@ class LocalStorageProvider(AbstractStorageProvider):
 
         # An in-memory SQLite database that can be regularly serialised
         u_con = connect(
-                ":memory:",
-                detect_types=PARSE_DECLTYPES,
-                check_same_thread=False # We BALL
-                )
+            ":memory:",
+            detect_types=PARSE_DECLTYPES,
+            check_same_thread=False,  # We BALL
+        )
         u_con.row_factory = dict_factory
 
         # Extract db dump from zip, then close
         with AESZipFile(
             str(user_store_path),
-            mode="r", # Read only
+            mode="r",  # Read only
             compression=ZIP_LZMA,
-            encryption=WZ_AES
-            ) as u_zip:
+            encryption=WZ_AES,
+        ) as u_zip:
             u_zip.setpassword(user_secret)
 
             u_con.deserialize(u_zip.read(self.LOCAL_U_WALLET_FILENAME))
 
         self.active_user = self.ActiveUser(
-            username,
-            password.encode(),
-            user_store_path,
-            u_con
-            )
+            username, password.encode(), user_store_path, u_con
+        )
 
     def logout(self):
         """
@@ -439,7 +428,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         del self.active_user
         self.active_user = None
 
-    def get_credential(self, cred_id: str) -> Credential | DeferredCredential:
+    def get_credential(
+        self, cred_id: str
+    ) -> credentials.Credential | credentials.DeferredCredential:
         """
         Retrieves credential of given ID
 
@@ -463,19 +454,19 @@ class LocalStorageProvider(AbstractStorageProvider):
             return self._get_deferred_cred(cred_id)
         return self._get_received_cred(cred_id)
 
-    def _get_received_cred(self, cred_id: str) -> Credential:
+    def _get_received_cred(self, cred_id: str) -> credentials.Credential:
         query = self.CREDENTIAL_QUERY + "WHERE c_info.id = :cred_id"
         cursor = self.get_db_conn().execute(query, {"cred_id": cred_id})
         c = cursor.fetchone()
-        return Credential.model_validate(c)
+        return credentials.Credential.model_validate(c)
 
-    def _get_deferred_cred(self, cred_id: str) -> DeferredCredential:
+    def _get_deferred_cred(self, cred_id: str) -> credentials.DeferredCredential:
         query = self.DEFERRED_QUERY + "WHERE c_info.id = :cred_id"
         cursor = self.get_db_conn().execute(query, {"cred_id": cred_id})
         c = cursor.fetchone()
-        return DeferredCredential.model_validate(c)
+        return credentials.DeferredCredential.model_validate(c)
 
-    def get_received_credentials(self) -> list[Credential]:
+    def get_received_credentials(self) -> list[credentials.Credential]:
         """
         Retrieves all non-deferred credentials
 
@@ -486,9 +477,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         query = self.CREDENTIAL_QUERY
         cursor = self.get_db_conn().execute(query)
         creds = cursor.fetchall()
-        return [Credential.model_validate(c) for c in creds]
+        return [credentials.Credential.model_validate(c) for c in creds]
 
-    def get_deferred_credentials(self) -> list[DeferredCredential]:
+    def get_deferred_credentials(self) -> list[credentials.DeferredCredential]:
         """
         Retrieves all deferred credentials
 
@@ -499,9 +490,11 @@ class LocalStorageProvider(AbstractStorageProvider):
         query = self.DEFERRED_QUERY
         cursor = self.get_db_conn().execute(query)
         creds = cursor.fetchall()
-        return [DeferredCredential.model_validate(c) for c in creds]
+        return [credentials.DeferredCredential.model_validate(c) for c in creds]
 
-    def all_credentials(self) -> list[Credential | DeferredCredential]:
+    def all_credentials(
+        self,
+    ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """
         Retrieves all credentials, deferred or otherwise
 
@@ -513,11 +506,11 @@ class LocalStorageProvider(AbstractStorageProvider):
         return all_creds
 
     def add_credential(
-            self,
-            cred: Credential | DeferredCredential,
-            *,
-            save_after: bool = True
-            ):
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *,
+        save_after: bool = True,
+    ):
         """
         Adds a credential to storage
 
@@ -535,25 +528,25 @@ class LocalStorageProvider(AbstractStorageProvider):
                 VALUES (:id, :issuer_name, :issuer_url, :credential_configuration_id,
                 :credential_configuration_name, :c_type, :is_deferred)
                 """,
-                params
+                params,
             )
-            if isinstance(cred, Credential):
+            if isinstance(cred, credentials.Credential):
                 cursor.execute(
-                """
+                    """
                 INSERT INTO credentials (credential_id, raw_vc, received_at)
                 VALUES (:id, :raw_sdjwtvc, :received_at)
                 """,
-                params
+                    params,
                 )
             else:
                 cursor.execute(
-                """
+                    """
                 INSERT INTO deferred_credentials (credential_id, tx_id,
                 deferred_endpoint, last_request, access_token)
                 VALUES (:id, :transaction_id, :deferred_credential_endpoint,
                 :last_request, :access_token)
                 """,
-                params
+                    params,
                 )
             cursor.close()
         except Exception as e:
@@ -562,12 +555,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         if save_after:
             self.save()
 
-    def delete_credential(
-            self,
-            cred_id: str,
-            *,
-            save_after: bool = True
-            ):
+    def delete_credential(self, cred_id: str, *, save_after: bool = True):
         """
         Deletes a credential from storage
 
@@ -581,19 +569,18 @@ class LocalStorageProvider(AbstractStorageProvider):
         self.get_credential(cred_id)
 
         cursor = self.get_db_conn().execute(
-            "DELETE FROM credential_info WHERE id = :cred_id",
-            {"cred_id": cred_id}
-            )
+            "DELETE FROM credential_info WHERE id = :cred_id", {"cred_id": cred_id}
+        )
         cursor.close()
         if save_after:
             self.save()
 
     def update_credential(
-            self,
-            cred: Credential | DeferredCredential,
-            *,
-            save_after: bool = True
-            ):
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *,
+        save_after: bool = True,
+    ):
         """
         Updates a credential already in storage.
         Handles updating a previously deferred credential, the credential
@@ -628,29 +615,29 @@ class LocalStorageProvider(AbstractStorageProvider):
                     # definitely will, the other two might in a real-world
                     # scenario.
                     cursor.execute(
-                    """
+                        """
                     UPDATE deferred_credentials
                     SET deferred_endpoint = :deferred_credential_endpoint
                         last_request = :last_request,
                         access_token = :access_token
                     WHERE credential_id = :id
                     """,
-                    params
+                        params,
                     )
                 else:
                     # This credential was deferred but has just been received.
                     # Delete the deferred credential records for this credential
                     cursor.execute(
-                    "DELETE FROM deferred_credentials WHERE credential_id = :cred_id",
-                    {"cred_id": cred.id}
+                        "DELETE FROM deferred_credentials WHERE credential_id = :cred_id",
+                        {"cred_id": cred.id},
                     )
                     # Populate the recieved credential table
                     cursor.execute(
-                    """
+                        """
                     INSERT INTO credentials (credential_id, raw_vc, received_at)
                     VALUES (:id, :raw_sdjwtvc, :received_at)
                     """,
-                    params
+                        params,
                     )
             else:
                 # The credential was received previously.
@@ -664,8 +651,8 @@ class LocalStorageProvider(AbstractStorageProvider):
                         received_at = :received_at
                     WHERE credential_id = :id
                     """,
-                    params
-                    )
+                    params,
+                )
 
             # Perform rest of the update.
             cursor.execute(
@@ -679,7 +666,7 @@ class LocalStorageProvider(AbstractStorageProvider):
                     type = :c_type
                 WHERE id = :id
                 """,
-                params
+                params,
             )
         except Exception as e:
             # Roll back if something went awry along the way.
@@ -690,11 +677,11 @@ class LocalStorageProvider(AbstractStorageProvider):
             self.save()
 
     def upsert_credential(
-            self,
-            cred: Credential | DeferredCredential,
-            *,
-            save_after: bool = True
-            ):
+        self,
+        cred: credentials.Credential | credentials.DeferredCredential,
+        *,
+        save_after: bool = True,
+    ):
         """
         Updates OR adds a credential, depending on if it is already in storage
         or not.
@@ -721,11 +708,11 @@ class LocalStorageProvider(AbstractStorageProvider):
     # can be reduced.
 
     def add_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *,
-            save_after: bool = True
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *,
+        save_after: bool = True,
+    ):
         """
         Adds many credentials to storage
 
@@ -741,12 +728,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         if save_after:
             self.save()
 
-    def delete_many(
-            self,
-            cred_ids: list[str],
-            *,
-            save_after: bool = True
-            ):
+    def delete_many(self, cred_ids: list[str], *, save_after: bool = True):
         """
         Deletes selected credentials from storage, by IDs
 
@@ -756,8 +738,8 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         try:
             self.get_db_conn().executemany(
-            "DELETE FROM credential_info WHERE id = ?",
-            tuple([(c_id,) for c_id in cred_ids])
+                "DELETE FROM credential_info WHERE id = ?",
+                tuple([(c_id,) for c_id in cred_ids]),
             )
         except Exception as e:
             self.get_db_conn().rollback()
@@ -767,11 +749,11 @@ class LocalStorageProvider(AbstractStorageProvider):
             self.save()
 
     def update_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *,
-            save_after: bool = True
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *,
+        save_after: bool = True,
+    ):
         """
         Update many credentials.
 
@@ -788,11 +770,11 @@ class LocalStorageProvider(AbstractStorageProvider):
             self.save()
 
     def upsert_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-            *,
-            save_after: bool = True
-            ):
+        self,
+        creds: list[credentials.Credential | credentials.DeferredCredential],
+        *,
+        save_after: bool = True,
+    ):
         """
         Update or add many credentials to storage
 
@@ -819,5 +801,3 @@ class LocalStorageProvider(AbstractStorageProvider):
             self._save_db_to_zip()
         if close_after:
             self.active_user.db.close()
-
-

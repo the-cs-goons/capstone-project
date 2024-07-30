@@ -8,17 +8,8 @@ import pytest
 from fastapi import HTTPException
 from pytest_httpx import HTTPXMock
 
-from vclib.common import vp_auth_request
-from vclib.holder import (
-    AuthorizationMetadata,
-    Credential,
-    CredentialOffer,
-    DeferredCredential,
-    IssuerMetadata,
-)
-from vclib.holder.examples.demo_agent import DemoWebHolder
-from vclib.holder.src.models.credentials import BaseCredential
-from vclib.holder.src.models.field_selection_object import FieldSelectionObject
+from vclib.common import credentials, oauth2, oid4vci, vp_auth_request
+from vclib.holder.demo.demo_agent import DemoWebHolder
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
 
 over_18_mock_auth_response = {
@@ -33,7 +24,7 @@ over_18_mock_auth_response = {
     "state": "ae4adb8b-d1f2-4eb9-baa3-73be30a7aa2a_1721042569",
 }
 
-over_18_mock_field_selection = FieldSelectionObject(
+over_18_mock_field_selection = vp_auth_request.FieldSelectionObject(
     field_requests=[
         {
             "field": {
@@ -109,9 +100,9 @@ MOCK_CREDENTIALS = {
 
 @pytest.fixture(scope="module")
 def example_credentials():
-    delete_1 = Credential.model_validate(MOCK_CREDENTIALS["example1"])
+    delete_1 = credentials.Credential.model_validate(MOCK_CREDENTIALS["example1"])
     delete_1.id = "delete_1"
-    vp_flow_test = Credential(
+    vp_flow_test = credentials.Credential(
         id="vp_flow_test",
         raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJNN01oQkhpVk5JYjBxMGFQS0ZkVnpBIiwgImdpdmVuX25hbWUiLCAiQSJd~WyJ1UGJaQUFHS0VjcGY2UzBHT3FMRFZ3IiwgImZhbWlseV9uYW1lIiwgIkIiXQ~WyJZQU12TWZnVW9OZW5HNm4xREY1bHlBIiwgImJpcnRoZGF0ZSIsIDIwMDBd~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",
         issuer_url="https://example.com",
@@ -121,8 +112,8 @@ def example_credentials():
         c_type="sd_jwt",
     )
     return [
-        Credential.model_validate(MOCK_CREDENTIALS["example1"]),
-        DeferredCredential.model_validate(MOCK_CREDENTIALS["example2"]),
+        credentials.Credential.model_validate(MOCK_CREDENTIALS["example1"]),
+        credentials.DeferredCredential.model_validate(MOCK_CREDENTIALS["example2"]),
         delete_1,
         vp_flow_test,
     ]
@@ -136,7 +127,7 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 @pytest.fixture(scope="module")
 def identity_owner(tmp_path_factory, example_credentials):
-    tmpdir_name = "".join(choice(ascii_letters) for i in range(10))
+    tmpdir_name = "".join(choice(ascii_letters) for _ in range(10))
     id_owner = DemoWebHolder(
         [f"{OWNER_URI}/add"],
         f"{OWNER_URI}/offer",
@@ -144,12 +135,16 @@ def identity_owner(tmp_path_factory, example_credentials):
         mock_uri=OWNER_URI,
     )
 
-    id_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
+    id_owner.issuer_metadata_store[EXAMPLE_ISSUER] = oid4vci.IssuerOpenID4VCIMetadata(
         credential_issuer=EXAMPLE_ISSUER,
-        credential_configurations_supported={"ExampleCredential": {}},
+        credential_configurations_supported={
+            "ExampleCredential": oid4vci.CredentialConfigurationsObject.model_validate(
+                {"format": "vc+sd-jwt"}
+            )
+        },
         credential_endpoint=EXAMPLE_ISSUER + "/get_credential",
     )
-    id_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
+    id_owner.auth_metadata_store[EXAMPLE_ISSUER] = oauth2.IssuerOAuth2ServerMetadata(
         issuer=EXAMPLE_ISSUER,
         authorization_endpoint=EXAMPLE_ISSUER + "/oauth2/authorize",
         registration_endpoint=EXAMPLE_ISSUER + "/oauth2/register",
@@ -157,7 +152,7 @@ def identity_owner(tmp_path_factory, example_credentials):
         response_types_supported=["code"],
         grant_types_supported=["authorization_code"],
         authorization_details_types_supported=["openid_credential"],
-        **{"pre-authorized_grant_anonymous_access_supported": False},
+        pre_authorized_supported=False,
     )
     print(id_owner)
     id_owner.register("test_holder", "test_holder")
@@ -181,7 +176,6 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
     httpx_mock.add_response(
         url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
     )
-    identity_owner: DemoWebHolder
 
     resp = await identity_owner.get_auth_request(
         "https://example.com/request/verify_over_18",
@@ -222,7 +216,6 @@ async def test_get_credential_error(identity_owner, auth_header):
 
 @pytest.mark.asyncio
 async def test_get_credentials(identity_owner, auth_header):
-    identity_owner: DemoWebHolder
     credentials = await identity_owner.get_credentials(authorization=auth_header)
     cred_ids = [c.id for c in credentials]
     assert "example1" in cred_ids
@@ -232,17 +225,16 @@ async def test_get_credentials(identity_owner, auth_header):
 
 @pytest.mark.asyncio
 async def test_authorize_issuer_initiated(identity_owner):
-    identity_owner: DemoWebHolder
-    id = "Passport"
+    cred_id = "Passport"
 
-    select = CredentialOffer.model_validate(
+    select = oid4vci.CredentialOfferObject.model_validate(
         {
             "credential_issuer": "https://example.com",
-            "credential_configuration_ids": [id],
+            "credential_configuration_ids": [cred_id],
         }
     )
 
-    redirect_url = await identity_owner.get_auth_redirect_from_offer(id, select)
+    redirect_url = await identity_owner.get_auth_redirect_from_offer(cred_id, select)
 
     parsed_url = urlparse(redirect_url)
     assert parsed_url.scheme == "https"
@@ -254,16 +246,17 @@ async def test_authorize_issuer_initiated(identity_owner):
     assert query_params["client_id"][0] == "example_client_id"
     assert query_params["redirect_uri"][0] == OWNER_URI + "/add"
     details = loads(query_params["authorization_details"][0])
-    assert details[0]["credential_configuration_id"] == id
+    assert details[0]["credential_configuration_id"] == cred_id
     assert query_params["state"][0] in identity_owner.oauth_clients
 
 
 @pytest.mark.asyncio
 async def test_authorize_wallet_initiated(identity_owner):
-    identity_owner: DemoWebHolder
-    id = "Passport"
+    cred_id = "Passport"
 
-    redirect_url = await identity_owner.get_auth_redirect(id, "https://example.com")
+    redirect_url = await identity_owner.get_auth_redirect(
+        cred_id, "https://example.com"
+    )
 
     parsed_url = urlparse(redirect_url)
     assert parsed_url.scheme == "https"
@@ -275,24 +268,22 @@ async def test_authorize_wallet_initiated(identity_owner):
     assert query_params["client_id"][0] == "example_client_id"
     assert query_params["redirect_uri"][0] == OWNER_URI + "/add"
     details = loads(query_params["authorization_details"][0])
-    assert details[0]["credential_configuration_id"] == id
+    assert details[0]["credential_configuration_id"] == cred_id
     assert query_params["state"][0] in identity_owner.oauth_clients
 
 
 @pytest.mark.asyncio
 async def test_delete_credential_fail(identity_owner, auth_header):
-    identity_owner: DemoWebHolder
     with pytest.raises(Exception):
         await identity_owner.delete_credential("bad_id", authorization=auth_header)
 
 
 @pytest.mark.asyncio
 async def test_async_delete_credentials(identity_owner, auth_header):
-    identity_owner: DemoWebHolder
     cred = await identity_owner.get_credential(
         "delete_1", authorization=auth_header, refresh=0
     )
-    assert isinstance(cred, BaseCredential)
+    assert isinstance(cred, credentials.BaseCredential)
     await identity_owner.delete_credential("delete_1", authorization=auth_header)
 
     with pytest.raises(Exception):
