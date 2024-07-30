@@ -60,14 +60,11 @@ over_18_mock_auth_req = {
                 "constraints": {
                     "fields": [
                         {
-                            "path": [
-                                "$.credentialSubject.is_over_18",
-                                "$.is_over_18"
-                                ],
+                            "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
                             "filter": {"type": "boolean", "const": True},
-                            }
-                        ]
-                    },
+                        }
+                    ]
+                },
                 "name": "Over 18 Verification",
                 "purpose": "To verify that the individual is over 18 years old",
             }

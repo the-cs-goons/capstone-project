@@ -214,7 +214,11 @@ class CredentialIssuer:
 
         cred_id = json.loads(authorization_details)[0]["credential_configuration_id"]
 
-        return self.get_credential_form(cred_id)
+        try:
+            return self.get_credential_form(cred_id)
+        except IssuerError as e:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": e.message}
 
     async def receive_credential_request(
         self,
@@ -299,6 +303,13 @@ class CredentialIssuer:
             return RedirectResponse(
                 url=f"""{redirect_uri}?error=invalid_request&error_description={
                     quote("Form response does not match required fields")
+                }&state={state}""",
+                status_code=status.HTTP_302_FOUND,
+            )
+        except IssuerError as e:
+            return RedirectResponse(
+                url=f"""{redirect_uri}?error={e.message}&error_description={
+                    quote(e.details)
                 }&state={state}""",
                 status_code=status.HTTP_302_FOUND,
             )
