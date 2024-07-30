@@ -16,7 +16,7 @@ from vclib.holder import (
     DeferredCredential,
     IssuerMetadata,
 )
-from vclib.holder.examples.demo_agent import DemoWebIdentityOwner
+from vclib.holder.examples.demo_agent import DemoWebHolder
 from vclib.holder.src.models.credentials import BaseCredential
 from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
@@ -137,7 +137,7 @@ OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 @pytest.fixture(scope="module")
 def identity_owner(tmp_path_factory, example_credentials):
     tmpdir_name = ''.join(choice(ascii_letters) for i in range(10))
-    id_owner = DemoWebIdentityOwner(
+    id_owner = DemoWebHolder(
         [f"{OWNER_URI}/add"],
         f"{OWNER_URI}/offer",
         LocalStorageProvider(storage_dir_path=tmp_path_factory.mktemp(tmpdir_name)),
@@ -161,7 +161,7 @@ def identity_owner(tmp_path_factory, example_credentials):
     )
     print(id_owner)
     id_owner.register("test_holder", "test_holder")
-    id_owner.store_many(example_credentials)
+    id_owner.store.add_many(example_credentials)
 
     return id_owner
 
@@ -181,7 +181,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
     httpx_mock.add_response(
         url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
     )
-    identity_owner: DemoWebIdentityOwner
+    identity_owner: DemoWebHolder
 
     resp = await identity_owner.get_auth_request(
         "https://example.com/request/verify_over_18",
@@ -222,16 +222,16 @@ async def test_get_credential_error(identity_owner, auth_header):
 
 @pytest.mark.asyncio
 async def test_get_credentials(identity_owner, auth_header):
-    identity_owner: DemoWebIdentityOwner
-    credentials = identity_owner.all_credentials()
+    identity_owner: DemoWebHolder
+    credentials = await identity_owner.get_credentials(authorization=auth_header)
     cred_ids = [c.id for c in credentials]
     assert "example1" in cred_ids
     assert "example2" in cred_ids
     assert "vp_flow_test" in cred_ids
 
 @pytest.mark.asyncio
-async def test_authorize_issuer_initiated(identity_owner, auth_header):
-    identity_owner: DemoWebIdentityOwner
+async def test_authorize_issuer_initiated(identity_owner):
+    identity_owner: DemoWebHolder
     id = "Passport"
 
     select = CredentialOffer.model_validate(
@@ -258,7 +258,7 @@ async def test_authorize_issuer_initiated(identity_owner, auth_header):
 
 @pytest.mark.asyncio
 async def test_authorize_wallet_initiated(identity_owner):
-    identity_owner: DemoWebIdentityOwner
+    identity_owner: DemoWebHolder
     id = "Passport"
 
     redirect_url = await identity_owner.get_auth_redirect(id, "https://example.com")
@@ -278,13 +278,16 @@ async def test_authorize_wallet_initiated(identity_owner):
 
 @pytest.mark.asyncio
 async def test_delete_credential_fail(identity_owner, auth_header):
-    identity_owner: DemoWebIdentityOwner
+    identity_owner: DemoWebHolder
     with pytest.raises(Exception):
-        await identity_owner.delete_credential("bad_id", authorization=auth_header)
+        await identity_owner.delete_credential(
+            "bad_id",
+            authorization=auth_header
+            )
 
 @pytest.mark.asyncio
 async def test_async_delete_credentials(identity_owner, auth_header):
-    identity_owner: DemoWebIdentityOwner
+    identity_owner: DemoWebHolder
     cred = await identity_owner.get_credential(
         "delete_1",
         authorization=auth_header,

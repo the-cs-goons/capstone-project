@@ -106,7 +106,7 @@ class Holder:
         """returns list(credential, [encoded disclosure])"""
         sdjwts = [
             credential.raw_sdjwtvc
-            for credential in list(self.get_received_credentials())
+            for credential in self.store.get_received_credentials()
             if "." in credential.raw_sdjwtvc
         ]  # dying because some of the example
         # raw sdjwts aren't sdjwts?
@@ -455,7 +455,7 @@ class Holder:
                     else:
                         raise Exception("Invalid credential response")
 
-        self.store_many(new_credentials)
+        self.store.add_many(new_credentials)
         return new_credentials
 
     async def get_issuer_metadata(
@@ -574,34 +574,10 @@ class Holder:
                     received_at=datetime.now(tz=UTC).isoformat(),
                     raw_sdjwtvc=new,
                 )
-                self.store_credential(new_credential)
+                self.store.update_credential(new_credential)
                 return new_credential
 
             raise Exception("Invalid credential response")
-
-    def delete_credential(self, cred_id: str):
-        self.store.delete_credential(cred_id)
-
-    def get_received_credentials(self) -> list[Credential]:
-        return self.store.get_received_credentials()
-
-    def get_deferred_credentials(self) -> list[DeferredCredential]:
-        return self.store.get_deferred_credentials()
-
-    def all_credentials(self) -> list[Credential | DeferredCredential]:
-        return self.store.all_credentials()
-
-    def store_credential(
-            self,
-            cred: Credential | DeferredCredential,
-            ):
-        self.store.upsert_credential(cred)
-
-    def store_many(
-            self,
-            creds: list[Credential | DeferredCredential],
-        ):
-        self.store.upsert_many(creds)
 
     async def refresh_all_deferred_credentials(self) -> list[str]:
         """
@@ -614,7 +590,7 @@ class Holder:
         `last_request` attribute will be updated.
         """
         updated = []
-        for cred in self.get_deferred_credentials():
+        for cred in self.store.get_deferred_credentials():
             await self.refresh_credential(cred.id)
             updated.append(cred.id)
 

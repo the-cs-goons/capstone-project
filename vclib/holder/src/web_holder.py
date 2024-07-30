@@ -8,7 +8,7 @@ from uuid import uuid4
 import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
-from jwt import decode, encode
+from jwt import DecodeError, ExpiredSignatureError, decode, encode
 
 from vclib.common import vp_auth_request, vp_auth_response
 from vclib.holder.src.models.login_register import (
@@ -24,7 +24,7 @@ from .models.credentials import Credential, DeferredCredential
 from .models.field_selection_object import FieldSelectionObject
 
 
-class WebIdentityOwner(Holder):
+class WebHolder(Holder):
     """
     IdentityOwner that implements a HTTPS API interface.
     """
@@ -118,10 +118,10 @@ class WebIdentityOwner(Holder):
     @staticmethod
     def authorize(func):
         @wraps(func)
-        def _authorize_func(self: 'WebIdentityOwner', *args, **kwargs):
+        async def _authorize_func(self: 'WebHolder', *args, **kwargs):
             auth = kwargs.get("authorization")
             self.check_token(auth)
-            return func(self, *args, **kwargs)
+            return await func(self, *args, **kwargs)
         return _authorize_func
 
     def _generate_jwt(
@@ -147,14 +147,20 @@ class WebIdentityOwner(Holder):
         TODO: Document overwriting
         """
         if not authorization:
-            raise HTTPException(status_code=403, detail="Unauthorized")
+            raise HTTPException(status_code=403, detail="Unauthorized. Please log in.")
         (token_type, token) = authorization.split(' ')
         if token_type.lower() != "bearer":
-            raise HTTPException(status_code=400, detail="Malformed token")
+            raise HTTPException(status_code=400, detail=f"Invalid token type {token_type}") # noqa: E501
+
+        prompt = ". Please log in again."
         try:
             return decode(token, self.SECRET, self.SESSION_TOKEN_ALG)
+        except DecodeError:
+            raise HTTPException(status_code=400, detail="Invalid session token" + prompt) # noqa: E501
+        except ExpiredSignatureError:
+            raise HTTPException(status_code=400, detail="Session expired" + prompt)
         except Exception:
-            raise HTTPException(status_code=400, detail="Malformed token")
+            raise HTTPException(status_code=400, detail="Invalid token" + prompt)
 
     def user_login(self, login: LoginRequest) -> UserAuthenticationResponse:
         try:
@@ -222,20 +228,20 @@ class WebIdentityOwner(Holder):
             )
 
     @authorize
-    def get_credentials(
+    async def get_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
         ) -> list[Credential | DeferredCredential]:
         """
         TODO
         """
-        return self.all_credentials()
+        return self.store.all_credentials()
 
     @authorize
     async def delete_credential(
             self,
             cred_id: str,
-            authorization: Annotated[str | None, Header] = None,
+            authorization: Annotated[str | None, Header()] = None,
             ) -> str:
         """
         Delete a credential by ID, if one exists
@@ -247,7 +253,7 @@ class WebIdentityOwner(Holder):
         - `Credential | DeferredCredential`: The requested credential, if it exists.
         """
         try:
-            super().delete_credential(cred_id)
+            self.store.delete_credential(cred_id)
         except Exception:
             raise HTTPException(
                 status_code=404, detail=f"Credential with ID {cred_id} not found."
@@ -257,14 +263,14 @@ class WebIdentityOwner(Holder):
     async def refresh_credential(
         self,
         cred_id: str,
-        authorization: Annotated[str | None, Header] = None,
+        authorization: Annotated[str | None, Header()] = None,
     ) -> Credential | DeferredCredential:
         return await super().refresh_credential(cred_id)
 
     @authorize
     async def refresh_all_deferred_credentials(
         self,
-        authorization: Annotated[str | None, Header] = None,
+        authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
         return await super().refresh_all_deferred_credentials()
 
@@ -272,12 +278,13 @@ class WebIdentityOwner(Holder):
     async def request_authorization(
         self,
         credential_selection: CredentialSelection,
-        authorization: Annotated[str | None, Header] = None,
+        authorization: Annotated[str | None, Header()] = None,
     ):  # -> RedirectResponse:
         """
         Redirects the user to authorize.
         """
         redirect_url: str
+        print(credential_selection)
         if credential_selection.credential_offer:
             if credential_selection.issuer_uri:
                 raise HTTPException(
@@ -299,7 +306,6 @@ class WebIdentityOwner(Holder):
                 status_code=400,
                 detail="Please provide either issuer_uri or credential_offer.",
             )
-        # return RedirectResponse(redirect_url, status_code=302)
 
         # TODO: Remove this, very temporary fix
         return RedirectResponse(
@@ -313,7 +319,7 @@ class WebIdentityOwner(Holder):
         client_id,  # TODO
         client_id_scheme,
         request_uri_method,  # TODO
-        authorization: Annotated[str | None, Header] = None,
+        authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
         if client_id_scheme != "did":
             raise HTTPException(
@@ -338,7 +344,7 @@ class WebIdentityOwner(Holder):
     async def present_selection(
         self,
         field_selections: FieldSelectionObject,
-        authorization: Annotated[str | None, Header] = None,
+        authorization: Annotated[str | None, Header()] = None,
     ):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure

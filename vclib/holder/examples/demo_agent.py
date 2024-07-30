@@ -6,7 +6,7 @@ from vclib.holder import (
     Credential,
     IssuerMetadata,
     RegisteredClientMetadata,
-    WebIdentityOwner,
+    WebHolder,
 )
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
 
@@ -46,7 +46,7 @@ OWNER_PORT = environ.get("CS3900_HOLDER_AGENT_PORT", "8081")
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
 
-class DemoWebIdentityOwner(WebIdentityOwner):
+class DemoWebHolder(WebHolder):
     def __init__(
         self,
         redirect_uris,
@@ -86,7 +86,7 @@ class DemoWebIdentityOwner(WebIdentityOwner):
 WALLET_PATH = environ.get("CS3900_HOLDER_WALLET_PATH", None)
 storage_provider = LocalStorageProvider(storage_dir_path=WALLET_PATH)
 
-identity_owner = DemoWebIdentityOwner(
+identity_owner = DemoWebHolder(
     [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", storage_provider
 )
 identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(

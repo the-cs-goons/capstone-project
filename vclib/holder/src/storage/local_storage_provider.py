@@ -502,13 +502,14 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         all_creds = self.get_received_credentials()
         all_creds.extend(self.get_deferred_credentials())
+        print(all_creds)
         return all_creds
 
     def add_credential(
             self,
             cred: Credential | DeferredCredential,
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Adds a credential to storage
@@ -558,7 +559,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             cred_id: str,
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Deletes a credential from storage
@@ -585,7 +586,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             cred: Credential | DeferredCredential,
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Updates a credential already in storage.
@@ -686,7 +687,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             cred: Credential | DeferredCredential,
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Updates OR adds a credential, depending on if it is already in storage
@@ -709,7 +710,7 @@ class LocalStorageProvider(AbstractStorageProvider):
         else:
             self.update_credential(cred, save_after=save_after)
 
-    # Most of these 'many' methods could be optomised if we have time.
+    # Most of these 'many' methods could be optimised if we have time.
     # They're being provided like this so that file I/O operations
     # can be reduced.
 
@@ -717,7 +718,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             creds: list[Credential | DeferredCredential],
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Adds many credentials to storage
@@ -738,7 +739,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             cred_ids: list[str],
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Deletes selected credentials from storage, by IDs
@@ -763,7 +764,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             creds: list[Credential | DeferredCredential],
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Update many credentials.
@@ -784,7 +785,7 @@ class LocalStorageProvider(AbstractStorageProvider):
             self,
             creds: list[Credential | DeferredCredential],
             *,
-            save_after=True
+            save_after: bool = True
             ):
         """
         Update or add many credentials to storage
