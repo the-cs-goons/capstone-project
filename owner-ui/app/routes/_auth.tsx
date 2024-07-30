@@ -11,8 +11,40 @@ import {
   type SlideProps,
   useScrollTrigger,
 } from "@mui/material";
-import { Link, Outlet, useMatches } from "@remix-run/react";
+import { LoaderFunctionArgs } from "@remix-run/node";
+import { Link, Outlet, redirect, useMatches } from "@remix-run/react";
 import { useState } from "react";
+import { authHeaders, destroySession, getSessionFromRequest, walletBackendClient } from "~/utils";
+
+export async function loader({ request }: LoaderFunctionArgs) {
+  // Check the user's session token and redirect them as needed.
+  const session = await getSessionFromRequest(request);
+
+  if (!session.get("token")) {
+    await walletBackendClient.get("/logout");
+    return redirect("/login", {
+      headers: {
+        "Set-Cookie": await destroySession(session),
+      },
+    });
+  }
+  try {
+    await walletBackendClient.get("/session",
+      {
+        headers: authHeaders(session)
+      }
+    );
+    return null;
+  } catch {
+    await walletBackendClient.get("/logout");
+    return redirect("/login", {
+      headers: {
+        "Set-Cookie": await destroySession(session),
+      },
+    });
+  }
+  
+}
 
 function HideOnScroll({ children }: Readonly<SlideProps>) {
   const trigger = useScrollTrigger();
@@ -24,7 +56,9 @@ function HideOnScroll({ children }: Readonly<SlideProps>) {
   );
 }
 
+
 export default function Auth() {
+
   const matches = useMatches();
   // TODO: make this work in individual credential screens
   const [value, setValue] = useState(

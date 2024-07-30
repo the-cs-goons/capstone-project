@@ -2,18 +2,20 @@ import { Button, Stack, TextField, Typography } from "@mui/material";
 import { ActionFunctionArgs } from "@remix-run/node";
 import {
   Form,
-  json,
   redirect,
   useActionData,
-  useLoaderData,
 } from "@remix-run/react";
 import { useState } from "react";
 import { commitSession, getSession, walletBackendClient } from "~/utils";
 import { AxiosError, isAxiosError } from "axios";
 
-interface Login {
+interface SuccessfulLoginAttempt {
   access_token: string;
   username: string;
+}
+
+interface FailedLoginAttempt {
+    detail: string;
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -24,11 +26,11 @@ export async function action({ request }: ActionFunctionArgs) {
       "/login",
       Object.fromEntries(body),
     );
-    const user = (await resp.data) as Login;
+    const user = (await resp.data) as SuccessfulLoginAttempt;
     const session = await getSession(request.headers.get("Cookie"));
     session.set("token", user.access_token);
-    return json(
-      { username: user.username },
+    return redirect(
+      "/credentials",
       {
         headers: {
           "Set-Cookie": await commitSession(session),
@@ -38,7 +40,7 @@ export async function action({ request }: ActionFunctionArgs) {
   } catch (error) {
     if (isAxiosError(error)) {
       const e = error as AxiosError;
-      const data = e.response?.data as { detail: string };
+      const data = e.response?.data as FailedLoginAttempt;
       return data.detail;
     }
     return `Error: ${error}`;
@@ -49,10 +51,7 @@ export default function LoginForm() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const errors = useActionData<typeof action>();
-  const login_user = useLoaderData();
-  if (login_user) {
-    return redirect("/credentials");
-  }
+
   return (
     <Stack spacing={2}>
       <Form method="POST" action="/login">

@@ -1,15 +1,33 @@
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { isRouteErrorResponse } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/react";
-import { getSession } from "~/utils";
+import { getSessionFromRequest, destroySession, walletBackendClient, authHeaders } from "~/utils";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  // Check if the user has a session token, and redirect them accordingly.
-  const session = await getSession(request.headers.get("Cookie"));
+  // Check the user's session token and redirect them as needed.
+  const session = await getSessionFromRequest(request);
   if (session.get("token")) {
-    return redirect("/credentials");
+    try {
+      await walletBackendClient.get("/session",
+        {
+          headers: authHeaders(session)
+        }
+      );
+    } catch {
+      await walletBackendClient.get("/logout");
+        return redirect("/login", {
+          headers: {
+            "Set-Cookie": await destroySession(session),
+          },
+        });
+    }
   }
-  return redirect("/login");
+  await walletBackendClient.get("/logout");
+  return redirect("/login", {
+    headers: {
+      "Set-Cookie": await destroySession(session),
+    },
+  });
 }
 
 export const meta: MetaFunction = ({ error }) => {

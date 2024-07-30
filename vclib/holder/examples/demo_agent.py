@@ -55,7 +55,6 @@ class DemoWebHolder(WebHolder):
         *,
         mock_uri=OWNER_URI,
         oauth_client_options={},
-        dev_mode=False,
     ):
         self.mock_uri = mock_uri
         super().__init__(
@@ -63,7 +62,6 @@ class DemoWebHolder(WebHolder):
             cred_offer_endpoint,
             storage_provider,
             oauth_client_options=oauth_client_options,
-            dev_mode=dev_mode,
         )
 
     @override

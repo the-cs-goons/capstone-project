@@ -25,14 +25,14 @@ import type { BaseCredential } from "~/interfaces/Credential/BaseCredential";
 import { decodeSdJwt, getClaims } from "@sd-jwt/decode";
 import { digest } from "@sd-jwt/crypto-nodejs";
 import { ReactNode } from "react";
-import { authHeaderFromRequest, walletBackendClient } from "~/utils";
+import { authHeaders, getSessionFromRequest, walletBackendClient } from "~/utils";
 import { AxiosResponse } from "axios";
 
 // TODO: fix typing in this component
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const resp = await walletBackendClient.get(`/credentials/${params.cred_id}`, {
-    headers: await authHeaderFromRequest(request),
+    headers: authHeaders(await getSessionFromRequest(request))
   });
   const r = resp as AxiosResponse;
   const credential: BaseCredential = await r.data;

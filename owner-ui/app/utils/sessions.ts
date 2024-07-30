@@ -1,4 +1,4 @@
-import { createCookieSessionStorage } from "@remix-run/node";
+import { createCookieSessionStorage, Session } from "@remix-run/node";
 
 type SessionData = {
   token: string;
@@ -15,13 +15,17 @@ const { getSession, commitSession, destroySession } =
       name: "_session",
       httpOnly: true,
       secure: true,
+      maxAge: 3600, // Effectively a timeout on the user.
     },
   });
 
-const authHeaderFromRequest = async (request: Request) => {
-  const session = await getSession(request.headers.get("Cookie"));
+const getSessionFromRequest = async (request: Request) => {
+  return await getSession(request.headers.get("Cookie"));
+};
+
+const authHeaders = (session: Session<SessionData, SessionFlashData>) => {
   const token = session.get("token");
   return { Authorization: `Bearer ${token}` };
 };
 
-export { getSession, commitSession, destroySession, authHeaderFromRequest };
+export { getSession, getSessionFromRequest, commitSession, destroySession, authHeaders };

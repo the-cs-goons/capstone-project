@@ -362,8 +362,8 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     def login(self, username: str, password: str):
         """
-        Performs the necessary operations associated with 'logging in' to a
-        wallet as a user for this storage implementation:
+        Performs the necessary operations associated with 'logging in' to a wallet as a
+        user for this storage implementation:
         - Checks the argon2 hash of the given password in config.db
         - If verified, attempts to use the given password to decrypt from
         storage.
@@ -372,7 +372,8 @@ class LocalStorageProvider(AbstractStorageProvider):
         - username(`str`): The username being logged into
         - password(`str`): The password used to try log in
         """
-        # Logout the current user if there is one.
+        # This provider uses a singleton pattern, so log out the current user if there
+        # is one.
         if self.active_user:
             self.logout()
 
@@ -427,9 +428,9 @@ class LocalStorageProvider(AbstractStorageProvider):
         - Closes & destroys the in-memory database
         - Clears the active user
         """
-        self.save(close_after=True)
         if not self.active_user:
             return
+        self.save(close_after=True)
         del self.active_user
         self.active_user = None
 
