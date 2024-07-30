@@ -41,8 +41,6 @@ class Holder:
         self,
         oauth_client_metadata: dict[str, Any],
         storage_provider: AbstractStorageProvider,
-        *,
-        dev_mode=False,
     ):
         """
         Create a new Identity Owner
@@ -61,8 +59,6 @@ class Holder:
         self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
         self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
         self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
-        # Currently unused
-        self.dev_mode = dev_mode
 
         self.store = storage_provider
 
@@ -595,5 +591,4 @@ class Holder:
             updated.append(cred.id)
 
         return updated
-
 

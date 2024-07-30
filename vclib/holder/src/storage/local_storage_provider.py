@@ -428,6 +428,8 @@ class LocalStorageProvider(AbstractStorageProvider):
         - Clears the active user
         """
         self.save(close_after=True)
+        if not self.active_user:
+            return
         del self.active_user
         self.active_user = None
 

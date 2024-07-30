@@ -1,18 +1,15 @@
 import { LoaderFunctionArgs, redirect } from "@remix-run/node";
 import { isRouteErrorResponse } from "@remix-run/react";
 import type { MetaFunction } from "@remix-run/react";
-import { authHeaderFromRequest } from "~/utils";
+import { getSession } from "~/utils";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  try {
-    await fetch(
-      `https://owner-lib:${process.env.CS3900_OWNER_AGENT_PORT}/session`,
-      { headers: await authHeaderFromRequest(request) },
-    );
+  // Check if the user has a session token, and redirect them accordingly.
+  const session = await getSession(request.headers.get("Cookie"));
+  if (session.get("token")) {
     return redirect("/credentials");
-  } catch {
-    return redirect("/login");
   }
+  return redirect("/login");
 }
 
 export const meta: MetaFunction = ({ error }) => {

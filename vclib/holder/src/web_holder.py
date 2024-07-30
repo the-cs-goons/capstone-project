@@ -40,7 +40,6 @@ class WebHolder(Holder):
             storage_provider: AbstractStorageProvider,
             *,
             oauth_client_options: dict[str, Any] = {},
-            dev_mode: bool = False,
             ):
         """
         Create a new Identity Owner
@@ -76,7 +75,7 @@ class WebHolder(Holder):
         oauth_client_info = oauth_client_options
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
-        super().__init__(oauth_client_info, storage_provider, dev_mode=dev_mode)
+        super().__init__(oauth_client_info, storage_provider)
         self.current_transaction: \
             vp_auth_request.AuthorizationRequestObject | None = None
 
@@ -158,6 +157,7 @@ class WebHolder(Holder):
         except DecodeError:
             raise HTTPException(status_code=400, detail="Invalid session token" + prompt) # noqa: E501
         except ExpiredSignatureError:
+            self.logout()
             raise HTTPException(status_code=400, detail="Session expired" + prompt)
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid token" + prompt)
