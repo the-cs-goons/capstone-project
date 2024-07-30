@@ -51,9 +51,8 @@ class Verifier:
         return self.diddoc
 
     async def get_presentation_definition(
-            self,
-            ref: str
-            ) -> vp_auth_request.PresentationDefinition:
+        self, ref: str
+    ) -> vp_auth_request.PresentationDefinition:
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=404,
@@ -68,7 +67,6 @@ class Verifier:
         wallet_metadata: dict | None = None,
         wallet_nonce: str | None = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
-
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=400,
@@ -167,7 +165,7 @@ class Verifier:
     def validate_disclosed_fields(
         self,
         presentation_definition: vp_auth_request.PresentationDefinition,
-        disclosed_fields: dict
+        disclosed_fields: dict,
     ) -> bool:
         """## !!! This function must be `@override`n !!!
 
