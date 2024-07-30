@@ -40,7 +40,7 @@
                 },
                 "date_of_birth": {
                     "mandatory": true,
-                    "value_type": "number"
+                    "value_type": "string"
                 },
                 "address": {
                     "mandatory": true,

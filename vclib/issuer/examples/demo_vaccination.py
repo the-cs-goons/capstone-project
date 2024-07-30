@@ -19,7 +19,7 @@ FORM = {
     "given_name": {"mandatory": True, "value_type": "string"},
     "middle_initial": {"mandatory": False, "value_type": "string"},
     "family_name": {"mandatory": True, "value_type": "string"},
-    "date_of_birth": {"mandatory": True, "value_type": "number"},
+    "date_of_birth": {"mandatory": True, "value_type": "string"},
 }
 
 

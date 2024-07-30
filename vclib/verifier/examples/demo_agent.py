@@ -24,9 +24,8 @@ class DemoVerifier(Verifier):
                     constraints=vp_auth_request.Constraints(
                         fields=[
                             vp_auth_request.Field(
-                                path=["$.credentialSubject.is_over_18",
-                                      "$.is_over_18"],
-                                filter={"type": "boolean", "const": True}
+                                path=["$.credentialSubject.is_over_18", "$.is_over_18"],
+                                filter={"type": "boolean", "const": True},
                             )
                         ]
                     ),
@@ -60,6 +59,7 @@ class DemoVerifier(Verifier):
             f"{os.path.dirname(os.path.abspath(__file__))}/example_issuer_jwk.json"
         ) as f:
             return JWK.from_json(f.read())  # the only JWK we accept
+
 
 verifier = DemoVerifier()
 

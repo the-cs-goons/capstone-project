@@ -75,12 +75,12 @@ class WebHolder(Holder):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, storage_provider)
-        self.current_transaction: \
-            vp_auth_request.AuthorizationRequestObject | None = None
+        self.current_transaction: vp_auth_request.AuthorizationRequestObject | None = (
+            None
+        )
 
         self.SECRET = token_bytes(32)
         self.SESSION_TOKEN_ALG = "HS256"
-
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -114,10 +114,8 @@ class WebHolder(Holder):
     ###
 
     def _generate_jwt(
-            self,
-            payload: dict[str, Any],
-            headers: dict[str, Any] | None = None
-            ):
+        self, payload: dict[str, Any], headers: dict[str, Any] | None = None
+    ):
         # Default token generation scheme
         payload["exp"] = datetime.now(tz=UTC) + timedelta(seconds=self.TOKEN_EXP_SECS)
         return encode(payload, self.SECRET, algorithm="HS256", headers=headers)
@@ -128,7 +126,7 @@ class WebHolder(Holder):
         """
         return UserAuthenticationResponse(
             username=verified_auth.username,
-            access_token=self._generate_jwt({"user": verified_auth.username})
+            access_token=self._generate_jwt({"user": verified_auth.username}),
         )
 
     def check_token(self, authorization: Annotated[str | None, Header()] = None):
@@ -137,15 +135,19 @@ class WebHolder(Holder):
         """
         if not authorization:
             raise HTTPException(status_code=403, detail="Unauthorized. Please log in.")
-        (token_type, token) = authorization.split(' ')
+        (token_type, token) = authorization.split(" ")
         if token_type.lower() != "bearer":
-            raise HTTPException(status_code=400, detail=f"Invalid token type {token_type}") # noqa: E501
+            raise HTTPException(
+                status_code=400, detail=f"Invalid token type {token_type}"
+            )
 
         prompt = ". Please log in again."
         try:
             return decode(token, self.SECRET, self.SESSION_TOKEN_ALG)
         except DecodeError:
-            raise HTTPException(status_code=400, detail="Invalid session token" + prompt) # noqa: E501
+            raise HTTPException(
+                status_code=400, detail="Invalid session token" + prompt
+            )
         except ExpiredSignatureError:
             self.logout()
             raise HTTPException(status_code=400, detail="Session expired" + prompt)
@@ -167,15 +169,14 @@ class WebHolder(Holder):
         if len(reg.password) < self.MIN_PASSWORD_LENGTH:
             raise HTTPException(
                 status_code=400,
-                detail=f"Password must be at least {self.MIN_PASSWORD_LENGTH} characters long" # noqa: E501
-                )
+                detail=f"Password must be at least {self.MIN_PASSWORD_LENGTH} characters long",  # noqa: E501
+            )
         try:
             self.register(reg.username, reg.password)
         except Exception:
             raise HTTPException(
-                status_code=400,
-                detail=f"Could not register as {reg.username}."
-                )
+                status_code=400, detail=f"Could not register as {reg.username}."
+            )
 
         return self.generate_token(reg)
 
@@ -219,7 +220,7 @@ class WebHolder(Holder):
     async def get_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
-        ) -> list[Credential | DeferredCredential]:
+    ) -> list[Credential | DeferredCredential]:
         """
         TODO
         """
@@ -227,10 +228,10 @@ class WebHolder(Holder):
         return self.store.all_credentials()
 
     async def delete_credential(
-            self,
-            cred_id: str,
-            authorization: Annotated[str | None, Header()] = None,
-            ) -> str:
+        self,
+        cred_id: str,
+        authorization: Annotated[str | None, Header()] = None,
+    ) -> str:
         """
         Delete a credential by ID, if one exists
 
@@ -263,7 +264,8 @@ class WebHolder(Holder):
         self.check_token(authorization)
         return await self.refresh_all_deferred_credentials()
 
-    async def credential_offer(self,
+    async def credential_offer(
+        self,
         credential_offer_uri: str | None = None,
         credential_offer: str | None = None,
         authorization: Annotated[str | None, Header()] = None,
@@ -282,10 +284,8 @@ class WebHolder(Holder):
         """
         self.check_token(authorization)
         return await self.get_credential_offer(
-            self,
-            credential_offer_uri,
-            credential_offer
-            )
+            self, credential_offer_uri, credential_offer
+        )
 
     async def request_authorization(
         self,
@@ -381,9 +381,7 @@ class WebHolder(Holder):
                 paths = field.path
                 filter = field.filter
                 # find all credentials with said field
-                new_valid_creds = self._get_credentials_with_field(
-                    paths,
-                    filter)
+                new_valid_creds = self._get_credentials_with_field(paths, filter)
 
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds

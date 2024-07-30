@@ -11,7 +11,7 @@ MOCK_DATA = {
     123: {
         "given_name": "Holden",
         "family_name": "Walletson",
-        "date_of_birth": 19990101,
+        "date_of_birth": "1999-01-01",
         "address": "123 A Street, A Suburb",
         "license_type": "C",
         "is_over_18": True,
@@ -20,7 +20,7 @@ MOCK_DATA = {
 
 FORM = {
     "license_no": {"mandatory": True, "value_type": "number"},
-    "date_of_birth": {"mandatory": True, "value_type": "number"},
+    "date_of_birth": {"mandatory": True, "value_type": "string"},
 }
 
 
