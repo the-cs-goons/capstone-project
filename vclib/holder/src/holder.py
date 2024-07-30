@@ -7,6 +7,7 @@ from urllib.parse import urlencode
 
 import jsonpath_ng
 import jwt
+from jsonschema import validate
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
@@ -42,11 +43,11 @@ class Holder:
     """
 
     def __init__(
-        self,
-        oauth_client_metadata: dict[str, Any],
-        *,
-        dev_mode=False,
-    ):
+            self,
+            oauth_client_metadata: dict[str, Any],
+            *,
+            dev_mode=False,
+            ):
         """Create a new Identity Owner
 
         ### Parameters
@@ -111,10 +112,21 @@ class Holder:
             encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
+    def _validate_disclosure(
+            self, disclosure: dict[str, Any], filter=None
+            )-> bool:
+        if filter:
+            try:
+                validate(disclosure, filter)
+            except Exception:
+                return False
+        return True
+
     def _get_credentials_with_field(
-        self,
-        paths: list[str],  # list of jsonpath strings
-    ) -> dict[str, list[str]]:
+            self,
+            paths: list[str],  # list of jsonpath strings
+            filter: dict
+            ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
         sdjwts = [
             credential.raw_sdjwtvc
@@ -139,7 +151,16 @@ class Holder:
                 disclosures = encoded_to_decoded_disclosures.values()
                 for disclosure in disclosures:
                     matches = expr.find(disclosure)
+
                     if matches not in ([], None):
+                        disclosure_passes_filter = self._validate_disclosure(
+                            list(disclosure.values())[0],
+                            filter)
+                        if not disclosure_passes_filter:
+                            print(filter)
+                            print(list(disclosure.values())[0], "does not pass")
+                            continue
+
                         disclosure_idx = list(disclosures).index(disclosure)
                         encoded_disclosures = encoded_to_decoded_disclosures.keys()
                         encoded_disclosure = list(encoded_disclosures)[disclosure_idx]
@@ -167,8 +188,8 @@ class Holder:
         return b64encode(cred.model_dump_json().encode())
 
     def load_from_serial(
-        self, dump: str | bytes | bytearray
-    ) -> Credential | DeferredCredential:
+            self, dump: str | bytes | bytearray
+        ) -> Credential | DeferredCredential:
         """# NOT YET IMPLEMENTED IN FULL
         TODO: Implement decryption in accordance with implementation in
         `serialise`
@@ -191,10 +212,10 @@ class Holder:
     ###
 
     async def get_credential_offer(
-        self,
-        credential_offer_uri: str | None = None,
-        credential_offer: str | None = None,
-    ) -> CredentialOffer:
+            self,
+            credential_offer_uri: str | None = None,
+            credential_offer: str | None = None,
+            ) -> CredentialOffer:
         """
         Parses a credential offer.
 
@@ -231,8 +252,8 @@ class Holder:
         return offer
 
     async def get_issuer_and_auth_metadata(
-        self, issuer_uri: str, *, force_refresh: bool = False
-    ) -> tuple[IssuerMetadata, AuthorizationMetadata]:
+            self, issuer_uri: str, *, force_refresh: bool = False
+            ) -> tuple[IssuerMetadata, AuthorizationMetadata]:
         """
         Retrieves issuer metadata & authorization metadata, given a credential offer.
         Validates that the issuer_uri in the offer matches what's given in the
@@ -283,10 +304,10 @@ class Holder:
         return (issuer_metadata, auth_metadata)
 
     async def get_auth_redirect_from_offer(
-        self,
-        credential_configuration_id: str,
-        credential_offer: CredentialOffer,
-    ):
+            self,
+            credential_configuration_id: str,
+            credential_offer: CredentialOffer,
+            ) -> str:
         """
         Takes a user's selection of credential configurations for a previously
         received credential offer, and returns an OAuth2 authorization URL.
@@ -312,8 +333,8 @@ class Holder:
         )
 
     async def get_auth_redirect(
-        self, credential_configuration_id: str, issuer_url: str
-    ):
+            self, credential_configuration_id: str, issuer_url: str
+            ) -> str:
         issuer_metadata: IssuerMetadata
         auth_metadata: AuthorizationMetadata
         (issuer_metadata, auth_metadata) = await self.get_issuer_and_auth_metadata(
@@ -354,11 +375,11 @@ class Holder:
             return authorization_url
 
     async def get_access_token_and_credentials_from_callback(
-        self,
-        state: str,
-        code: str | None = None,
-        error: str | None = None,
-    ) -> list[Credential | DeferredCredential]:
+            self,
+            state: str,
+            code: str | None = None,
+            error: str | None = None,
+            ) -> list[Credential | DeferredCredential]:
         """Retrieves an OAuth2 Access token from a successful
         authorization response, and then attempts to retrieve one or
         more credentials from the issuer, depending on what the end user
@@ -399,10 +420,10 @@ class Holder:
         issuer_uri = oauth_client_info.issuer_uri
 
         with OAuth2Session(
-            client_id=oauth_client_info.client_id,
-            redirect_uri=oauth_client_info.redirect_uris[0],
-            state=state,
-        ) as oauth2_client:
+                client_id=oauth_client_info.client_id,
+                redirect_uri=oauth_client_info.redirect_uris[0],
+                state=state,
+                ) as oauth2_client:
             basic_auth = HTTPBasicAuth(
                 oauth_client_info.client_id, oauth_client_info.client_secret
             )
@@ -523,8 +544,8 @@ class Holder:
         return new_credentials
 
     async def get_issuer_metadata(
-        self, issuer_uri, path="/.well-known/openid-credential-issuer"
-    ):
+            self, issuer_uri, path="/.well-known/openid-credential-issuer"
+            ):
         body: Any
         with Session() as s:
             res: Response = s.get(f"{issuer_uri}{path}")
@@ -532,8 +553,8 @@ class Holder:
         return body
 
     async def register_client(
-        self, registration_url, issuer_uri, wallet_metadata=None
-    ) -> RegisteredClientMetadata:
+            self, registration_url, issuer_uri, wallet_metadata=None
+            ) -> RegisteredClientMetadata:
         metadata = wallet_metadata
         registered: RegisteredClientMetadata
         if not metadata:
@@ -550,8 +571,8 @@ class Holder:
     ###
 
     async def _get_credential(
-        self, cred_id: str, *, refresh: bool = True
-    ) -> Credential | DeferredCredential:
+            self, cred_id: str, *, refresh: bool = True
+            ) -> Credential | DeferredCredential:
         """Gets a credential by ID, if one exists
 
         ### Parameters
@@ -686,8 +707,8 @@ class Holder:
         return
 
     def load_credential_from_storage(
-        self, cred_id: str
-    ) -> Credential | DeferredCredential:
+            self, cred_id: str
+            ) -> Credential | DeferredCredential:
         """## !!! This function MUST be `@override`n !!!
 
         Function to load a specific credential from storage.
@@ -703,8 +724,8 @@ class Holder:
         return None
 
     def load_all_credentials_from_storage(
-        self,
-    ) -> list[Credential | DeferredCredential]:
+            self,
+            ) -> list[Credential | DeferredCredential]:
         """## !!! This function MUST be `@override`n !!!
 
         Function to retrieve all credentials. Overwrite this method

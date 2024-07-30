@@ -3,40 +3,40 @@ from typing import Any, Literal
 from pydantic import BaseModel
 
 
-class Filter(BaseModel):
-    """Filters allows providers to further restrict the field they are
-    asking for to avoid excessively invading the credential-owner's
-    privacy
-    Filters must specify a "type" or "format" that the field must adhere
-    to.
-    They can further specify what value they need e.g.
-    `date.today - dateofbirth > 18 years`
-    """
+# class Filter(BaseModel):
+#     """Filters allows providers to further restrict the field they are
+#     asking for to avoid excessively invading the credential-owner's
+#     privacy
+#     Filters must specify a "type" or "format" that the field must adhere
+#     to.
+#     They can further specify what value they need e.g.
+#     `date.today - dateofbirth > 18 years`
+#     """
 
-    type: (
-        Literal[
-            "string",
-            "number",
-            "integer",
-            "boolean",
-            "array",
-            "object"
-            ] | None
-        ) = None
-    format: Literal["date", "date-time", "email", "uri"] | None = None
+#     type: (
+#         Literal[
+#             "string",
+#             "number",
+#             "integer",
+#             "boolean",
+#             "array",
+#             "object"
+#             ] | None
+#         ) = None
+#     format: Literal["date", "date-time", "email", "uri"] | None = None
 
-    # String filters
-    min_length: int | None = None
-    max_length: int | None = None
-    pattern: str | None = None  # regex match
-    # Numeric filters
-    # exclusive min/max denote whether the min or max should be included
-    # in the range
-    # can be used on dates
-    minimum: int | None = None
-    exclusiveMinimum: bool | None = None  # noqa: N815
-    maximum: int | None = None
-    exclusiveMaximum: bool | None = None  # noqa: N815
+#     # String filters
+#     min_length: int | None = None
+#     max_length: int | None = None
+#     pattern: str | None = None  # regex match
+#     # Numeric filters
+#     # exclusive min/max denote whether the min or max should be included
+#     # in the range
+#     # can be used on dates
+#     minimum: int | None = None
+#     exclusiveMinimum: bool | None = None  # noqa: N815
+#     maximum: int | None = None
+#     exclusiveMaximum: bool | None = None  # noqa: N815
 
 
 class Field(BaseModel):
@@ -48,7 +48,7 @@ class Field(BaseModel):
     path: list[str]
     id: str | None = None
     name: str | None = None
-    filter: Filter | None = None
+    filter: dict | None = None
     optional: bool | None = False
 
 

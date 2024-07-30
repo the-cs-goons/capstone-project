@@ -29,10 +29,10 @@ class DemoVerifier(Verifier):
                         fields=[
                             vp_auth_request.Field(
                                 path=["$.credentialSubject.is_over_18", "$.is_over_18"],
-                                filter=vp_auth_request.Filter(
-                                    type="string",
-                                    enum=["true"]
-                                    ),
+                                filter={
+                                    "type": "string",
+                                    "enum": ["true"]
+                                },
                             )
                         ]
                     ),

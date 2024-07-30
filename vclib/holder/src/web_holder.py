@@ -68,7 +68,7 @@ class WebIdentityOwner(Holder):
         router.get("/refresh/{cred_id}")(self.refresh_credential)
         router.get("/refresh")(self.refresh_all_deferred_credentials)
         router.get("/presentation/init")(self.get_auth_request)
-        router.post("/presentation/")(self.present_selection)
+        router.post("/presentation/", response_model_exclude_none=True)(self.present_selection)
 
         # Issuance (offer) endpoints
         router.get(self._credential_offer_endpoint)(self.get_credential_offer)
@@ -217,8 +217,11 @@ class WebIdentityOwner(Holder):
             ]
             for field in ordered_approved_fields:
                 paths = field.path
+                filter = field.filter
                 # find all credentials with said field
-                new_valid_creds = self._get_credentials_with_field(paths)
+                new_valid_creds = self._get_credentials_with_field(
+                    paths,
+                    filter)
 
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds
@@ -260,6 +263,7 @@ class WebIdentityOwner(Holder):
         definition_id = self.current_transaction.presentation_definition.id
         transaction_id = self.current_transaction.state
 
+        print(id_vp_tokens)
         if len(id_vp_tokens) == 1:
             input_descriptor_id, vp_token = id_vp_tokens[0]
             final_vp_token = vp_token
@@ -281,7 +285,7 @@ class WebIdentityOwner(Holder):
                 descriptor_map = {
                     "id": input_descriptor_id,
                     "format": "vc+sd-jwt",
-                    "path": f"$.vp_token[{idx}]",
+                    "path": f"$[{idx}]",
                 }
                 descriptor_maps.append(
                     vp_auth_response.DescriptorMapObject(**descriptor_map))
