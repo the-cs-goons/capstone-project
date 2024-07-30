@@ -13,6 +13,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
           headers: authHeaders(session)
         }
       );
+      return redirect("/credentials");
     } catch {
       await walletBackendClient.get("/logout");
         return redirect("/login", {
