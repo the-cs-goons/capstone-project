@@ -57,7 +57,7 @@ over_18_mock_auth_req = {
                                 "$.credentialSubject.is_over_18",
                                 "$.is_over_18"
                                 ],
-                            "filter": {"type": "string"},
+                            "filter": {"type": "string", "enum": ["true"]},
                             "optional": False,
                             }
                         ]
