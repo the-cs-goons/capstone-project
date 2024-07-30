@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from functools import wraps
 from secrets import token_bytes
 from typing import Annotated, Any
 from urllib.parse import urlparse
@@ -283,7 +282,11 @@ class WebHolder(Holder):
         `CredentialOffer`: The credential offer.
         """
         self.check_token(authorization)
-        return await self.get_credential_offer(self, credential_offer_uri, credential_offer)
+        return await self.get_credential_offer(
+            self,
+            credential_offer_uri,
+            credential_offer
+            )
 
     async def request_authorization(
         self,
