@@ -7,12 +7,20 @@ export default function PresentationSuccess() {
   return (
     <>
       <AppBar position="sticky">
-        <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end", text_align: "center", justifyContent: "center"}}>
+        <Toolbar
+          sx={{
+            pb: 2,
+            pt: 1,
+            minHeight: 128,
+            alignItems: "flex-end",
+            text_align: "center",
+            justifyContent: "center",
+          }}
+        >
           <Typography variant="h1" component="h2" gutterBottom>
             Presentation Successful
           </Typography>
         </Toolbar>
-
       </AppBar>
       <div
         style={{
@@ -21,7 +29,7 @@ export default function PresentationSuccess() {
           alignItems: "center",
           justifyContent: "center",
           height: "calc(100vh - 328px)", // Subtract the AppBar height
-          textAlign: "center"
+          textAlign: "center",
         }}
       >
         <Typography variant="h3" gutterBottom>
