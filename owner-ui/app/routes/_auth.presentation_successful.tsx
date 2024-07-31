@@ -1,6 +1,5 @@
-import { Button, Typography, AppBar, Toolbar, IconButton} from "@mui/material";
-import { Add as AddIcon } from "@mui/icons-material";
-import { useNavigate, Link} from "@remix-run/react";
+import { Button, Typography, AppBar, Toolbar } from "@mui/material";
+import { useNavigate } from "@remix-run/react";
 
 export default function PresentationSuccess() {
   const navigate = useNavigate();
