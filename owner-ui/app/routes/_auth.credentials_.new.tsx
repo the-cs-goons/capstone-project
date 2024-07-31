@@ -146,7 +146,7 @@ export default function NewCredentialForm() {
             <Typography>Select a credential type(s) to request.</Typography>
             {actionData.credential_configuration_ids.map((config) => {
               return (
-                <Paper key={config}>
+                <Paper key={config} sx={{ p: 3, mt: 10 }}>
                   <FormControlLabel
                     label={config}
                     control={<Switch name={config} />}

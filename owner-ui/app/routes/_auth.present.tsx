@@ -120,7 +120,7 @@ export default function Present() {
           </Typography>
           {definition?.input_descriptors.map((input_descriptor) => {
             return (
-              <Paper key={input_descriptor.id} sx={{ p: 3 }}>
+              <Paper key={input_descriptor.id} sx={{ p: 3, mt: 10 }}>
                 <FormControlLabel
                   label={input_descriptor.name ?? input_descriptor.id}
                   control={
