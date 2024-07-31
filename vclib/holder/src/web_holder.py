@@ -481,7 +481,7 @@ class WebHolder(Holder):
             # return{"status_code": 403, "detail": "Presentation_failed"}
             raise HTTPException(
                 status_code=403,
-                detail=f"Access Denied: No appropriate credentials found"
+                detail="Access Denied: No appropriate credentials found"
             )
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
