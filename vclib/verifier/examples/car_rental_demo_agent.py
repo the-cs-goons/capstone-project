@@ -14,7 +14,7 @@ class CarRental(Verifier):
     # to fetch the authorization request
     def __init__(self):
         rental_car_eligibility = vp_auth_request.PresentationDefinition(
-            id="eligability_to_rent_car_definition",
+            id="rental_eligibility",
             name="Car rental eligibility check",
             purpose="To check if the customer is eligible to rent a car at Cass' Cars",
             input_descriptors=[
@@ -86,7 +86,7 @@ class CarRental(Verifier):
         )
         super().__init__(
             presentation_definitions={"rental_eligibility": rental_car_eligibility},
-            base_url=f"https://verifier-lib:{os.getenv('CS3900_CAR_RENTAL_DEMO_AGENT_PORT')}",
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_CAR_RENTAL_VERIFIER_DEMO_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 

@@ -186,9 +186,6 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
 
     resp = await identity_owner.get_auth_request(
         "https://example.com/request/verify_over_18",
-        "some did",
-        "did",
-        "post",
         authorization=auth_header,
     )
     over_18_mock_auth_req["nonce"] = resp.nonce  # we can't know nonce beforehand
