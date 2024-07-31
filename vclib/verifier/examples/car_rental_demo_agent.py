@@ -14,7 +14,7 @@ class CarRental(Verifier):
     # to fetch the authorization request
     def __init__(self):
         rental_car_eligibility = vp_auth_request.PresentationDefinition(
-            id="eligability_to_rent_car_definition",
+            id="rental_eligibility",
             name="Car rental eligibility check",
             purpose="To check if the customer is eligible to rent a car at Cass' Cars",
             input_descriptors=[
