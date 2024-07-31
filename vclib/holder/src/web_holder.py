@@ -477,6 +477,13 @@ class WebHolder(Holder):
                     vp_auth_response.DescriptorMapObject(**descriptor_map)
                 )
 
+        elif len(id_vp_tokens) == 0:
+            # return{"status_code": 403, "detail": "Presentation_failed"}
+            raise HTTPException(
+                status_code=403,
+                detail=f"Access Denied: No appropriate credentials found"
+            )
+
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
             id=str(uuid4()),
             definition_id=definition_id,
