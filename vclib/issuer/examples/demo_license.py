@@ -1,11 +1,17 @@
+import json
 from typing import Any, override
 from uuid import uuid4
 
+from fastapi import Response
+from fastapi.responses import HTMLResponse, RedirectResponse
+
 from vclib.issuer import StatusResponse
 from vclib.issuer.src.models.exceptions import IssuerError
+from vclib.issuer.src.models.requests import AuthorizationRequestDetails
 from vclib.issuer.src.models.responses import FormResponse
 
 from .demo_agent import DefaultIssuer
+from .example_license_form import html_license_form
 
 MOCK_DATA = {
     123: {
@@ -102,6 +108,38 @@ class LicenseIssuer(DefaultIssuer):
         self.statuses[self.ticket] = (cred_type, holder_information)
 
         return auth_code
+
+    @override
+    async def authorize(
+        self,
+        response: Response,
+        response_type: str | None = None,
+        client_id: str | None = None,
+        redirect_uri: str | None = None,
+        state: str | None = None,
+        authorization_details: str | None = None
+        ) -> Any:
+        form = await super().authorize(
+            response,
+            response_type,
+            client_id,
+            redirect_uri,
+            state,
+            authorization_details
+            )
+        if isinstance(form, RedirectResponse):
+            return form
+
+        auth_details = AuthorizationRequestDetails.model_validate(
+                json.loads(authorization_details)[0]
+            )
+
+        if "DriversLicense" in auth_details.credential_configuration_id:
+            # TODO: Investigate CORS headers on this end
+            return HTMLResponse(content=html_license_form)
+
+        return form
+
 
     @override
     def get_credential_status(self, cred_id: str) -> StatusResponse:
