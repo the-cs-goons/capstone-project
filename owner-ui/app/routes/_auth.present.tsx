@@ -1,7 +1,22 @@
 import { ArrowBack as ArrowBackIcon } from "@mui/icons-material";
-import { AppBar, Button, FormControlLabel, IconButton, Paper, Switch, Toolbar, Typography } from "@mui/material";
+import {
+  AppBar,
+  Button,
+  FormControlLabel,
+  IconButton,
+  Paper,
+  Switch,
+  Toolbar,
+  Typography,
+} from "@mui/material";
 import { json, SerializeFrom, type ActionFunctionArgs } from "@remix-run/node";
-import { Form, redirect, useActionData, useNavigate, useSubmit } from "@remix-run/react";
+import {
+  Form,
+  redirect,
+  useActionData,
+  useNavigate,
+  useSubmit,
+} from "@remix-run/react";
 import { AxiosResponse } from "axios";
 import type { FormEvent } from "react";
 import { FlexContainer } from "~/components/FlexContainer";
@@ -77,10 +92,11 @@ export default function Present() {
     );
   }
 
-  return (<>
-    <AppBar position="sticky">
+  return (
+    <>
+      <AppBar position="sticky">
         <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end" }}>
-    <IconButton
+          <IconButton
             color="inherit"
             aria-label="Back"
             onClick={() => navigate(-1)}
@@ -97,33 +113,38 @@ export default function Present() {
           </Typography>
         </Toolbar>
       </AppBar>
-    <FlexContainer component="main" maxWidth="xl">
-      <Form method="post" onSubmit={handlePresent}>
-        <Typography>{data?.client_id} is requesting the following data.</Typography>
-        {definition?.input_descriptors.map((input_descriptor) => {
-          return (
-            <Paper key={input_descriptor.id} sx={{p: 3}}>
-              <FormControlLabel
-                label={input_descriptor.name ?? input_descriptor.id}
-                control={
-                  input_descriptor.constraints.fields?.at(0)?.optional ? (
-                    <Switch name={input_descriptor.id} />
-                  ) : (
-                    <input
-                      type="hidden"
-                      name={input_descriptor.id}
-                      checked
-                      readOnly
-                    />
-                  )
-                }
-              />
-            </Paper>
-          );
-        })}
-        <Button type="submit">Present</Button>
-        <Button type="button" color="error" onClick={() => navigate(-1)}>Reject</Button>
-      </Form>
-    </FlexContainer></>
+      <FlexContainer component="main" maxWidth="xl">
+        <Form method="post" onSubmit={handlePresent}>
+          <Typography>
+            {data?.client_id} is requesting the following data.
+          </Typography>
+          {definition?.input_descriptors.map((input_descriptor) => {
+            return (
+              <Paper key={input_descriptor.id} sx={{ p: 3 }}>
+                <FormControlLabel
+                  label={input_descriptor.name ?? input_descriptor.id}
+                  control={
+                    input_descriptor.constraints.fields?.at(0)?.optional ? (
+                      <Switch name={input_descriptor.id} />
+                    ) : (
+                      <input
+                        type="hidden"
+                        name={input_descriptor.id}
+                        checked
+                        readOnly
+                      />
+                    )
+                  }
+                />
+              </Paper>
+            );
+          })}
+          <Button type="submit">Present</Button>
+          <Button type="button" color="error" onClick={() => navigate(-1)}>
+            Reject
+          </Button>
+        </Form>
+      </FlexContainer>
+    </>
   );
 }
