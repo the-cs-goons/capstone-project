@@ -49,7 +49,7 @@ export async function action({ request }: ActionFunctionArgs) {
       });
       // TODO: implement proper redirect
       console.log(resp.data);
-      return redirect("/credentials");
+      return redirect("/presentation_successful");
 
     default:
       break;
