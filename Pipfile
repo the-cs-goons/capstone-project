@@ -13,6 +13,7 @@ jsonpath-ng = "*"
 pytest-httpx = "*"
 requests-oauthlib = "*"
 qrcode = "*"
+jsonschema = "*"
 argon2-cffi = "*"
 pyzipper = "*"
 

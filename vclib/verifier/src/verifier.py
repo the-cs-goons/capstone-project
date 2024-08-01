@@ -1,5 +1,7 @@
+from urllib.parse import quote_plus
 from uuid import uuid4
 
+import qrcode
 from fastapi import FastAPI, HTTPException
 from jsonpath_ng.ext import parse as parse_jsonpath
 from jwcrypto.jwk import JWK
@@ -48,11 +50,26 @@ class Verifier:
         return router
 
     async def get_did_json(self) -> DIDJSONResponse:
+        """
+        Gets verifier's DIDDoc.
+
+        ## Returns
+        - `DIDJSONResponse`: DIDDoc
+        """
         return self.diddoc
 
     async def get_presentation_definition(
         self, ref: str
     ) -> vp_auth_request.PresentationDefinition:
+        """
+        Gets presentation definition.
+
+        ### Parameters
+        - ref(`str`): Credential ID
+
+        ### Returns
+        - `PresentationDefinition`: Presentation definition
+        """
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=404,
@@ -60,13 +77,23 @@ class Verifier:
             )
         return self.presentation_definitions[ref]
 
-    # TODO doc string
     async def fetch_authorization_request(
         self,
         ref: str,
         wallet_metadata: dict | None = None,
         wallet_nonce: str | None = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        """
+        Returns authorization request.
+
+        ### Parameters
+        - ref(`str`): Credential ID
+        - wallet_metadata(`dict | None`): Any wallet metadata
+        - wallet_nonce(`str | None`): A wallet-generated nonce to prevent replay attacks
+
+        ### Returns
+        - `AuthorizationRequestObject`: Authorization request information
+        """
         if ref not in self.presentation_definitions:
             raise HTTPException(
                 status_code=400,
@@ -86,10 +113,18 @@ class Verifier:
             wallet_nonce=wallet_nonce,
         )
 
-    # TODO doc string
     async def parse_authorization_response(
         self, auth_response: vp_auth_response.AuthorizationResponseObject
     ):
+        """
+        Recieves authorization response and validates the disclosed fields.
+
+        ### Body
+        - vp_token(`str | list[str]`): Presented credentials
+        - presentation_submission(`PresentationSubmissionObject`): Submission info
+        - state(`str`)
+        """
+
         # get presentation definition
         if (
             auth_response.presentation_submission.definition_id
@@ -145,8 +180,10 @@ class Verifier:
           dict matching the desired presentation definition
         - image_path(`str`): Where to save the QR code image
         """
-        # img = qrcode.make(f"request_uri={self.base_url}/authorize/presentation_definition_uri={self.base_url}/presentationdefs?ref={presentation_definition_key}")  # noqa: E501
-        # img.save(image_path)
+        img = qrcode.make(
+            f"request_uri={quote_plus(self.base_url)}%2Frequest%2F{presentation_definition_key}"
+        )  # noqa: E501
+        img.save(image_path)
 
     def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:
         """## !!! This function must be `@override`n !!!

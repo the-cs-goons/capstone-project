@@ -1,0 +1,61 @@
+{
+    "credential_issuer": "https://issuer-lib:8082",
+    "credential_endpoint": "https://issuer-lib:8082/credentials",
+    "deferred_credential_endpoint": "https://issuer-lib:8082/deferred",
+    "credential_configurations_supported": {
+        "https://issuer-lib:8082/DriversLicense": {
+            "format": "vc+sd-jwt",
+            "vct": "https://issuer-lib:8082/DriversLicense",
+            "cryptographic_binding_methods_supported": [
+                "did:peer"
+            ],
+            "credential_signing_alg_values_supported": [
+                "ES256"
+            ],
+            "proof_types_supported": {
+                "jwt": {
+                    "proof_signing_alg_values_supported": "EdDSA"
+                }
+            },
+            "claims": {
+                "type": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "license_no": {
+                    "mandatory": true,
+                    "value_type": "number"
+                },
+                "given_name": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "middle_initial": {
+                    "mandatory": false,
+                    "value_type": "string"
+                },
+                "family_name": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "date_of_birth": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "address": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "license_type": {
+                    "mandatory": true,
+                    "value_type": "string"
+                },
+                "is_over_18": {
+                    "mandatory": true,
+                    "value_type": "boolean"
+                }
+            }
+        }
+    },
+    "credential_identifiers_supported": true
+}

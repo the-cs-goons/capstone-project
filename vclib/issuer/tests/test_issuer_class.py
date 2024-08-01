@@ -131,6 +131,11 @@ class TestIssuer(CredentialIssuer):
             raise IssuerError("invalid_client")
 
     @override
+    def get_credential_form(self, credential_config: str) -> FormResponse:
+        form = self.credentials[credential_config]
+        return FormResponse(form=form)
+
+    @override
     def get_credential_request(
         self, client_id: str, cred_type: str, redirect_uri: str, information: dict
     ) -> str:

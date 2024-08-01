@@ -5,7 +5,6 @@ the VC model.
 """
 
 # Add imports from `common/src` here to expose objects under vclib.common
-from .src.hello_world import hello_world as hello_world
 from .src.models import credentials as credentials
 from .src.models import oauth2 as oauth2
 from .src.models import oid4vci as oid4vci

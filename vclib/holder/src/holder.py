@@ -5,6 +5,7 @@ from urllib.parse import urlencode
 
 import jsonpath_ng
 import jwt
+from jsonschema import validate
 from httpx import Client, Response
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
@@ -94,9 +95,18 @@ class Holder:
             encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
+    def _validate_disclosure(self, disclosure: dict[str, Any], filter=None) -> bool:
+        if filter:
+            try:
+                validate(disclosure, filter)
+            except Exception:
+                return False
+        return True
+
     def _get_credentials_with_field(
         self,
         paths: list[str],  # list of jsonpath strings
+        filter: dict,  # a jsonschema
     ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
         sdjwts = [
@@ -123,6 +133,11 @@ class Holder:
                 for disclosure in disclosures:
                     matches = expr.find(disclosure)
                     if matches not in ([], None):
+                        disclosure_passes_filter = self._validate_disclosure(
+                            next(iter(disclosure.values())), filter
+                        )
+                        if not disclosure_passes_filter:
+                            continue
                         disclosure_idx = list(disclosures).index(disclosure)
                         encoded_disclosures = encoded_to_decoded_disclosures.keys()
                         encoded_disclosure = list(encoded_disclosures)[disclosure_idx]

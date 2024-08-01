@@ -47,7 +47,7 @@ CREATE TABLE credential_info (
 CREATE TABLE credentials (
     credential_id TEXT NOT NULL,
     raw_vc TEXT NOT NULL,
-    received_at DATETIME NOT NULL,
+    received_at TEXT NOT NULL,
 
 	FOREIGN KEY (credential_id)
     REFERENCES credential_info (id)
@@ -59,7 +59,7 @@ CREATE TABLE deferred_credentials (
     credential_id TEXT NOT NULL,
     tx_id TEXT NOT NULL,
     deferred_endpoint TEXT NOT NULL,
-    last_request DATETIME NOT NULL,
+    last_request TEXT NOT NULL,
     access_token JSON NOT NULL,
 
     FOREIGN KEY (credential_id)
@@ -628,7 +628,7 @@ class LocalStorageProvider(AbstractStorageProvider):
                     # This credential was deferred but has just been received.
                     # Delete the deferred credential records for this credential
                     cursor.execute(
-                        "DELETE FROM deferred_credentials WHERE credential_id = :cred_id",
+                        "DELETE FROM deferred_credentials WHERE credential_id = :cred_id",  # noqa e501
                         {"cred_id": cred.id},
                     )
                     # Populate the recieved credential table

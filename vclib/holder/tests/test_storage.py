@@ -61,9 +61,11 @@ def cred_1():
     return credentials.Credential.model_validate(MOCK_STORE["example1"])
 
 
+
 @pytest.fixture()
 def cred_2():
     return credentials.DeferredCredential.model_validate(MOCK_STORE["example2"])
+
 
 
 @pytest.fixture()

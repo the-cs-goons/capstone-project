@@ -117,9 +117,6 @@ class WebHolder(Holder):
         return encode(payload, self.SECRET, algorithm="HS256", headers=headers)
 
     def generate_token(self, verified_auth: LoginRequest | RegisterRequest):
-        """
-        TODO: Document overwriting
-        """
         return UserAuthenticationResponse(
             username=verified_auth.username,
             access_token=self._generate_jwt({"user": verified_auth.username}),
@@ -127,7 +124,10 @@ class WebHolder(Holder):
 
     def check_token(self, authorization: Annotated[str | None, Header()] = None):
         """
-        TODO: Document overwriting
+        Check session token.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
         """
         if not authorization:
             raise HTTPException(status_code=403, detail="Unauthorized. Please log in.")
@@ -135,7 +135,7 @@ class WebHolder(Holder):
         if token_type.lower() != "bearer":
             raise HTTPException(
                 status_code=400, detail=f"Invalid token type {token_type}"
-            )  # noqa: E501
+            )
 
         prompt = ". Please log in again."
         try:
@@ -143,7 +143,7 @@ class WebHolder(Holder):
         except DecodeError:
             raise HTTPException(
                 status_code=400, detail="Invalid session token" + prompt
-            )  # noqa: E501
+            )
         except ExpiredSignatureError:
             self.logout()
             raise HTTPException(status_code=400, detail="Session expired" + prompt)
@@ -151,6 +151,9 @@ class WebHolder(Holder):
             raise HTTPException(status_code=400, detail="Invalid token" + prompt)
 
     def user_login(self, login: LoginRequest) -> UserAuthenticationResponse:
+        """
+        Log in a user.
+        """
         try:
             self.login(login.username, login.password)
         except Exception:
@@ -159,6 +162,9 @@ class WebHolder(Holder):
         return self.generate_token(login)
 
     def user_register(self, reg: RegisterRequest) -> UserAuthenticationResponse:
+        """
+        Register a user.
+        """
         if reg.password != reg.confirm:
             raise HTTPException(status_code=400, detail="Passwords don't match.")
         # Rudimentary password rule
@@ -177,6 +183,9 @@ class WebHolder(Holder):
         return self.generate_token(reg)
 
     def user_logout(self):
+        """
+        Log out a user.
+        """
         self.logout()
 
     ###
@@ -218,7 +227,13 @@ class WebHolder(Holder):
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[credentials.Credential | credentials.DeferredCredential]:
         """
-        TODO
+        Get credentials.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
+
+        ### Returns
+        - `list[Credential | DeferredCredential]`: A list of credentials
         """
         self.check_token(authorization)
         return self.store.all_credentials()
@@ -250,6 +265,9 @@ class WebHolder(Holder):
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
     ) -> credentials.Credential | credentials.DeferredCredential:
+        """
+        Refresh credential.
+        """
         self.check_token(authorization)
         return await self.refresh_credential(cred_id)
 
@@ -257,6 +275,9 @@ class WebHolder(Holder):
         self,
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
+        """
+        Refresh all credentials.
+        """
         self.check_token(authorization)
         return await self.refresh_all_deferred_credentials()
 
@@ -279,9 +300,7 @@ class WebHolder(Holder):
         `CredentialOffer`: The credential offer.
         """
         self.check_token(authorization)
-        return await self.get_credential_offer(
-            self, credential_offer_uri, credential_offer
-        )
+        return await self.get_credential_offer(credential_offer_uri, credential_offer)
 
     async def request_authorization(
         self,
@@ -323,17 +342,20 @@ class WebHolder(Holder):
     async def get_auth_request(
         self,
         request_uri,
-        client_id,  # TODO
-        client_id_scheme,
-        request_uri_method,  # TODO
+        # client_id,  # TODO
+        # client_id_scheme,
+        # request_uri_method,  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        """
+        Get authorization request from a verifier.
+        """
         self.check_token(authorization)
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
+        # if client_id_scheme != "did": # TODO
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail=f"client_id_scheme {client_id_scheme} not supported",
+        #     )
 
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{request_uri}")
@@ -354,6 +376,9 @@ class WebHolder(Holder):
         field_selections: vp_auth_request.FieldSelectionObject,
         authorization: Annotated[str | None, Header()] = None,
     ):
+        """
+        Send verifiable presentation to the verifier.
+        """
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         self.check_token(authorization)
@@ -375,8 +400,9 @@ class WebHolder(Holder):
             ]
             for field in ordered_approved_fields:
                 paths = field.path
+                filter = field.filter
                 # find all credentials with said field
-                new_valid_creds = self._get_credentials_with_field(paths)
+                new_valid_creds = self._get_credentials_with_field(paths, filter)
 
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds
@@ -445,12 +471,18 @@ class WebHolder(Holder):
                     vp_auth_response.DescriptorMapObject(**descriptor_map)
                 )
 
+        elif len(id_vp_tokens) == 0:
+            # return{"status_code": 403, "detail": "Presentation_failed"}
+            raise HTTPException(
+                status_code=403,
+                detail="Access Denied: No appropriate credentials found",
+            )
+
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
             id=str(uuid4()),
             definition_id=definition_id,
             descriptor_map=descriptor_maps,
         )
-
         authorization_response = vp_auth_response.AuthorizationResponseObject(
             vp_token=final_vp_token,
             presentation_submission=presentation_submission,
