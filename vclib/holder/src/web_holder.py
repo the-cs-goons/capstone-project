@@ -74,12 +74,12 @@ class WebHolder(Holder):
         oauth_client_info["redirect_uris"] = redirect_uris
         oauth_client_info["credential_offer_endpoint"] = cred_offer_endpoint
         super().__init__(oauth_client_info, storage_provider)
-        self.current_transaction: \
-            vp_auth_request.AuthorizationRequestObject | None = None
+        self.current_transaction: vp_auth_request.AuthorizationRequestObject | None = (
+            None
+        )
 
         self.SECRET = token_bytes(32)
         self.SESSION_TOKEN_ALG = "HS256"
-
 
     def get_server(self) -> FastAPI:
         router = FastAPI()
@@ -117,38 +117,40 @@ class WebHolder(Holder):
     ###
 
     def _generate_jwt(
-            self,
-            payload: dict[str, Any],
-            headers: dict[str, Any] | None = None
-            ):
+        self, payload: dict[str, Any], headers: dict[str, Any] | None = None
+    ):
         # Default token generation scheme
         payload["exp"] = datetime.now(tz=UTC) + timedelta(seconds=self.TOKEN_EXP_SECS)
         return encode(payload, self.SECRET, algorithm="HS256", headers=headers)
 
     def generate_token(self, verified_auth: LoginRequest | RegisterRequest):
-        """
-        TODO: Document overwriting
-        """
         return UserAuthenticationResponse(
             username=verified_auth.username,
-            access_token=self._generate_jwt({"user": verified_auth.username})
+            access_token=self._generate_jwt({"user": verified_auth.username}),
         )
 
     def check_token(self, authorization: Annotated[str | None, Header()] = None):
         """
-        TODO: Document overwriting
+        Check session token.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
         """
         if not authorization:
             raise HTTPException(status_code=403, detail="Unauthorized. Please log in.")
-        (token_type, token) = authorization.split(' ')
+        (token_type, token) = authorization.split(" ")
         if token_type.lower() != "bearer":
-            raise HTTPException(status_code=400, detail=f"Invalid token type {token_type}") # noqa: E501
+            raise HTTPException(
+                status_code=400, detail=f"Invalid token type {token_type}"
+            )
 
         prompt = ". Please log in again."
         try:
             return decode(token, self.SECRET, self.SESSION_TOKEN_ALG)
         except DecodeError:
-            raise HTTPException(status_code=400, detail="Invalid session token" + prompt) # noqa: E501
+            raise HTTPException(
+                status_code=400, detail="Invalid session token" + prompt
+            )
         except ExpiredSignatureError:
             self.logout()
             raise HTTPException(status_code=400, detail="Session expired" + prompt)
@@ -156,6 +158,9 @@ class WebHolder(Holder):
             raise HTTPException(status_code=400, detail="Invalid token" + prompt)
 
     def user_login(self, login: LoginRequest) -> UserAuthenticationResponse:
+        """
+        Log in a user.
+        """
         try:
             self.login(login.username, login.password)
         except Exception:
@@ -164,25 +169,30 @@ class WebHolder(Holder):
         return self.generate_token(login)
 
     def user_register(self, reg: RegisterRequest) -> UserAuthenticationResponse:
+        """
+        Register a user.
+        """
         if reg.password != reg.confirm:
             raise HTTPException(status_code=400, detail="Passwords don't match.")
         # Rudimentary password rule
         if len(reg.password) < self.MIN_PASSWORD_LENGTH:
             raise HTTPException(
                 status_code=400,
-                detail=f"Password must be at least {self.MIN_PASSWORD_LENGTH} characters long" # noqa: E501
-                )
+                detail=f"Password must be at least {self.MIN_PASSWORD_LENGTH} characters long",  # noqa: E501
+            )
         try:
             self.register(reg.username, reg.password)
         except Exception:
             raise HTTPException(
-                status_code=400,
-                detail=f"Could not register as {reg.username}."
-                )
+                status_code=400, detail=f"Could not register as {reg.username}."
+            )
 
         return self.generate_token(reg)
 
     def user_logout(self):
+        """
+        Log out a user.
+        """
         self.logout()
 
     ###
@@ -215,25 +225,30 @@ class WebHolder(Holder):
             return await super().get_credential(cred_id, refresh=r)
         except Exception:
             raise HTTPException(
-                status_code=400,
-                detail=f"Credential with ID {cred_id} not found."
+                status_code=400, detail=f"Credential with ID {cred_id} not found."
             )
 
     async def get_credentials(
         self,
         authorization: Annotated[str | None, Header()] = None,
-        ) -> list[Credential | DeferredCredential]:
+    ) -> list[Credential | DeferredCredential]:
         """
-        TODO
+        Get credentials.
+
+        ### Parameters
+        - authorization(`str | None`): The bearer token giving authorization
+
+        ### Returns
+        - `list[Credential | DeferredCredential]`: A list of credentials
         """
         self.check_token(authorization)
         return self.store.all_credentials()
 
     async def delete_credential(
-            self,
-            cred_id: str,
-            authorization: Annotated[str | None, Header()] = None,
-            ) -> str:
+        self,
+        cred_id: str,
+        authorization: Annotated[str | None, Header()] = None,
+    ) -> str:
         """
         Delete a credential by ID, if one exists
 
@@ -258,6 +273,9 @@ class WebHolder(Holder):
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
     ) -> Credential | DeferredCredential:
+        """
+        Refresh credential.
+        """
         self.check_token(authorization)
         return await self.refresh_credential(cred_id)
 
@@ -265,10 +283,14 @@ class WebHolder(Holder):
         self,
         authorization: Annotated[str | None, Header()] = None,
     ) -> list[str]:
+        """
+        Refresh all credentials.
+        """
         self.check_token(authorization)
         return await self.refresh_all_deferred_credentials()
 
-    async def credential_offer(self,
+    async def credential_offer(
+        self,
         credential_offer_uri: str | None = None,
         credential_offer: str | None = None,
         authorization: Annotated[str | None, Header()] = None,
@@ -287,10 +309,8 @@ class WebHolder(Holder):
         """
         self.check_token(authorization)
         return await self.get_credential_offer(
-            self,
-            credential_offer_uri,
-            credential_offer
-            )
+            credential_offer_uri, credential_offer
+        )
 
     async def request_authorization(
         self,
@@ -306,7 +326,7 @@ class WebHolder(Holder):
             if credential_selection.issuer_uri:
                 raise HTTPException(
                     status_code=400,
-                    detail="Can't provide both issuer_uri and credential_offer."
+                    detail="Can't provide both issuer_uri and credential_offer.",
                 )
             redirect_url = await self.get_auth_redirect_from_offer(
                 credential_selection.credential_configuration_id,
@@ -332,17 +352,20 @@ class WebHolder(Holder):
     async def get_auth_request(
         self,
         request_uri,
-        client_id,  # TODO
-        client_id_scheme,
-        request_uri_method,  # TODO
+        # client_id,  # TODO
+        # client_id_scheme,
+        # request_uri_method,  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
+        """
+        Get authorization request from a verifier.
+        """
         self.check_token(authorization)
-        if client_id_scheme != "did":
-            raise HTTPException(
-                status_code=400,
-                detail=f"client_id_scheme {client_id_scheme} not supported",
-            )
+        # if client_id_scheme != "did": # TODO
+        #     raise HTTPException(
+        #         status_code=400,
+        #         detail=f"client_id_scheme {client_id_scheme} not supported",
+        #     )
 
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{request_uri}")
@@ -351,9 +374,10 @@ class WebHolder(Holder):
         # what the backend sends to the fronend should be up to implementation
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
-        self.current_transaction = \
+        self.current_transaction = (
             vp_auth_request.AuthorizationRequestObject.model_validate_json(
-            response.text
+                response.text
+            )
         )
         return self.current_transaction
 
@@ -362,6 +386,9 @@ class WebHolder(Holder):
         field_selections: FieldSelectionObject,
         authorization: Annotated[str | None, Header()] = None,
     ):
+        """
+        Send verifiable presentation to the verifier.
+        """
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         self.check_token(authorization)
@@ -385,9 +412,7 @@ class WebHolder(Holder):
                 paths = field.path
                 filter = field.filter
                 # find all credentials with said field
-                new_valid_creds = self._get_credentials_with_field(
-                    paths,
-                    filter)
+                new_valid_creds = self._get_credentials_with_field(paths, filter)
 
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds
@@ -441,7 +466,7 @@ class WebHolder(Holder):
             }
             descriptor_maps.append(
                 vp_auth_response.DescriptorMapObject(**descriptor_map)
-                )
+            )
         elif len(id_vp_tokens) > 1:
             final_vp_token = []
             for input_descriptor_id, vp_token in id_vp_tokens:
@@ -454,14 +479,21 @@ class WebHolder(Holder):
                     "path": f"$[{idx}]",
                 }
                 descriptor_maps.append(
-                    vp_auth_response.DescriptorMapObject(**descriptor_map))
+                    vp_auth_response.DescriptorMapObject(**descriptor_map)
+                )
+
+        elif len(id_vp_tokens) == 0:
+            # return{"status_code": 403, "detail": "Presentation_failed"}
+            raise HTTPException(
+                status_code=403,
+                detail="Access Denied: No appropriate credentials found"
+            )
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(
             id=str(uuid4()),
             definition_id=definition_id,
             descriptor_map=descriptor_maps,
         )
-
         authorization_response = vp_auth_response.AuthorizationResponseObject(
             vp_token=final_vp_token,
             presentation_submission=presentation_submission,

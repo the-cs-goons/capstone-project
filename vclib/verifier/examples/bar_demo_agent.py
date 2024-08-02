@@ -25,10 +25,7 @@ class DemoVerifier(Verifier):
                         fields=[
                             vp_auth_request.Field(
                                 path=["$.credentialSubject.is_over_18", "$.is_over_18"],
-                                filter={
-                                    "type": "boolean",
-                                    "const":  True
-                                },
+                                filter={"type": "boolean", "const": True},
                             )
                         ]
                     ),
@@ -52,7 +49,7 @@ class DemoVerifier(Verifier):
 
         super().__init__(
             presentation_definitions={"verify_over_18": verify_over_18_pd},
-            base_url=f"https://verifier-lib:{os.getenv('CS3900_VERIFIER_AGENT_PORT')}",
+            base_url=f"https://verifier-lib:{os.getenv('CS3900_BAR_VERIFIER_DEMO_AGENT_PORT')}",
             diddoc_path=f"{os.path.dirname(os.path.abspath(__file__))}/example_diddoc.json",
         )
 
@@ -62,6 +59,7 @@ class DemoVerifier(Verifier):
             f"{os.path.dirname(os.path.abspath(__file__))}/example_issuer_jwk.json"
         ) as f:
             return JWK.from_json(f.read())  # the only JWK we accept
+
 
 verifier = DemoVerifier()
 

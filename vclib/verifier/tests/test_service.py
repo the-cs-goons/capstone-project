@@ -22,7 +22,7 @@ def presentation_definition() -> vp_auth_request.PresentationDefinition:
                     fields=[
                         vp_auth_request.Field(
                             path=["$.credentialSubject.is_over_18", "$.is_over_18"],
-                            filter={"type": "string", "enum": ["true"]},
+                            filter={"type": "boolean", "const": True},
                         )
                     ]
                 ),
@@ -54,9 +54,7 @@ def vp_token() -> str:
 
 
 @pytest.mark.asyncio
-async def test_get_valid_presentation_definition(
-    verifier, presentation_definition
-):
+async def test_get_valid_presentation_definition(verifier, presentation_definition):
     assert (
         await verifier.get_presentation_definition(presentation_definition.id)
         == presentation_definition
@@ -70,19 +68,13 @@ async def test_get_invalid_presentation_definition(verifier):
 
 
 @pytest.mark.asyncio
-async def test_fetch_valid_authorization_request(
-    verifier, presentation_definition
-):
-    res = await verifier.fetch_authorization_request(
-        ref=presentation_definition.id
-    )
+async def test_fetch_valid_authorization_request(verifier, presentation_definition):
+    res = await verifier.fetch_authorization_request(ref=presentation_definition.id)
     assert res.presentation_definition == presentation_definition
 
 
 @pytest.mark.asyncio
-async def test_fetch_invalid_authorization_request(
-    verifier, presentation_definition
-):
+async def test_fetch_invalid_authorization_request(verifier, presentation_definition):
     with pytest.raises(HTTPException):
         await verifier.fetch_authorization_request(ref="invalid_definition_id")
 
@@ -97,11 +89,11 @@ async def test_parse_valid_authorization_response(
             presentation_submission=vp_auth_response.PresentationSubmissionObject(
                 id="submission_id",
                 definition_id=presentation_definition.id,
-                descriptor_map=[vp_auth_response.DescriptorMapObject(
-                        id="licence",
-                        format="jwt_vc",
-                        path="$")
-                    ],
+                descriptor_map=[
+                    vp_auth_response.DescriptorMapObject(
+                        id="licence", format="jwt_vc", path="$"
+                    )
+                ],
             ),
             state="",
         )
@@ -122,9 +114,8 @@ async def test_parse_authorization_response_with_invalid_jwt(
                     definition_id=presentation_definition.id,
                     descriptor_map=[
                         vp_auth_response.DescriptorMapObject(
-                            id="licence",
-                            format="jwt_vc",
-                            path="$")
+                            id="licence", format="jwt_vc", path="$"
+                        )
                     ],
                 ),
                 state="",
@@ -145,9 +136,8 @@ async def test_parse_authorization_response_with_invalid_id(
                     definition_id="random_id",  # invalid id
                     descriptor_map=[
                         vp_auth_response.DescriptorMapObject(
-                            id="licence",
-                            format="jwt_vc",
-                            path="$")
+                            id="licence", format="jwt_vc", path="$"
+                        )
                     ],
                 ),
                 state="",
@@ -168,9 +158,8 @@ async def test_parse_authorization_response_with_invalid_path(
                     definition_id="random_id",
                     descriptor_map=[
                         vp_auth_response.DescriptorMapObject(
-                            id="licence",
-                            format="jwt_vc",
-                            path="$")
+                            id="licence", format="jwt_vc", path="$"
+                        )
                     ],  # invalid path
                 ),
                 state="",

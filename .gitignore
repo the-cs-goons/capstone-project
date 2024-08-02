@@ -179,3 +179,7 @@ cython_debug/
 node_modules
 
 .vclib_wallet_data
+
+# SSL Certificates
+.crt
+.key

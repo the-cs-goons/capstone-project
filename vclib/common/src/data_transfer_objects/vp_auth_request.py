@@ -12,32 +12,6 @@ from pydantic import BaseModel
 #     `date.today - dateofbirth > 18 years`
 #     """
 
-#     type: (
-#         Literal[
-#             "string",
-#             "number",
-#             "integer",
-#             "boolean",
-#             "array",
-#             "object"
-#             ] | None
-#         ) = None
-#     format: Literal["date", "date-time", "email", "uri"] | None = None
-
-#     # String filters
-#     min_length: int | None = None
-#     max_length: int | None = None
-#     pattern: str | None = None  # regex match
-#     # Numeric filters
-#     # exclusive min/max denote whether the min or max should be included
-#     # in the range
-#     # can be used on dates
-#     minimum: int | None = None
-#     exclusiveMinimum: bool | None = None
-#     maximum: int | None = None
-#     exclusiveMaximum: bool | None = None
-
-
 class Field(BaseModel):
     """Each Field **MAY** contain a "path" property.\n
     Each Field **MAY** contain "id", "purpose", "name", "filter",

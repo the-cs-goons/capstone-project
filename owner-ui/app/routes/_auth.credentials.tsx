@@ -11,6 +11,7 @@ import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
   isRouteErrorResponse,
   json,
+  Link,
   useLoaderData,
   type MetaFunction,
 } from "@remix-run/react";
@@ -72,7 +73,12 @@ export default function Credentials() {
             Credentials
           </Typography>
           <Tooltip id="add-credential-tooltip" title="Add new credential">
-            <IconButton color="inherit" aria-label="Add new credential">
+            <IconButton
+              color="inherit"
+              aria-label="Add new credential"
+              component={Link}
+              to="new"
+            >
               <AddIcon />
             </IconButton>
           </Tooltip>
