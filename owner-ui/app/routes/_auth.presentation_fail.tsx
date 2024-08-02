@@ -9,7 +9,7 @@ export default function PresentationFail() {
     return urlParams.get(param);
   }
 
-  const errorMessage = getQueryParam('error');
+  const errorMessage = getQueryParam("error");
 
   return (
     <>
@@ -39,13 +39,34 @@ export default function PresentationFail() {
           textAlign: "center",
         }}
       >
-        <Typography style={{flex: "1"}} variant="h3" gutterBottom>
+        <Typography style={{ flex: "1" }} variant="h3" gutterBottom>
           The Verifier has declined your credentials because of {errorMessage}
         </Typography>
-        <svg style={{flex: "4"}} width={400} height={400}>
-          <circle fill="none" stroke="red" strokeWidth={20} cx={200} cy={200} r={190}/>
-          <line x1="46" y1="74" x2="361" y2="317" stroke="red" strokeWidth={24}/>
-          <line x1="354" y1="74" x2="46" y2="326" stroke="red" strokeWidth={24}/>
+        <svg style={{ flex: "4" }} width={400} height={400}>
+          <circle
+            fill="none"
+            stroke="red"
+            strokeWidth={20}
+            cx={200}
+            cy={200}
+            r={190}
+          />
+          <line
+            x1="46"
+            y1="74"
+            x2="361"
+            y2="317"
+            stroke="red"
+            strokeWidth={24}
+          />
+          <line
+            x1="354"
+            y1="74"
+            x2="46"
+            y2="326"
+            stroke="red"
+            strokeWidth={24}
+          />
         </svg>
         <Button
           variant="contained"

@@ -50,11 +50,15 @@ export async function action({ request }: ActionFunctionArgs) {
         });
         if (resp.data.status == "OK") {
           // return redirect("/presentation_successful");
-          const errorDetail = resp.data.errorDetail || 'Unknown error';
-          return redirect(`/presentation_fail?error=${encodeURIComponent(errorDetail)}`)
+          const errorDetail = resp.data.errorDetail || "Unknown error";
+          return redirect(
+            `/presentation_fail?error=${encodeURIComponent(errorDetail)}`,
+          );
         } else {
-          const errorDetail = resp.data.errorDetail || 'Unknown error';
-          return redirect(`/presentation_fail?error=${encodeURIComponent(errorDetail)}`)
+          const errorDetail = resp.data.errorDetail || "Unknown error";
+          return redirect(
+            `/presentation_fail?error=${encodeURIComponent(errorDetail)}`,
+          );
         }
       } catch (error) {
         return redirect(`/presentation_fail?error=${error}`);

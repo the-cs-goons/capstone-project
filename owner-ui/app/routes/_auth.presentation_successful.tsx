@@ -32,12 +32,26 @@ export default function PresentationSuccess() {
           textAlign: "center",
         }}
       >
-        <Typography style={{flex: "1"}} variant="h3" gutterBottom>
+        <Typography style={{ flex: "1" }} variant="h3" gutterBottom>
           The Verifier has approved your credentials
         </Typography>
-        <svg style={{flex: "4"}} width={400} height={400}>
-          <circle fill="none" stroke="#68E534" strokeWidth={20} cx={200} cy={200} r={190}/>
-          <polyline fill="none" stroke="#68E534" strokeWidth={24} points="88,214 173,284 304,138" strokeLinecap="round" strokeLinejoin="round"/>
+        <svg style={{ flex: "4" }} width={400} height={400}>
+          <circle
+            fill="none"
+            stroke="#68E534"
+            strokeWidth={20}
+            cx={200}
+            cy={200}
+            r={190}
+          />
+          <polyline
+            fill="none"
+            stroke="#68E534"
+            strokeWidth={24}
+            points="88,214 173,284 304,138"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
         <Button
           variant="contained"
