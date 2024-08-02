@@ -174,5 +174,12 @@ cython_debug/
 #.idea/
 
 .DS_Store
+
 .ruff_cache
 node_modules
+
+.vclib_wallet_data
+
+# SSL Certificates
+.crt
+.key

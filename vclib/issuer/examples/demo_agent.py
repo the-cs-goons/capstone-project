@@ -5,10 +5,10 @@ from uuid import uuid4
 
 from fastapi import FastAPI
 
-from vclib.common import hello_world
 from vclib.issuer import CredentialIssuer, StatusResponse
 from vclib.issuer.src.models.exceptions import IssuerError
 from vclib.issuer.src.models.oauth import RegisteredClientMetadata, WalletClientMetadata
+from vclib.issuer.src.models.responses import FormResponse
 
 
 class DefaultIssuer(CredentialIssuer):
@@ -76,7 +76,12 @@ class DefaultIssuer(CredentialIssuer):
         try:
             return self.client_ids[client_id]
         except KeyError:
-            raise IssuerError("invalid_client")
+            raise IssuerError("invalid_client", "Client ID not valid")
+
+    @override
+    def get_credential_form(self, credential_config: str) -> FormResponse:
+        form = self.credentials[credential_config]
+        return FormResponse(form=form)
 
     @override
     def get_credential_request(
@@ -100,15 +105,17 @@ class DefaultIssuer(CredentialIssuer):
         self, auth_code: str, client_id: str, redirect_uri: str
     ) -> dict:
         if auth_code not in self.auths_to_ids:
-            raise IssuerError("invalid_grant")
+            raise IssuerError("invalid_grant", "Authorization code not valid")
 
         if self.auth_codes[auth_code] != client_id:
-            raise IssuerError("invalid_client")
+            raise IssuerError(
+                "invalid_client", "Authorization code does not match client ID"
+            )
 
         cred_type, cred_id, re_uri = self.auths_to_ids[auth_code]
 
         if re_uri != redirect_uri:
-            raise IssuerError("invalid_request")
+            raise IssuerError("invalid_request", "Redirect URIs do not match")
 
         self.auths_to_ids.pop(auth_code)
         self.auth_codes.pop(auth_code)
@@ -145,15 +152,17 @@ class DefaultIssuer(CredentialIssuer):
         try:
             cred_id = self.transaction_id_to_cred_id[transaction_id]
             if cred_id != credential_identifier:
-                raise IssuerError("invalid_credential_request")
+                raise IssuerError(
+                    "invalid_credential_request", "Credentials IDs do not match"
+                )
             status = self.get_credential_status(cred_id)
             if status.status == "ACCEPTED":
                 self.transaction_id_to_cred_id.pop(transaction_id)
             return status
         except KeyError:
-            raise IssuerError("invalid_transaction_id")
+            raise IssuerError("invalid_transaction_id", "Transaction ID is invalid")
         except IssuerError as e:
-            raise IssuerError(e.message)
+            raise IssuerError(e.message, e.details)
 
     async def credential_offer(self):
         cred_offer = {
@@ -168,15 +177,14 @@ class DefaultIssuer(CredentialIssuer):
     def get_server(self) -> FastAPI:
         router = super().get_server()
         router.get("/offer")(self.credential_offer)
-        router.get("/hello")(hello_world)
         return router
 
 
-credential_issuer = DefaultIssuer(
-    "/usr/src/app/examples/example_jwk_private.pem",
-    "/usr/src/app/examples/example_diddoc.json",
-    "/usr/src/app/examples/example_didconf.json",
-    "/usr/src/app/examples/example_metadata.json",
-    "/usr/src/app/examples/example_oauth_metadata.json",
-)
-credential_issuer_server = credential_issuer.get_server()
+# credential_issuer = DefaultIssuer(
+#     "/usr/src/app/examples/demo_data/example_jwk_private.pem",
+#     "/usr/src/app/examples/demo_data/example_diddoc.json",
+#     "/usr/src/app/examples/demo_data/example_didconf.json",
+#     "/usr/src/app/examples/demo_data/example_metadata.json",
+#     "/usr/src/app/examples/demo_data/example_oauth_metadata.json",
+# )
+# credential_issuer_server = credential_issuer.get_server()

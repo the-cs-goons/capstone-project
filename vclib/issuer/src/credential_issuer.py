@@ -4,7 +4,7 @@ from base64 import urlsafe_b64decode
 from datetime import UTC, datetime, timedelta
 from time import mktime
 from typing import Annotated, Any
-from urllib.parse import urlparse
+from urllib.parse import quote, urlparse
 
 import jwt
 from fastapi import FastAPI, Form, Header, Response, status
@@ -213,9 +213,12 @@ class CredentialIssuer:
             )
 
         cred_id = json.loads(authorization_details)[0]["credential_configuration_id"]
-        form = self.credentials[cred_id]
 
-        return FormResponse(form=form)
+        try:
+            return self.get_credential_form(cred_id)
+        except IssuerError as e:
+            response.status_code = status.HTTP_400_BAD_REQUEST
+            return {"error": e.message}
 
     async def receive_credential_request(
         self,
@@ -268,6 +271,7 @@ class CredentialIssuer:
         - error: The error code of the error that occured.
         - state: The state value given to the endpoint.
         """
+        print(information)
         try:
             self._check_authorization_details(
                 response_type, client_id, redirect_uri, state, authorization_details
@@ -286,28 +290,45 @@ class CredentialIssuer:
 
         if cred_type not in self.credentials:
             return RedirectResponse(
-                url=f"{redirect_uri}?error=invalid_request&state={state}",
+                url=f"{redirect_uri}?error=invalid_request&error_description={
+                    quote(f"Credential type {cred_type} not found")
+                }&state={state}",
                 status_code=status.HTTP_302_FOUND,
             )
 
         try:
             self._check_input_typing(
-                self.credentials[cred_type], cred_type, information
+                self.get_credential_form(cred_type).form, cred_type, information
             )
         except TypeError:
             return RedirectResponse(
-                url=f"{redirect_uri}?error=invalid_request&state={state}",
+                url=f"""{redirect_uri}?error=invalid_request&error_description={
+                    quote("Form response does not match required fields")
+                }&state={state}""",
+                status_code=status.HTTP_302_FOUND,
+            )
+        except IssuerError as e:
+            return RedirectResponse(
+                url=f"""{redirect_uri}?error={e.message}&error_description={
+                    quote(e.details)
+                }&state={state}""",
                 status_code=status.HTTP_302_FOUND,
             )
 
-        auth_code = self.get_credential_request(
-            client_id, cred_type, redirect_uri, information
-        )
+        try:
+            auth_code = self.get_credential_request(
+                client_id, cred_type, redirect_uri, information
+            )
 
-        return RedirectResponse(
-            url=f"{redirect_uri}?code={auth_code}&state={state}",
-            status_code=status.HTTP_302_FOUND,
-        )
+            return RedirectResponse(
+                url=f"{redirect_uri}?code={auth_code}&state={state}",
+                status_code=status.HTTP_302_FOUND,
+            )
+        except IssuerError as e:
+            return RedirectResponse(
+                url=f"{redirect_uri}?error={e.message}&error_description={quote(e.details)}&state={state}",
+                status_code=status.HTTP_302_FOUND,
+            )
 
     async def token(
         self,
@@ -559,18 +580,19 @@ class CredentialIssuer:
             state,
             authorization_details,
         ):
-            raise IssuerError("invalid_request")
+            raise IssuerError("invalid_request", "Missing required fields")
 
         if response_type != "code":
-            raise IssuerError("unsupported_response_type")
+            raise IssuerError(
+                "unsupported_response_type", "Response type must be 'code'"
+            )
 
-        try:
-            self.check_client_id(client_id)
-        except IssuerError:
-            raise IssuerError("invalid_request")
+        self.check_client_id(client_id)
 
         if not self.validate_uri(redirect_uri):
-            raise IssuerError("invalid_uri")  # NOT defined in spec, self added
+            raise IssuerError(
+                "invalid_uri", "Redirect URIs do not match"
+            )  # NOT defined in spec, self added
 
         try:
             AuthorizationRequestDetails.model_validate(
@@ -712,6 +734,9 @@ class CredentialIssuer:
             raise IssuerError("invalid_client")
         ```
         """
+
+    def get_credential_form(self, credential_config: str) -> FormResponse:
+        pass
 
     def get_credential_request(
         self, _client_id: str, _cred_type: str, _redirect_uri: str, _information: dict
@@ -864,7 +889,11 @@ class CredentialIssuer:
         - `str`: A string containing the new issued credential.
         """
 
-        other = {"iss": self.uri, "iat": mktime(datetime.now(tz=UTC).timetuple())}
+        other = {
+            "iss": self.uri,
+            "vct": self.uri + "/" + cred_type,
+            "iat": mktime(datetime.now(tz=UTC).timetuple()),
+        }
         new_credential = SDJWTVCIssuer(disclosable_claims, other, self.jwk, None)
 
         return new_credential.sd_jwt_issuance

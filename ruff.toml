@@ -1,5 +1,7 @@
 target-version = "py312"
 
+extend-exclude = ["vclib/issuer/examples/example_license_form.py"]
+
 [lint]
 # to consider: "C90", "D" minus ["D206", "D300", "D203", "D213"], "ANN", "S", "BLE", "B", "A", "EM", "T20", "PT", "SLF", "ARG", "PTH", "PL", "TRY", "PERF"
 # feel free to remove rules if they're getting annoying, just added these for completion's sake :D

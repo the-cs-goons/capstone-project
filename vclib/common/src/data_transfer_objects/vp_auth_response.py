@@ -11,6 +11,7 @@ class DescriptorMapObject(BaseModel):
 
     # path_nested: any  ## TODO: implement nested paths
 
+
 class PresentationSubmissionObject(BaseModel):
     id: str
     definition_id: str
@@ -18,6 +19,6 @@ class PresentationSubmissionObject(BaseModel):
 
 
 class AuthorizationResponseObject(BaseModel):
-    vp_token: str | list[str]
+    vp_token: str | list[str] | None
     presentation_submission: PresentationSubmissionObject
     state: str | None

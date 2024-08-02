@@ -49,6 +49,7 @@ services:
     environment:
       - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
       - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt
+      - CS3900_HOLDER_WALLET_PATH=
 
   issuer-lib:
     build:
@@ -58,7 +59,8 @@ services:
         - vclib-root=./vclib
         - root=.
     ports:
-      - $CS3900_ISSUER_AGENT_PORT:$CS3900_ISSUER_AGENT_PORT
+      - $CS3900_LICENSE_ISSUER_DEMO_AGENT_PORT:$CS3900_LICENSE_ISSUER_DEMO_AGENT_PORT
+      - $CS3900_VACCINATION_ISSUER_DEMO_AGENT_PORT:$CS3900_VACCINATION_ISSUER_DEMO_AGENT_PORT
     volumes:
       - type: bind
         source: vclib/issuer/src
@@ -81,7 +83,8 @@ services:
         - vclib-root=./vclib
         - root=.
     ports:
-      - $CS3900_VERIFIER_AGENT_PORT:$CS3900_VERIFIER_AGENT_PORT
+      - $CS3900_BAR_VERIFIER_DEMO_AGENT_PORT:$CS3900_BAR_VERIFIER_DEMO_AGENT_PORT
+      - $CS3900_CAR_RENTAL_VERIFIER_DEMO_AGENT_PORT:$CS3900_CAR_RENTAL_VERIFIER_DEMO_AGENT_PORT
     volumes:
       - type: bind
         source: vclib/verifier/src
@@ -95,6 +98,3 @@ services:
         required: true
       - path: .env
         required: false
-    environment:
-      - REQUESTS_CA_BUNDLE=/usr/src/app/examples/example_ssl_ca_bundle.crt
-      - SSL_CERT_FILE=/usr/src/app/examples/example_ssl_ca_bundle.crt

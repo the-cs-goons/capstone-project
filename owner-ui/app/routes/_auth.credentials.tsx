@@ -7,17 +7,24 @@ import {
   Tooltip,
   IconButton,
 } from "@mui/material";
-import { ActionFunctionArgs } from "@remix-run/node";
+import { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import {
   isRouteErrorResponse,
   json,
+  Link,
   useLoaderData,
   type MetaFunction,
 } from "@remix-run/react";
+import { AxiosResponse } from "axios";
 import { CredentialCard } from "~/components/CredentialCard";
 import { CredentialsGridContainer } from "~/components/CredentialsGridContainer";
 import { FlexContainer } from "~/components/FlexContainer";
 import type { BaseCredential } from "~/interfaces/Credential/BaseCredential";
+import {
+  authHeaders,
+  getSessionFromRequest,
+  walletBackendClient,
+} from "~/utils";
 
 export const meta: MetaFunction = ({ error }) => {
   let title = "Credentials - SSI Wallet";
@@ -34,21 +41,19 @@ export const meta: MetaFunction = ({ error }) => {
   ];
 };
 
-export async function loader() {
-  const resp = await fetch(
-    `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/credentials`,
-    { method: "GET" },
-  );
-  const data: Array<BaseCredential> = await resp.json();
+export async function loader({ request }: LoaderFunctionArgs) {
+  const resp: AxiosResponse = await walletBackendClient.get(`/credentials`, {
+    headers: authHeaders(await getSessionFromRequest(request)),
+  });
+  const data: Array<BaseCredential> = await resp.data;
   return json(data);
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   const body = await request.formData();
-  await fetch(
-    `https://holder-lib:${process.env.CS3900_HOLDER_AGENT_PORT}/credentials/${body.get("id")}`,
-    { method: "DELETE" },
-  );
+  await walletBackendClient.delete(`/credentials/${body.get("id")}`, {
+    headers: authHeaders(await getSessionFromRequest(request)),
+  });
   return null;
 }
 
@@ -68,7 +73,12 @@ export default function Credentials() {
             Credentials
           </Typography>
           <Tooltip id="add-credential-tooltip" title="Add new credential">
-            <IconButton color="inherit" aria-label="Add new credential">
+            <IconButton
+              color="inherit"
+              aria-label="Add new credential"
+              component={Link}
+              to="new"
+            >
               <AddIcon />
             </IconButton>
           </Tooltip>

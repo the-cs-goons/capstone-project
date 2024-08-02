@@ -4,8 +4,7 @@ class SDJWTVCRegisteredClaimsError(Exception):
     """
 
     def __init__(self, claim: str):
-        super().__init__(
-            f"Registered claim '{claim}' cannot be selectively disclosed.")
+        super().__init__(f"Registered claim '{claim}' cannot be selectively disclosed.")
 
 
 class SDJWTVCNoHolderPublicKeyError(Exception):

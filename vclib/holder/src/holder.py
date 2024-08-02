@@ -1,5 +1,3 @@
-import json
-from base64 import b64decode, b64encode
 from datetime import UTC, datetime
 from json import dumps, loads
 from typing import Any
@@ -7,6 +5,7 @@ from urllib.parse import urlencode
 
 import jsonpath_ng
 import jwt
+from jsonschema import validate
 from requests import Response, Session
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session
@@ -17,6 +16,7 @@ from .models.credential_offer import CredentialOffer
 from .models.credentials import Credential, DeferredCredential
 from .models.issuer_metadata import AuthorizationMetadata, IssuerMetadata
 from .models.oauth import AccessToken, OAuthTokenResponse
+from .storage.abstract_storage_provider import AbstractStorageProvider
 
 
 class Holder:
@@ -41,8 +41,7 @@ class Holder:
     def __init__(
         self,
         oauth_client_metadata: dict[str, Any],
-        *,
-        dev_mode=False,
+        storage_provider: AbstractStorageProvider,
     ):
         """
         Create a new Identity Owner
@@ -51,6 +50,8 @@ class Holder:
         - oauth_client_metadata(`dict`): A dictionary containing at minimum key/values
         "redirect_uris": `list[str]` and "credential_offer_endpoint": `str`.
         For additional entries, see `WalletClientMetadata`.
+        - storage_provider(`AbstractStorageProvider`): An implementation of the
+        `AbstractStorageProvider` abstract class.
         """
         self.client_metadata = WalletClientMetadata.model_validate(
             oauth_client_metadata
@@ -59,21 +60,8 @@ class Holder:
         self.oauth_clients: dict[str, RegisteredClientMetadata] = {}
         self.issuer_metadata_store: dict[str, IssuerMetadata] = {}
         self.auth_metadata_store: dict[str, AuthorizationMetadata] = {}
-        # Currently unused
-        self.dev_mode = dev_mode
-        # TODO: Replace with storage implementation
-        # dict[credential id, credential]
-        self.credentials: dict[str, Credential | DeferredCredential] = {}
-        for cred in self.load_all_credentials_from_storage():
-            self.credentials[cred.id] = cred
 
-    async def _delete_credential(self, id: str):
-        for cred in self.credentials:
-            if cred == id:
-                del self.credentials[cred]
-                return {}
-
-        raise Exception(f"Credential of ID {id} not found.")
+        self.store = storage_provider
 
     def _get_credential_payload(self, sd_jwt_vc: str):
         return sd_jwt_vc.split("~")[0]
@@ -100,7 +88,7 @@ class Holder:
         for disclosure in disclosures:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
             decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
-            decoded_disclosure_list = json.loads(decoded_disclosure_str)
+            decoded_disclosure_list = loads(decoded_disclosure_str)
             # TODO: Support nested claims, and array claims
             decoded_disclosure_claim = {
                 decoded_disclosure_list[1]: decoded_disclosure_list[2]
@@ -108,15 +96,24 @@ class Holder:
             encoded_to_decoded_disclosures[disclosure] = decoded_disclosure_claim
         return encoded_to_decoded_disclosures
 
+    def _validate_disclosure(self, disclosure: dict[str, Any], filter=None) -> bool:
+        if filter:
+            try:
+                validate(disclosure, filter)
+            except Exception:
+                return False
+        return True
+
     def _get_credentials_with_field(
         self,
         paths: list[str],  # list of jsonpath strings
+        filter: dict,  # a jsonschema
     ) -> dict[str, list[str]]:
         """returns list(credential, [encoded disclosure])"""
         sdjwts = [
             credential.raw_sdjwtvc
-            for credential in list(self.credentials.values())
-            if type(credential) is Credential and "." in credential.raw_sdjwtvc
+            for credential in self.store.get_received_credentials()
+            if "." in credential.raw_sdjwtvc
         ]  # dying because some of the example
         # raw sdjwts aren't sdjwts?
         # will ask mack l8r
@@ -137,51 +134,17 @@ class Holder:
                 for disclosure in disclosures:
                     matches = expr.find(disclosure)
                     if matches not in ([], None):
+                        disclosure_passes_filter = self._validate_disclosure(
+                            next(iter(disclosure.values())), filter
+                        )
+                        if not disclosure_passes_filter:
+                            continue
                         disclosure_idx = list(disclosures).index(disclosure)
                         encoded_disclosures = encoded_to_decoded_disclosures.keys()
                         encoded_disclosure = list(encoded_disclosures)[disclosure_idx]
                         matched_credentials[credential] = [encoded_disclosure]
 
         return matched_credentials
-
-    ###
-    ### Storage and persistence
-    ###
-
-    def serialise(self, cred: Credential | DeferredCredential):
-        """
-        # NOT YET IMPLEMENTED IN FULL
-        TODO: Implement encryption for safe storage using key attr
-        Converts the Credential object into some string value that can be stored
-        and encrypts it
-
-        ### Parameters
-        - cred(`Credential | DeferredCredential`): Credential to serialise
-
-        ### Returns
-        - `bytes`: A base64 encoded Credential
-        """
-        return b64encode(cred.model_dump_json().encode())
-
-    def load_from_serial(
-        self, dump: str | bytes | bytearray
-    ) -> Credential | DeferredCredential:
-        """# NOT YET IMPLEMENTED IN FULL
-        TODO: Implement decryption in accordance with implementation in
-        `serialise`
-
-        Static method that loads a credential from serialised bytes.
-
-        ### Parameters
-        - dump(`str` | `bytes` | `bytearray`): the serialised credential
-
-        ### Returns
-        - `Credential | DeferredCredential`: A Credential object
-        """
-        obj: dict = loads(b64decode(dump))
-        if obj.get("is_deferred"):
-            return DeferredCredential.model_validate(obj)
-        return Credential.model_validate(obj)
 
     ###
     ### Credential Issuance (OAuth2)
@@ -502,11 +465,8 @@ class Holder:
 
                     else:
                         raise Exception("Invalid credential response")
-        c: Credential | DeferredCredential
-        for c in new_credentials:
-            self.credentials[c.id] = c
-            self.store_credential(c)
 
+        self.store.add_many(new_credentials)
         return new_credentials
 
     async def get_issuer_metadata(
@@ -533,10 +493,23 @@ class Holder:
         return registered
 
     ###
-    ### Internal
+    ### Holder User Authentication (Internal)
     ###
 
-    async def _get_credential(
+    def login(self, username: str, password: str):
+        self.store.login(username, password)
+
+    def register(self, username: str, password: str):
+        self.store.register(username, password)
+
+    def logout(self):
+        self.store.logout()
+
+    ###
+    ### Credential Management & Storage
+    ###
+
+    async def get_credential(
         self, cred_id: str, *, refresh: bool = True
     ) -> Credential | DeferredCredential:
         """
@@ -554,19 +527,7 @@ class Holder:
         if refresh:
             return await self.refresh_credential(cred_id)
 
-        credential = self.credentials.get(cred_id, None)
-        if not credential:
-            raise Exception(f"Credential of ID {cred_id} not found.")
-
-        return credential
-
-    def get_deferred_credentials(self) -> list[DeferredCredential]:
-        """Retrieves all pending credentials.
-
-        ### Returns
-        - `list[DeferredCredential]`: A list of credentials that have been deferred.
-        """
-        return [cred for cred in self.credentials.values() if cred.is_deferred]
+        return self.store.get_credential(cred_id)
 
     async def refresh_credential(self, cred_id: str) -> Credential | DeferredCredential:
         """
@@ -582,10 +543,8 @@ class Holder:
 
 
         """
-        cred = self.credentials.get(cred_id, None)
-        if not cred:
-            raise Exception("Credential Not Found")
-        if not cred.is_deferred or isinstance(cred, Credential):
+        cred = self.store.get_credential(cred_id)
+        if isinstance(cred, Credential):
             return cred
 
         token = cred.access_token.model_dump()
@@ -604,7 +563,7 @@ class Holder:
                 and refresh.json()["error"] == "issuance_pending"
             ):
                 cred.last_request = datetime.now(tz=UTC).isoformat()
-                self.store_credential(cred)
+                self.store.update_credential(cred)
                 return cred
 
             # Pending credentials also use 400
@@ -626,9 +585,7 @@ class Holder:
                     received_at=datetime.now(tz=UTC).isoformat(),
                     raw_sdjwtvc=new,
                 )
-                self.credentials.pop(cred_id)
-                self.credentials[cred_id] = new_credential
-                self.store_credential(new_credential)
+                self.store.update_credential(new_credential)
                 return new_credential
 
             raise Exception("Invalid credential response")
@@ -644,55 +601,8 @@ class Holder:
         `last_request` attribute will be updated.
         """
         updated = []
-        for cred in self.get_deferred_credentials():
+        for cred in self.store.get_deferred_credentials():
             await self.refresh_credential(cred.id)
             updated.append(cred.id)
 
         return updated
-
-    ###
-    ### User-defined functions, designed to be overwritten
-    ###
-
-    def store_credential(self, cred: Credential):
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to store a serialised credential in some manner.
-
-        ### Parameters
-        - cred(`Credential`): A `Credential`
-
-        IMPORTANT: Do not store unsecured credentials in a production environment.
-        Use `self.serialise` to convert the `Credential` to
-        something that can be stored.
-        """
-        return
-
-    def load_credential_from_storage(
-        self, cred_id: str
-    ) -> Credential | DeferredCredential:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to load a specific credential from storage.
-        Use `self.load_from` to convert the stored credential to a `Credential` object.
-
-        ### Parameters
-        - cred_id(`str`): an identifier for the credential
-
-        ### Returns
-        - `Credential`: The requested credential, if it exists.
-        """
-        return None
-
-    def load_all_credentials_from_storage(
-        self,
-    ) -> list[Credential | DeferredCredential]:
-        """## !!! This function MUST be `@override`n !!!
-
-        Function to retrieve all credentials. Overwrite this method
-        to retrieve all credentials.
-
-        ### Returns
-        - `list[Credential | DeferredCredential]`: A list of Credential objects.
-        """
-        return []
