@@ -49,11 +49,7 @@ export async function action({ request }: ActionFunctionArgs) {
           headers: authHeaders(await getSessionFromRequest(request)),
         });
         if (resp.data.status == "OK") {
-          // return redirect("/presentation_successful");
-          const errorDetail = resp.data.errorDetail || "Unknown error";
-          return redirect(
-            `/presentation_fail?error=${encodeURIComponent(errorDetail)}`,
-          );
+          return redirect("/presentation_successful");
         } else {
           const errorDetail = resp.data.errorDetail || "Unknown error";
           return redirect(

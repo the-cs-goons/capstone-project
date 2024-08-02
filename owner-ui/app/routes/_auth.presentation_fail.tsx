@@ -1,5 +1,6 @@
-import { Button, Typography, AppBar, Toolbar } from "@mui/material";
+import { Button, Typography, AppBar, Toolbar, SvgIcon } from "@mui/material";
 import { useNavigate } from "@remix-run/react";
+import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 export default function PresentationFail() {
   const navigate = useNavigate();
@@ -34,40 +35,19 @@ export default function PresentationFail() {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          justifyContent: "center",
+          justifyContent: "space-evenly",
           height: "calc(100vh - 328px)", // Subtract the AppBar height
           textAlign: "center",
         }}
       >
-        <Typography style={{ flex: "1" }} variant="h3" gutterBottom>
+        <Typography variant="h3" gutterBottom>
           The Verifier has declined your credentials because of {errorMessage}
         </Typography>
-        <svg style={{ flex: "4" }} width={400} height={400}>
-          <circle
-            fill="none"
-            stroke="red"
-            strokeWidth={20}
-            cx={200}
-            cy={200}
-            r={190}
-          />
-          <line
-            x1="46"
-            y1="74"
-            x2="361"
-            y2="317"
-            stroke="red"
-            strokeWidth={24}
-          />
-          <line
-            x1="354"
-            y1="74"
-            x2="46"
-            y2="326"
-            stroke="red"
-            strokeWidth={24}
-          />
-        </svg>
+        <SvgIcon
+          color="error"
+          component={HighlightOffRoundedIcon}
+          sx={{ fontSize: 200 }}
+        />
         <Button
           variant="contained"
           color="primary"
