@@ -1,4 +1,29 @@
-[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-718a45dd9cf7e7f842a935f5ebbe5719a5e09af4491e668f4dbf3b35d5cca122.svg)](https://classroom.github.com/online_ide?assignment_repo_id=15170743&assignment_repo_type=AssignmentRepo)
+# P18 - Verifiable Credentials
+
+![The login page of our demo wallet app.](/demo/login.png)
+![The home page of our  demo wallet app.](/demo/wallet.png)
+
+## Installation
+
+### TLS Certificates
+
+In this repository, located at `vclib/(holder|issuer|verifier)/examples`, there are various `.crt` and `.key` files. **THESE ARE ILLUSTRATIVE EXAMPLES ONLY AND SHOULD NOT BE USED IN ANY PRODUCTION CONTEXT, These examples are _NOT_ treated as secret.** They exist to indicate how the repo should be set up. You *can* use these files to run this project locally, but you **SHOULD** provide your own beyond that purpose.
+
+We have provided a script, `generate_certs.sh`, that will generate new certificates for you. This script requires `openssl` to be installed on your machine. It will generate new files at the appropriate locations for you.
+
+### Steps to Install
+
+1. Make a copy of `example.env` and name it `.env`, and either provide values for ports, or use the defaults. If you are only running the code through docker, and NOT locally developing, you do NOT need to set `CS3900_HOLDER_WALLET_PATH`. This will be set in the docker container independently.
+2. From the root of the repository, run `docker-compose up --build`. This will build and start the containers.
+3. Open the wallet application at `https://localhost:{CS3900_OWNER_UI_PORT}` in a Chromium-based browser (e.g. Google Chrome) Since the certificates are self-signed, unless you add them to your browser yourself, you will need to click past the invalid certificate warning.
+
+NOTE: Restarting the docker containers will "wipe" any previous wallet data.
+
+### Using the Examples
+
+The Docker containers run a series of "example" apps/backends all built off our library. Demonstrating the interaction between these examples requires QR codes. We have provided some pre-generated examples in the [`docs`](docs/) directory at the root of this repository, but they have the default ports encoded within. If you wish to specify alternative ports, you will need to generate your own QR codes using a free tool online. The formats of these QR codes and further instructions on how to generate them can be found at [`docs/FORMAT.md`](demo/FORMAT.md).
+
+Note that when 'adding' a new credential, you may be prevented from redirecting from the 'example' issuer form. If this happens, open the console to grab the redirect link.
 
 ## Local development
 
