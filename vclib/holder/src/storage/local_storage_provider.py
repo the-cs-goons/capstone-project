@@ -224,6 +224,31 @@ class LocalStorageProvider(AbstractStorageProvider):
         con.executescript(self.LOCAL_CONFIG_SCHEMA)
         con.close()
 
+    def _purge_db(self):
+        """Clears all the data from the database."""
+        try:
+            conn = connect(str(self.config_db_path))
+            cursor = conn.cursor()
+
+            # Retrieve all tables in the database
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+            tables = cursor.fetchall()
+
+            # Disable foreign key checks
+            cursor.execute("PRAGMA foreign_keys = OFF;")
+
+            # Clear each table
+            for table_name in tables:
+                cursor.execute(f"DELETE FROM {table_name[0]};")
+
+            # Re-enable foreign key checks
+            cursor.execute("PRAGMA foreign_keys = ON;")
+
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            raise Exception(f"Problem when purging database: {e}")
+
     def _check_storage_directory(self):
         # Check directory structure
         self.config_db_path = self.storage_dir_path.joinpath(self.LOCAL_CONFIG_FILE)

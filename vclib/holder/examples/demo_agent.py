@@ -113,6 +113,7 @@ cred = Credential(
     c_type="sd_jwt",
 )
 
+identity_owner.store._purge_db()
 identity_owner.store.register("asdf", "1234567890")
 identity_owner.store.add_credential(cred)
 identity_owner_server = identity_owner.get_server()

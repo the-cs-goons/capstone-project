@@ -124,3 +124,8 @@ class AbstractStorageProvider(metaclass=ABCMeta):
         Implementation specific.
         """
         raise NotImplementedError
+
+    @abstractmethod
+    def _purge_db(self):
+        """Clears the database"""
+        raise NotImplementedError
