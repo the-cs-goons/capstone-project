@@ -201,7 +201,7 @@ async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
         over_18_mock_field_selection, authorization=auth_header
     )
 
-    assert resp == {"status": "OK"}
+    assert resp == "success"
 
 
 @pytest.mark.asyncio
