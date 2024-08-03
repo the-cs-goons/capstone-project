@@ -21,7 +21,7 @@ NOTE: Restarting the docker containers will "wipe" any previous wallet data.
 
 ### Using the Examples
 
-The Docker containers run a series of "example" apps/backends all built off our library. Demonstrating the interaction between these examples requires QR codes. We have provided some pre-generated examples in the [`demo`](demo/) directory at the root of this repository, but they have the default ports encoded within. If you wish to specify alternative ports, you will need to generate your own QR codes using a free tool online. The formats of these QR codes and further instructions on how to generate them can be found at [`demo/FORMAT.md`](demo/FORMAT.md).
+The Docker containers run a series of "example" apps/backends all built off our library. Demonstrating the interaction between these examples requires QR codes. We have provided some pre-generated examples in the [`docs`](docs/) directory at the root of this repository, but they have the default ports encoded within. If you wish to specify alternative ports, you will need to generate your own QR codes using a free tool online. The formats of these QR codes and further instructions on how to generate them can be found at [`docs/FORMAT.md`](demo/FORMAT.md).
 
 Note that when 'adding' a new credential, you may be prevented from redirecting from the 'example' issuer form. If this happens, open the console to grab the redirect link.
 
