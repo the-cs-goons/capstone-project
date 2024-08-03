@@ -1,16 +1,13 @@
 import { Button, Typography, AppBar, Toolbar, SvgIcon } from "@mui/material";
-import { useNavigate } from "@remix-run/react";
+import { useNavigate, useSearchParams } from "@remix-run/react";
 import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
 export default function PresentationFail() {
   const navigate = useNavigate();
 
-  function getQueryParam(param: string) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(param);
-  }
+  const [params] = useSearchParams();
 
-  const errorMessage = getQueryParam("error");
+  const errorMessage = params.get("error") || "Unknown Error";
 
   return (
     <>
