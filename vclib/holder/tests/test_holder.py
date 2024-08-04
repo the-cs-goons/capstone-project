@@ -160,7 +160,6 @@ def identity_owner(tmp_path_factory, example_credentials):
         authorization_details_types_supported=["openid_credential"],
         **{"pre-authorized_grant_anonymous_access_supported": False},
     )
-    print(id_owner)
     id_owner.register("test_holder", "test_holder")
     id_owner.store.add_many(example_credentials)
 

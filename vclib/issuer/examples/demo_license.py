@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Any, override
 from uuid import uuid4
@@ -107,6 +108,8 @@ class LicenseIssuer(DefaultIssuer):
 
         self.statuses[self.ticket] = (cred_type, holder_information)
 
+        self.time = datetime.datetime.now(tz=datetime.UTC)
+
         return auth_code
 
     @override
@@ -117,29 +120,28 @@ class LicenseIssuer(DefaultIssuer):
         client_id: str | None = None,
         redirect_uri: str | None = None,
         state: str | None = None,
-        authorization_details: str | None = None
-        ) -> Any:
+        authorization_details: str | None = None,
+    ) -> Any:
         form = await super().authorize(
             response,
             response_type,
             client_id,
             redirect_uri,
             state,
-            authorization_details
-            )
+            authorization_details,
+        )
         if isinstance(form, RedirectResponse):
             return form
 
         auth_details = AuthorizationRequestDetails.model_validate(
-                json.loads(authorization_details)[0]
-            )
+            json.loads(authorization_details)[0]
+        )
 
         if "DriversLicense" in auth_details.credential_configuration_id:
             # TODO: Investigate CORS headers on this end
             return HTMLResponse(content=html_license_form)
 
         return form
-
 
     @override
     def get_credential_status(self, cred_id: str) -> StatusResponse:

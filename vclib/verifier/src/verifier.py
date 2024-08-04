@@ -180,7 +180,9 @@ class Verifier:
           dict matching the desired presentation definition
         - image_path(`str`): Where to save the QR code image
         """
-        img = qrcode.make(f"request_uri={quote_plus(self.base_url)}%2Frequest%2F{presentation_definition_key}")  # noqa: E501
+        img = qrcode.make(
+            f"request_uri={quote_plus(self.base_url)}%2Frequest%2F{presentation_definition_key}"
+        )
         img.save(image_path)
 
     def cb_get_issuer_key(self, iss: str, headers: dict) -> JWK:

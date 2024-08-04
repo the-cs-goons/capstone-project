@@ -27,8 +27,8 @@ class DefaultIssuer(CredentialIssuer):
       to associated ticket and transaction ID.
     """
 
-    statuses: dict[int, (str, dict)]
-    time: datetime
+    statuses: dict[int, tuple[str, dict]]
+    time: datetime.datetime
 
     @override
     def __init__(
@@ -131,7 +131,7 @@ class DefaultIssuer(CredentialIssuer):
         status = "ACCEPTED"
 
         curr_time = datetime.datetime.now(tz=datetime.UTC)
-        if curr_time - self.time < datetime.timedelta(0, 40, 0):
+        if curr_time - self.time < datetime.timedelta(0, 100, 0):
             if cred_info["transaction_id"] is None:
                 transaction_id = str(uuid4())
                 self.id_to_info[cred_id]["transaction_id"] = transaction_id
