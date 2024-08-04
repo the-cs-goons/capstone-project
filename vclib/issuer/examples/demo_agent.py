@@ -1,5 +1,5 @@
-import datetime
 import json
+from datetime import UTC, datetime, timedelta
 from typing import override
 from uuid import uuid4
 
@@ -28,7 +28,7 @@ class DefaultIssuer(CredentialIssuer):
     """
 
     statuses: dict[int, tuple[str, dict]]
-    time: datetime.datetime
+    time: datetime
 
     @override
     def __init__(
@@ -96,7 +96,7 @@ class DefaultIssuer(CredentialIssuer):
         self.id_to_info[cred_id] = {"ticket": self.ticket, "transaction_id": None}
 
         self.statuses[self.ticket] = (cred_type, information)
-        self.time = datetime.datetime.now(tz=datetime.UTC)
+        self.time = datetime.now(tz=UTC)
 
         return auth_code
 
@@ -130,8 +130,8 @@ class DefaultIssuer(CredentialIssuer):
 
         status = "ACCEPTED"
 
-        curr_time = datetime.datetime.now(tz=datetime.UTC)
-        if curr_time - self.time < datetime.timedelta(0, 100, 0):
+        curr_time = datetime.now(tz=UTC)
+        if curr_time - self.time < timedelta(0, 100, 0):
             if cred_info["transaction_id"] is None:
                 transaction_id = str(uuid4())
                 self.id_to_info[cred_id]["transaction_id"] = transaction_id
