@@ -1,6 +1,6 @@
 import { Button, Typography, AppBar, Toolbar } from "@mui/material";
 import { useNavigate, useSearchParams } from "@remix-run/react";
-import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
+import { HighlightOffRounded as HighlightOffRoundedIcon } from "@mui/icons-material";
 import { FlexContainer } from "~/components/FlexContainer";
 
 export default function PresentationFail() {

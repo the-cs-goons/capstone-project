@@ -1,6 +1,6 @@
 import { Button, Typography, AppBar, Toolbar } from "@mui/material";
 import { useNavigate } from "@remix-run/react";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import { CheckCircleOutlineRounded as CheckCircleOutlineRoundedIcon } from "@mui/icons-material";
 import { FlexContainer } from "~/components/FlexContainer";
 
 export default function PresentationSuccess() {
