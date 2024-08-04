@@ -32,8 +32,6 @@ import {
 } from "~/utils";
 import { AxiosResponse } from "axios";
 
-// TODO: fix typing in this component
-
 export async function loader({ params, request }: LoaderFunctionArgs) {
   const resp = await walletBackendClient.get(`/credentials/${params.cred_id}`, {
     headers: authHeaders(await getSessionFromRequest(request)),

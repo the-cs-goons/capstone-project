@@ -17,8 +17,6 @@ class SDJWTVCIssuer(SDJWTIssuer):
     things, mostly verification of things that the SD JWT specification
     leaves blank but the SD JWT VC specification requires. Actually
     attempts to document the parent class.
-
-    TODO: Document further
     """
 
     SD_JWT_HEADER = "vc+sd-jwt"
@@ -78,10 +76,6 @@ class SDJWTVCIssuer(SDJWTIssuer):
         if self.ENFORCE_KEY_BINDING and holder_key is None:
             raise SDJWTVCNoHolderPublicKeyError
 
-        # TODO: specific checking for mandatory fields that SDJWTIssuer does not enforce
-        # TODO: verification of any registered JWT claims
-        # TODO: put the right stuff in the headers
-
         super().__init__(
             payload,
             issuer_key,
@@ -91,7 +85,6 @@ class SDJWTVCIssuer(SDJWTIssuer):
         )
 
     def get_disclosures(self):
-        """TODO: Make this easier"""
         return [digest.json for digest in self.ii_disclosures]
 
     def _wrap_dict(self, disclosable_claims) -> dict:

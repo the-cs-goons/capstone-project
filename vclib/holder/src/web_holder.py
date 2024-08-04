@@ -341,7 +341,6 @@ class WebHolder(Holder):
                 detail="Please provide either issuer_uri or credential_offer.",
             )
 
-        # TODO: Remove this, very temporary fix
         return RedirectResponse(
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
@@ -349,19 +348,11 @@ class WebHolder(Holder):
     async def get_auth_request(
         self,
         request_uri,
-        # client_id,  # TODO
-        # client_id_scheme,
-        # request_uri_method: Literal['get', 'post'] = "post",  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
         """Get authorization request from a verifier.
         """
         self.check_token(authorization)
-        # if client_id_scheme != "did": # TODO
-        #     raise HTTPException(
-        #         status_code=400,
-        #         detail=f"client_id_scheme {client_id_scheme} not supported",
-        #     )
 
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{request_uri}")
