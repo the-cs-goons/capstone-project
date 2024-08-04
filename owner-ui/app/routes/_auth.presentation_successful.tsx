@@ -19,7 +19,12 @@ export default function PresentationSuccess() {
           </Typography>
         </Toolbar>
       </AppBar>
-      <FlexContainer component="main" maxWidth="xl" disableGutters>
+      <FlexContainer
+        component="main"
+        maxWidth="xl"
+        disableGutters
+        sx={{ justifyContent: "space-evenly" }}
+      >
         <Typography variant="h3" component="h2">
           The Verifier has approved your credentials
         </Typography>

@@ -23,12 +23,17 @@ export default function PresentationFail() {
           </Typography>
         </Toolbar>
       </AppBar>
-      <FlexContainer component="main" maxWidth="xl" disableGutters>
+      <FlexContainer
+        component="main"
+        maxWidth="xl"
+        disableGutters
+        sx={{ justifyContent: "space-evenly" }}
+      >
         <Typography variant="h3" component="h2">
           The Verifier has declined your credentials
         </Typography>
         <Typography>Reason: {errorMessage}</Typography>
-        <HighlightOffRoundedIcon color="success" sx={{ fontSize: "200px" }} />
+        <HighlightOffRoundedIcon color="error" sx={{ fontSize: "200px" }} />
         <Button onClick={() => navigate("/credentials")}>Back</Button>
       </FlexContainer>
     </>
