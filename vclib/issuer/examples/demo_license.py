@@ -139,7 +139,6 @@ class LicenseIssuer(DefaultIssuer):
         )
 
         if "DriversLicense" in auth_details.credential_configuration_id:
-            # TODO: Investigate CORS headers on this end
             return HTMLResponse(content=html_license_form)
 
         return form

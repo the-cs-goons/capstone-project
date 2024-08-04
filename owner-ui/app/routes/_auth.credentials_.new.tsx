@@ -66,7 +66,6 @@ export async function action({ request }: ActionFunctionArgs) {
       return data;
 
     case "submit-request":
-      // TODO: fix this hack
       selection = {
         credential_configuration_id: body.configs.at(0) ?? "InvalidId",
         credential_offer: body.offer,

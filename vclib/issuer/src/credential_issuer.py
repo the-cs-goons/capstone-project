@@ -363,7 +363,6 @@ class CredentialIssuer:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "unsupported_grant_type"}
 
-        # TODO is this a correct variable name?
         payload = authorization.split(" ")[1]
         client_id, client_secret = (
             urlsafe_b64decode(payload.encode("utf-8") + b"==")
