@@ -6,18 +6,14 @@ import pytest
 import uvicorn
 from fastapi.testclient import TestClient
 from multiprocess import Process
-from base64 import urlsafe_b64decode
 
 from vclib.common.src.data_transfer_objects.vp_auth_request import Field
 from vclib.holder.examples.demo_agent import credential_holder
 from vclib.holder.src.models.field_selection_object import (
-    FieldSelectionObject,
     FieldRequest,
+    FieldSelectionObject,
 )
 from vclib.verifier.examples.bar_demo_agent import verifier as bar_verifier
-from vclib.verifier.examples.car_rental_demo_agent import (
-    verifier as car_rental_verifier,
-)
 
 clients = {
     "holder": {
@@ -31,9 +27,6 @@ clients = {
 }
 
 bar_verifier.base_url = f"http://localhost:{clients['bar_verifier']['port']}"
-car_rental_verifier.base_url = (
-    f"http://localhost:{clients['car_rental_verifier']['port']}"
-)
 
 
 @pytest.fixture(scope="session", autouse=True)
