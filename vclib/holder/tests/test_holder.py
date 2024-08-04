@@ -19,7 +19,6 @@ from vclib.holder import (
     IssuerMetadata,
 )
 from vclib.holder.examples.demo_agent import DemoWebHolder
-from vclib.holder.src.holder import Holder
 from vclib.holder.src.models.credentials import BaseCredential
 from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
