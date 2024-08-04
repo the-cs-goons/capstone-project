@@ -1,6 +1,9 @@
 from os import environ
 from typing import override
 
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 from vclib.holder import (
     AuthorizationMetadata,
     Credential,
@@ -18,7 +21,6 @@ MOCK_STORE = {
         "credential_configuration_id": "Passport",
         "is_deferred": False,
         "c_type": "openid_credential",
-        # TODO: Make this a proper sdjwt?
         "raw_sdjwtvc": "eyJuYW1lIjoiTWFjayBDaGVlc2VNYW4iLCJkb2IiOiIwMS8wMS8wMSIsImV4cGlyeSI6IjEyLzEyLzI1In0=",  # noqa: E501
         "received_at": "2024-07-15T02:54:13.634808+00:00",
     },
@@ -79,6 +81,18 @@ class DemoWebHolder(WebHolder):
         return await super().register_client(
             registration_url, issuer_uri, wallet_metadata=wallet_metadata
         )
+
+    @override
+    def get_server(self) -> FastAPI:
+        server = super().get_server()
+        server.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
+        return server
 
 
 WALLET_PATH = environ.get("CS3900_HOLDER_WALLET_PATH", None)

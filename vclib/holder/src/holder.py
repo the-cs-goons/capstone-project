@@ -89,7 +89,6 @@ class Holder:
             decoded_disclosure_bytes = SDJWTCommon._base64url_decode(disclosure)
             decoded_disclosure_str = decoded_disclosure_bytes.decode("utf-8")
             decoded_disclosure_list = loads(decoded_disclosure_str)
-            # TODO: Support nested claims, and array claims
             decoded_disclosure_claim = {
                 decoded_disclosure_list[1]: decoded_disclosure_list[2]
             }
@@ -280,8 +279,6 @@ class Holder:
             issuer_url
         )
 
-        # TODO: Check for supported config
-
         # Register as OAuth client
         wallet_metadata = await self.register_client(
             auth_metadata.registration_endpoint, issuer_metadata.credential_issuer
@@ -325,7 +322,7 @@ class Holder:
         on what the end user authorized the wallet to access.
 
         The retrieved credentials are only saved if every credential request was
-        successful. (TODO: Might change this behaviour later)
+        successful.
 
         ### Parameters:
         - code(`str`): The authorization code, to be used in the token request.
@@ -375,7 +372,6 @@ class Holder:
                 "Accept": "application/json",
                 "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
             }
-            # TODO: Extra args for verifying
 
             params = {
                 "grant_type": "authorization_code",

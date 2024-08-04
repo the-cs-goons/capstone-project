@@ -9,8 +9,6 @@ class DescriptorMapObject(BaseModel):
     # "$.verifiableCredential[n]" if there are
     # multiple in a presentation
 
-    # path_nested: any  ## TODO: implement nested paths
-
 
 class PresentationSubmissionObject(BaseModel):
     id: str
