@@ -44,12 +44,24 @@ export async function action({ request }: ActionFunctionArgs) {
       return json(data);
 
     case "present-cred":
-      resp = await walletBackendClient.post(`/presentation`, body.data, {
-        headers: authHeaders(await getSessionFromRequest(request)),
-      });
+      try {
+        resp = await walletBackendClient.post(`/presentation`, body.data, {
+          headers: authHeaders(await getSessionFromRequest(request)),
+        });
+        if (resp.data.status == "OK") {
+          return redirect("/presentation_successful");
+        } else {
+          const errorDetail = resp.data.errorDetail || "Unknown error";
+          return redirect(
+            `/presentation_fail?error=${encodeURIComponent(errorDetail)}`,
+          );
+        }
+      } catch (error) {
+        return redirect(`/presentation_fail?error=${error}`);
+      }
+
       // TODO: implement proper redirect
-      console.log(resp.data);
-      return redirect("/presentation_successful");
+      return redirect("/credentials");
 
     default:
       break;

@@ -1,9 +1,13 @@
 import { Button, Typography, AppBar, Toolbar, SvgIcon } from "@mui/material";
-import { useNavigate } from "@remix-run/react";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import { useNavigate, useSearchParams } from "@remix-run/react";
+import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
 
-export default function PresentationSuccess() {
+export default function PresentationFail() {
   const navigate = useNavigate();
+
+  const [params] = useSearchParams();
+
+  const errorMessage = params.get("error") || "Unknown Error";
 
   return (
     <>
@@ -19,7 +23,7 @@ export default function PresentationSuccess() {
           }}
         >
           <Typography variant="h1" component="h2" gutterBottom>
-            Presentation Successful
+            Presentation Fail
           </Typography>
         </Toolbar>
       </AppBar>
@@ -34,11 +38,11 @@ export default function PresentationSuccess() {
         }}
       >
         <Typography variant="h3" gutterBottom>
-          The Verifier has approved your credentials
+          The Verifier has declined your credentials because of {errorMessage}
         </Typography>
         <SvgIcon
-          color="success"
-          component={CheckCircleOutlineRoundedIcon}
+          color="error"
+          component={HighlightOffRoundedIcon}
           sx={{ fontSize: 200 }}
         />
         <Button
