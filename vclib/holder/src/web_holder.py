@@ -400,6 +400,11 @@ class WebHolder(Holder):
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
         ]
+        if len(approved_fields) == 0:
+            raise HTTPException(
+                status_code=403,
+                detail="access_denied: credential request rejected"
+            )
         pd = self.current_transaction.presentation_definition
         ids = pd.input_descriptors
 
@@ -450,7 +455,6 @@ class WebHolder(Holder):
 
             id_vp_tokens.append((input_descriptor_id, vp_token))
 
-        print(id_vp_tokens)
         final_vp_token = None
         descriptor_maps = []
         definition_id = self.current_transaction.presentation_definition.id

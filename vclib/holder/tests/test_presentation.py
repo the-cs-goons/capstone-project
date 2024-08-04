@@ -34,6 +34,20 @@ drivers_license_credential = {
     "raw_sdjwtvc": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogImV4YW1wbGUrc2Qtand0In0.eyJfc2QiOiBbIjZTS2FTQjBkc1VxRV9nX1VwM1BOWHA1dFhEblBMbzNZY19DM200RjQxTUUiLCAiNm5NZkc2a0VLVUxObWx2N3hMZEpWQW1EYW5GTm1MSDZ3MDd0MV9qWGcwTSIsICJBMzE4U1VGT09ybGpwUGxzOS1HMENOTlNZdXNsSHJTNkV0azdFQVRXUHRjIiwgIkJCLURxRFZ5dmNuRUExZDNnamt5RmlDMVVoTVYtbWd3bTVtNzUyWnRTWTgiLCAiQ3BpSGVhZGJKeTkzMDh1YW9QZHJNWW1MVmlXTUtzMGJIZzlGVU9UaUlhQSIsICJDcUMwRE0wMzJKZVhCdnlMQzlTSjNDVkJ4YVN3enJVRXdnYW9XYnlhYlQ4IiwgIk5ZQURxdzh5VWJ4SW9QQk5vS1ZlMGY3TXlOSjM0VHNlNTNTbTdIT0dyZ3ciLCAiUWlMUUxQMzlsN0hlanNyXzU0SlNBYUt4TGFGbHZyT0pjS1V5MW15QW1JdyIsICJfUWtYNldTWjBJUGRBR2UxYng5Uk9RT0FidDlnVWhDR1FPWUFMeWpWd3R3IiwgImhQdV93RGtFNFFndXMwN3l1MmQ1LVZoMTZuUWNsV3UySDEtLWYxV2hpaGMiLCAic2ZVYTFFbmhXTmllbXRWMjRuUDB4QXFMVFF3S21zcUo3T0Z3eHdHRTBVYyJdLCAiaWF0IjogMTcwMDAwMDAwMCwgImlzcyI6ICJzZXJ2aWNlbnN3LmNvbS5hdSIsICJ2Y3QiOiAic2VydmljZW5zdy5jb20uYXUvZHJpdmVyc19saWNlbnNlIiwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.gqwETLGU8-hV_vVN0vbIT8FRFAYqn-0La6Pub5KL1mslDCYsZuenXoOvV493qVd-HMbJAsLyW6tpKaBi1kZk_A~WyJNMm1teWNRbThxdmpjSzdEVk9GeTl3IiwgImdpdmVuX25hbWUiLCAiSm9obiJd~WyI1ZnFlUEdSdVFBM3JLb1hmdFotOFNnIiwgIm1pZGRsZV9uYW1lIiwgIk1vcmdhbiJd~WyJ1T19tWnVVY3FQUURibGRMcjUyN0pnIiwgImZhbWlseV9uYW1lIiwgIkRvZSJd~WyJYMkNkT1VUX1NsU3UyR21WQS1CWDN3IiwgImFkZHJlc3MiLCAiMTMgQmFrZXIgU3RyZWV0LCBTeWRuZXksIE5TVyJd~WyI3NGEtb1FMU25wSXBfRmwtak5tRVRRIiwgImxpY2Vuc2VfbnVtYmVyIiwgMTIzNDU2Nzhd~WyJ1Wkc3Z3Z6UWpnM2lRY0dkZlItWDFBIiwgImxpY2Vuc2VfY2xhc3MiLCAiQyBQMSJd~WyJfbWlYdUVtSnRvRW5rLUctTEZtSkhRIiwgImNhcmRfbnVtYmVyIiwgMTIzNDU2Nzg5MF0~WyJmeTRBRlZ1TTBMVi1jNjNWQ21PQ0FRIiwgImRhdGVfb2ZfYmlydGgiLCAiMjAwMC0wMS0wMSJd~WyJpWFFDSkhWbWp6UWR5QVhCZGplWVdnIiwgImlzX292ZXJfMTgiLCB0cnVlXQ~WyJOZkNxNURNNUZRS0trZ2dfV2VTWWxnIiwgImlzX292ZXJfMjEiLCB0cnVlXQ~WyJ4azh1SHNEUzV5ZTN0dnY1SGxwMF9BIiwgImlzX292ZXJfNjUiLCBmYWxzZV0~",  # noqa: E501
     "received_at": "2024-07-15T02:54:13.634808+00:00",
 }
+
+@pytest.fixture
+def holder(tmp_path_factory):
+    return WebHolder(
+        [f"{OWNER_URI}/add"],
+        f"{OWNER_URI}/offer",
+        LocalStorageProvider(storage_dir_path=tmp_path_factory.mktemp("test_storage"))
+    )
+
+@pytest.fixture
+def auth_header(holder: WebHolder):
+    holder.store.register("asdf", "1234567890")
+    return f"Bearer {holder._generate_jwt({"username": "asdf"})}"
+
 @pytest.fixture
 def over_18_field_selection():
     return FieldSelectionObject(field_requests=[
@@ -295,7 +309,7 @@ async def test13_multiple_credential_presentation(
     assert resp == 'success'
 
 @pytest.mark.asyncio()
-async def test14_multiple_fields_from_credential(
+async def test14_requested_multiple_fields_from_credential(
         httpx_mock: HTTPXMock,
         mock_data_with_cred,
         over_18_field_selection):
@@ -352,3 +366,92 @@ async def test14_multiple_fields_from_credential(
         over_18_field_selection, auth_header)
 
     assert resp == 'success'
+
+@pytest.mark.asyncio()
+async def test15_user_rejected_presentation_request(
+        httpx_mock: HTTPXMock,
+        mock_data_with_2_creds):
+    auth_req, holder, auth_header, _ = mock_data_with_2_creds
+
+    httpx_mock.add_response(
+        url="https://example.com/request/over_18",
+        json=auth_req)
+
+    await holder.get_auth_request(
+        "https://example.com/request/over_18", auth_header)
+
+    assert holder.current_transaction == AuthorizationRequestObject(**auth_req)
+
+    with pytest.raises(HTTPException):
+        resp = await holder.present_selection(
+            FieldSelectionObject(field_requests=[]), auth_header)
+        assert "access_denied" in resp.json()["detail"]
+
+@pytest.mark.asyncio()
+async def test16_request_property_in_payload(
+        httpx_mock: HTTPXMock, mock_data_with_2_creds):
+    _, holder, auth_header, _ = mock_data_with_2_creds
+    auth_req = {
+        "client_id": "some did",
+        "client_id_scheme": "did",
+        "client_metadata": {"data": "metadata in this object"},
+        "presentation_definition": {
+            "id": "request_property_in_payload",
+            "input_descriptors": [
+                {
+                    "id": "payload_property",
+                    "constraints": {
+                        "fields": [
+                            {
+                                "path": [
+                                    "$.credentialSubject.iss",
+                                    "$.iss"
+                                ],
+                                "filter": {
+                                    "type": "string",
+                                    "const": "servicensw.com.au"
+                                },
+                            }
+                        ]
+                    }
+                }
+            ],
+        },
+        "response_uri": "https://example.com/cb",
+        "response_type": "vp_token",
+        "response_mode": "direct_post",
+        "nonce": "unique nonce",
+        "wallet_nonce": None,
+        "state": "d1d9846b-0f0e-4716-8178-88a6e76f1673_1721045932",
+    }
+
+    selection = FieldSelectionObject(field_requests=[
+            {
+                "approved": True,
+                "input_descriptor_id": "request_property_in_payload",
+                "field": {
+                    "path": [
+                        "$.credentialSubject.iss",
+                        "$.iss"
+                    ],
+                    "filter": {
+                        "type": "string",
+                        "const": "servicensw.com.au"
+                    },
+                }
+            }
+        ])
+
+    httpx_mock.add_response(
+        url="https://example.com/request/payload_property",
+        json=auth_req
+    )
+
+    await holder.get_auth_request(
+        "https://example.com/request/payload_property", auth_header)
+
+    httpx_mock.add_response(
+        url="https://example.com/cb", json={"status": "OK"})
+
+    resp = await holder.present_selection(selection, auth_header)
+    assert resp == "success"

@@ -3,6 +3,7 @@ from json import dumps, loads
 from typing import Any
 from urllib.parse import urlencode
 
+import httpx
 import jsonpath_ng
 import jwt
 from jsonschema import validate
@@ -485,8 +486,8 @@ class Holder:
         registered: RegisteredClientMetadata
         if not metadata:
             metadata = self.client_metadata.model_dump()
-        with Session() as s:
-            res: Response = s.post(registration_url, json=metadata)
+        async with httpx.AsyncClient() as client:
+            res: httpx.Response = await client.post(registration_url, json=metadata)
             body: dict = res.json()
             body["issuer_uri"] = issuer_uri
             registered = RegisteredClientMetadata.model_validate(body)
