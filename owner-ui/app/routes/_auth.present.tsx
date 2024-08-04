@@ -60,9 +60,6 @@ export async function action({ request }: ActionFunctionArgs) {
         return redirect(`/presentation_fail?error=${error}`);
       }
 
-      // TODO: implement proper redirect
-      return redirect("/credentials");
-
     default:
       break;
   }
@@ -127,27 +124,40 @@ export default function Present() {
       </AppBar>
       <FlexContainer component="main" maxWidth="xl">
         <Form method="post" onSubmit={handlePresent}>
-          <Typography>
-            {data?.client_id} is requesting the following data.
+          <Typography variant="h4" component="h2">
+            {data?.client_id} is requesting the following data. Do you wish to
+            proceed?
           </Typography>
           {definition?.input_descriptors.map((input_descriptor) => {
             return (
-              <Paper key={input_descriptor.id} sx={{ p: 3, mt: 10 }}>
-                <FormControlLabel
-                  label={input_descriptor.name ?? input_descriptor.id}
-                  control={
-                    input_descriptor.constraints.fields?.at(0)?.optional ? (
-                      <Switch name={input_descriptor.id} />
-                    ) : (
-                      <input
-                        type="hidden"
-                        name={input_descriptor.id}
-                        checked
-                        readOnly
+              <Paper key={input_descriptor.id} sx={{ p: 2 }}>
+                <Typography variant="h5" component="h3">
+                  {input_descriptor.name ?? input_descriptor.id}
+                </Typography>
+                <Typography>
+                  {input_descriptor.purpose ?? "No purpose provided"}
+                </Typography>
+                {input_descriptor.constraints.fields?.map((field) => {
+                  return (
+                    <Paper key={field.id} sx={{ p: 2 }}>
+                      <FormControlLabel
+                        label={field.name ?? field.id}
+                        control={
+                          field.optional ? (
+                            <Switch name={field.id ?? field.path[0]} />
+                          ) : (
+                            <input
+                              type="hidden"
+                              name={field.id ?? field.path[0]}
+                              checked
+                              readOnly
+                            />
+                          )
+                        }
                       />
-                    )
-                  }
-                />
+                    </Paper>
+                  );
+                })}
               </Paper>
             );
           })}
