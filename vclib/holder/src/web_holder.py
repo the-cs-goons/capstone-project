@@ -414,12 +414,11 @@ class WebHolder(Holder):
                 # make sure we keep creds with previously found fields
                 # ignore if field is optional
                 if not field.optional:
-                    for cred in valid_credentials:
-                        if cred not in new_valid_creds:
-                            valid_credentials.pop(cred)
-                    for cred in new_valid_creds:
-                        if cred not in valid_credentials:
-                            new_valid_creds.pop(cred)
+                    creds = set(valid_credentials.keys()).intersection(
+                        set(new_valid_creds.keys())
+                    )
+                    valid_credentials = {c: valid_credentials[c] for c in creds}
+                    new_valid_creds = {c: new_valid_creds[c] for c in creds}
 
                 # valid credentials should equal new_valid_creds now
 
