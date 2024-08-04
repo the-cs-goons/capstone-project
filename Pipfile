@@ -16,9 +16,6 @@ qrcode = "*"
 jsonschema = "*"
 argon2-cffi = "*"
 pyzipper = "*"
-python-multipart = "*"
-multiprocess = "*"
-uvicorn = "*"
 
 [dev-packages]
 pytest = "*"

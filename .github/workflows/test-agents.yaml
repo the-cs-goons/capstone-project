@@ -43,7 +43,7 @@ jobs:
 
       - name: Run Python tests
         id: test-python
-        run: pip install tox && cp example.env .env && echo "CS3900_BAR_VERIFIER_DEMO_AGENT_PORT=8090" >> .env && tox
+        run: pip install tox && cp example.env .env && tox
         if: ${{ steps.setup-python.conclusion == 'success' }}
 
       - name: Archive Python code coverage results

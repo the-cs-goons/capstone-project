@@ -98,5 +98,3 @@ services:
         required: true
       - path: .env
         required: false
-    environment:
-      - CS3900_DOCKERISED=true
