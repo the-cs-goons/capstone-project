@@ -178,7 +178,9 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     storage_dir_path: Path
     config_db_path: Path
-    active_user: ActiveUser | None
+    active_user: (
+        ActiveUser | None
+    )  # concurrency is not supported here because the credential holder backend should only be for a single user
 
     # Using argon2 for hashing.
     _pwd_hasher = PasswordHasher()

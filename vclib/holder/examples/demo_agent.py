@@ -84,15 +84,15 @@ class DemoWebHolder(WebHolder):
 WALLET_PATH = environ.get("CS3900_HOLDER_WALLET_PATH", None)
 storage_provider = LocalStorageProvider(storage_dir_path=WALLET_PATH)
 
-identity_owner = DemoWebHolder(
+credential_holder = DemoWebHolder(
     [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", storage_provider
 )
-identity_owner.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
+credential_holder.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
     credential_issuer=EXAMPLE_ISSUER,
     credential_configurations_supported={"ExampleCredential": {}},
     credential_endpoint=EXAMPLE_ISSUER + "/get_credential",
 )
-identity_owner.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
+credential_holder.auth_metadata_store[EXAMPLE_ISSUER] = AuthorizationMetadata(
     issuer=EXAMPLE_ISSUER,
     authorization_endpoint=EXAMPLE_ISSUER + "/oauth2/authorize",
     registration_endpoint=EXAMPLE_ISSUER + "/oauth2/register",
@@ -107,12 +107,15 @@ cred = Credential(
     id="mock_photocard",
     raw_sdjwtvc="eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIjFlZ0VpSl9Ga1pud0hwWnE4cklYd1ZLME5PVS1GNldTNVBxaVpsTm1tUkkiLCAiR3A1THpzOURES3pVcmJLT2dkMnJncEZNTGIyQzg5OHpiamtaeXdoeGtQUSIsICJKY1JPRHNGMGlaY1UybFVEWFB2M0pBWGFSZmhlNUNrREZNZkZuQXdtSzI0IiwgIlBiTUQ3ckZtWmJoMzhOREkwN3NzMGlXLUtGUWdvbmlwZzZlR1JkeGl5QTQiLCAiVklpYWo4Ukg0SUZKVE5FMXVibm9ReEtuc21Db3hkd3VOa2kxV1NmOTBxWSIsICJmM1NIWVhWc0tVcDRqeFZaS282bWZaTGhSV3NXTU52M0phVUtSN1ktSDBVIl0sICJpc3MiOiAiaHR0cHM6Ly9pc3N1ZXItbGliOjgwODIiLCAiaWF0IjogMTcyMjMyMDk4Mi4wLCAiX3NkX2FsZyI6ICJzaGEtMjU2In0.LCF0HaHb8rInRtTrO_S9dsJ6zOWsb5AMyY-Ue7LvG2Cjv-laD4he2eK1bhiEAlJeKpRdACvK7bOOl3E8BUI52A~WyJrUFdNT2ItNHkwY25fM0xvSTF0ckF3IiwgImdpdmVuX25hbWUiLCAiQUJDIl0~WyJxNGF2MnNFVldrM1NKc3FKLXFGWjZRIiwgImZhbWlseV9uYW1lIiwgIkQiXQ~WyJMVnBKUjFiRXBnejNlT0E2bk5YUS1BIiwgImNvdW50cnkiLCAiQXVzdHJhbGlhIl0~WyJ2dU40SU9YdDRPRmVmU19ZbjA2NGRnIiwgImFkZHJlc3MiLCB7Il9zZCI6IFsiNFZxZ3dmd2NKUGxQLTJNWXN6cTlGSFRjQ2l2VXpMWVI3Qmx3M1F1ZnFUQSJdfV0~WyJfWlBQakVYUmQwYjU0cGpRQlQ1Ri13IiwgIm5hdGlvbmFsaXRpZXMiLCBbIkFVIl1d~WyJabnRhclNRc2hBYW9MZTJPTmhGOWhBIiwgImJpcnRoZGF0ZSIsIDIwMDFd~WyIyOHBDdE5SN1k1OWI5WF85eWozUUhBIiwgImlzX292ZXJfMTgiLCB0cnVlXQ~",
     issuer_url="https://example.com",
-    credential_configuration_id="MockPhotocard",
+    credential_configuration_id="DriversLicense",
     is_deferred=False,
     received_at="12345",
     c_type="sd_jwt",
 )
 
-identity_owner.store.register("asdf", "1234567890")
-identity_owner.store.add_credential(cred)
-identity_owner_server = identity_owner.get_server()
+try:
+    credential_holder.store.register("asdf", "1234567890")
+    credential_holder.store.add_credential(cred)
+except Exception as _:
+    pass
+credential_holder_server = credential_holder.get_server()

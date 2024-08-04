@@ -304,9 +304,7 @@ class WebHolder(Holder):
         `CredentialOffer`: The credential offer.
         """
         self.check_token(authorization)
-        return await self.get_credential_offer(
-            credential_offer_uri, credential_offer
-        )
+        return await self.get_credential_offer(credential_offer_uri, credential_offer)
 
     async def request_authorization(
         self,
@@ -481,7 +479,7 @@ class WebHolder(Holder):
             # return{"status_code": 403, "detail": "Presentation_failed"}
             raise HTTPException(
                 status_code=403,
-                detail="Access Denied: No appropriate credentials found"
+                detail="Access Denied: No appropriate credentials found",
             )
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(

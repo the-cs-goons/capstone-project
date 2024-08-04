@@ -1,3 +1,4 @@
+import os
 from datetime import UTC, datetime
 from typing import Any, override
 from uuid import uuid4
@@ -94,12 +95,17 @@ class VaccinationIssuer(DefaultIssuer):
         return auth_code
 
 
+if os.getenv("CS3900_DOCKERISED") == "true":
+    examples_dir = "/usr/src/app/examples"
+else:
+    examples_dir = os.path.dirname(os.path.abspath(__file__))
+
 credential_issuer = VaccinationIssuer(
-    "/usr/src/app/examples/demo_data/example_jwk_private.pem",
-    "/usr/src/app/examples/demo_data/example_diddoc.json",
-    "/usr/src/app/examples/demo_data/example_didconf.json",
-    "/usr/src/app/examples/demo_data/example_metadata_vaccination.json",
-    "/usr/src/app/examples/demo_data/example_oauth_metadata_vaccination.json",
+    f"{examples_dir}/demo_data/example_jwk_private.pem",
+    f"{examples_dir}/demo_data/example_diddoc.json",
+    f"{examples_dir}/demo_data/example_didconf.json",
+    f"{examples_dir}/demo_data/example_metadata_vaccination.json",
+    f"{examples_dir}/demo_data/example_oauth_metadata_vaccination.json",
     MOCK_DATA,
 )
 credential_issuer_server = credential_issuer.get_server()
