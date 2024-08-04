@@ -247,7 +247,7 @@ class WebHolder(Holder):
         self,
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
-    ) -> str:
+    ):
         """
         Delete a credential by ID, if one exists
 

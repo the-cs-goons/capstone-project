@@ -1,3 +1,4 @@
+import datetime
 import json
 from typing import Any, override
 from uuid import uuid4
@@ -106,6 +107,8 @@ class LicenseIssuer(DefaultIssuer):
         self.id_to_info[cred_id] = {"ticket": self.ticket, "transaction_id": None}
 
         self.statuses[self.ticket] = (cred_type, holder_information)
+
+        self.time = datetime.datetime.now(tz=datetime.UTC)
 
         return auth_code
 
