@@ -1,6 +1,7 @@
-import { Button, Typography, AppBar, Toolbar, SvgIcon } from "@mui/material";
+import { Button, Typography, AppBar, Toolbar } from "@mui/material";
 import { useNavigate } from "@remix-run/react";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+import { CheckCircleOutlineRounded as CheckCircleOutlineRoundedIcon } from "@mui/icons-material";
+import { FlexContainer } from "~/components/FlexContainer";
 
 export default function PresentationSuccess() {
   const navigate = useNavigate();
@@ -8,47 +9,31 @@ export default function PresentationSuccess() {
   return (
     <>
       <AppBar position="sticky">
-        <Toolbar
-          sx={{
-            pb: 2,
-            pt: 1,
-            minHeight: 128,
-            alignItems: "flex-end",
-            text_align: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="h1" component="h2" gutterBottom>
+        <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end" }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            id="presentation-successful-title"
+          >
             Presentation Successful
           </Typography>
         </Toolbar>
       </AppBar>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "space-evenly",
-          height: "calc(100vh - 328px)", // Subtract the AppBar height
-          textAlign: "center",
-        }}
+      <FlexContainer
+        component="main"
+        maxWidth="xl"
+        disableGutters
+        sx={{ justifyContent: "space-evenly" }}
       >
-        <Typography variant="h3" gutterBottom>
+        <Typography variant="h3" component="h2">
           The Verifier has approved your credentials
         </Typography>
-        <SvgIcon
+        <CheckCircleOutlineRoundedIcon
           color="success"
-          component={CheckCircleOutlineRoundedIcon}
-          sx={{ fontSize: 200 }}
+          sx={{ fontSize: "200px" }}
         />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate("/credentials")}
-        >
-          Back
-        </Button>
-      </div>
+        <Button onClick={() => navigate("/credentials")}>Back</Button>
+      </FlexContainer>
     </>
   );
 }
