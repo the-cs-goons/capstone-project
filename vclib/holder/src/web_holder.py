@@ -305,9 +305,7 @@ class WebHolder(Holder):
         `CredentialOffer`: The credential offer.
         """
         self.check_token(authorization)
-        return await self.get_credential_offer(
-            credential_offer_uri, credential_offer
-        )
+        return await self.get_credential_offer(credential_offer_uri, credential_offer)
 
     async def request_authorization(
         self,
@@ -431,10 +429,9 @@ class WebHolder(Holder):
                 # we need to get rid of all the old credentials that don't
                 # have the field.
                 if not field.optional:
-                    creds = set(
-                        valid_credentials.keys()).intersection(
-                            set(new_valid_creds.keys()))
-
+                    creds = set(valid_credentials.keys()).intersection(
+                        set(new_valid_creds.keys())
+                    )
                     # Cull keys
                     valid_credentials = {c: valid_credentials[c] for c in creds}
                     new_valid_creds = {c: new_valid_creds[c] for c in creds}
