@@ -39,7 +39,9 @@ export function CredentialCard({
         />
         <Divider />
         <CardContent>
-          {"raw_sdjwtvc" in credential ? "Real credential" : "Pending approval"}
+          {"raw_sdjwtvc" in credential
+            ? "SD-JWT-VC credential"
+            : "Pending approval"}
         </CardContent>
       </CardActionArea>
       <CardActions>
