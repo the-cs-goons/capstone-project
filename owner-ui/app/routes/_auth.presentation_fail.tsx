@@ -1,58 +1,36 @@
-import { Button, Typography, AppBar, Toolbar, SvgIcon } from "@mui/material";
+import { Button, Typography, AppBar, Toolbar } from "@mui/material";
 import { useNavigate, useSearchParams } from "@remix-run/react";
 import HighlightOffRoundedIcon from "@mui/icons-material/HighlightOffRounded";
+import { FlexContainer } from "~/components/FlexContainer";
 
 export default function PresentationFail() {
   const navigate = useNavigate();
 
   const [params] = useSearchParams();
 
-  const errorMessage = params.get("error") || "Unknown Error";
+  const errorMessage = params.get("error") ?? "Unknown Error";
 
   return (
     <>
       <AppBar position="sticky">
-        <Toolbar
-          sx={{
-            pb: 2,
-            pt: 1,
-            minHeight: 128,
-            alignItems: "flex-end",
-            text_align: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="h1" component="h2" gutterBottom>
-            Presentation Fail
+        <Toolbar sx={{ pb: 2, pt: 1, minHeight: 128, alignItems: "flex-end" }}>
+          <Typography
+            variant="h4"
+            component="h1"
+            id="presentation-failed-title"
+          >
+            Presentation Failed
           </Typography>
         </Toolbar>
       </AppBar>
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "space-evenly",
-          height: "calc(100vh - 328px)", // Subtract the AppBar height
-          textAlign: "center",
-        }}
-      >
-        <Typography variant="h3" gutterBottom>
-          The Verifier has declined your credentials because of {errorMessage}
+      <FlexContainer component="main" maxWidth="xl" disableGutters>
+        <Typography variant="h3" component="h2">
+          The Verifier has declined your credentials
         </Typography>
-        <SvgIcon
-          color="error"
-          component={HighlightOffRoundedIcon}
-          sx={{ fontSize: 200 }}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate("/credentials")}
-        >
-          Back
-        </Button>
-      </div>
+        <Typography>Reason: {errorMessage}</Typography>
+        <HighlightOffRoundedIcon color="success" sx={{ fontSize: "200px" }} />
+        <Button onClick={() => navigate("/credentials")}>Back</Button>
+      </FlexContainer>
     </>
   );
 }

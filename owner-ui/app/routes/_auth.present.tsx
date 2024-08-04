@@ -75,20 +75,22 @@ export default function Present() {
     event.preventDefault();
     const data: SerializeFrom<FieldSelectionObject> = { field_requests: [] };
     definition?.input_descriptors.forEach((input_descriptor) => {
-      const formControl = event.currentTarget.elements.namedItem(
-        input_descriptor.id,
-      ) as HTMLInputElement | null;
-      const approved = formControl?.checked ?? false;
-      data.field_requests.push({
-        field: input_descriptor.constraints.fields?.at(0) ?? {
-          path: [],
-          id: null,
-          name: null,
-          filter: null,
-          optional: null,
-        },
-        input_descriptor_id: input_descriptor.id,
-        approved: approved,
+      input_descriptor.constraints.fields?.map((field) => {
+        const formControl = event.currentTarget.elements.namedItem(
+          field.id ?? field.path[0],
+        ) as HTMLInputElement | null;
+        const approved = formControl?.checked ?? false;
+        data.field_requests.push({
+          field: field ?? {
+            path: [],
+            id: null,
+            name: null,
+            filter: null,
+            optional: null,
+          },
+          input_descriptor_id: input_descriptor.id,
+          approved: approved,
+        });
       });
     });
 
