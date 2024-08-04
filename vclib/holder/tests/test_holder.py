@@ -19,6 +19,7 @@ from vclib.holder import (
     IssuerMetadata,
 )
 from vclib.holder.examples.demo_agent import DemoWebHolder
+from vclib.holder.src.holder import Holder
 from vclib.holder.src.models.credentials import BaseCredential
 from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
@@ -297,3 +298,9 @@ async def test_async_delete_credentials(identity_owner, auth_header):
         await identity_owner.get_credential("delete_1", authorization=auth_header)
     with pytest.raises(Exception):
         await identity_owner.delete_credential("delete_1", authorization=auth_header)
+
+# @pytest.mark.asyncio
+# async def test_refresh_all_deferred_credentials(mock_credentials):
+#     holder = Holder({}, LocalStorageProvider())
+#     store = holder.store
+#     store.add_many(mock_credentials)

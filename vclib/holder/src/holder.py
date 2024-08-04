@@ -474,8 +474,8 @@ class Holder:
         self, issuer_uri, path="/.well-known/openid-credential-issuer"
     ):
         body: Any
-        with Session() as s:
-            res: Response = s.get(f"{issuer_uri}{path}")
+        with httpx.AsyncClient() as client:
+            res: Response = client.get(f"{issuer_uri}{path}")
             body = res.json()
         return body
 

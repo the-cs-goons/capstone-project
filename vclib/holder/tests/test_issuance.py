@@ -53,7 +53,7 @@ def auth_header(holder: WebHolder):
 
 ### Tests
 @pytest.mark.asyncio()
-async def test0_request_authorization(
+async def test0_request_authorization_with_offer(
         httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
 
     httpx_mock.add_response(
@@ -73,7 +73,25 @@ async def test0_request_authorization(
     ), auth_header)
 
 @pytest.mark.asyncio()
-async def test1_two_credential_offer_methods(
+async def test1_request_authorization_with_uri(
+        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
+
+    httpx_mock.add_response(
+        url="https://example.com/oauth2/register",
+        json={"client_id": "example",
+              "client_secret": "secret",
+              "issuer_uri": "https://example.com",
+              "redirect_uris": ["https://example.com"],
+              "credential_offer_endpoint": "somewhere.com"}
+    )
+    await holder.request_authorization(CredentialSelection(
+        credential_configuration_id="DriversLicense",
+        issuer_uri="https://example.com"
+    ), auth_header)
+
+
+@pytest.mark.asyncio()
+async def test2_two_credential_offer_methods(
         httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
     selection = CredentialSelection(
         credential_configuration_id="DriversLicense",
@@ -86,3 +104,13 @@ async def test1_two_credential_offer_methods(
     with pytest.raises(HTTPException):
         resp = await holder.request_authorization(selection, auth_header)
         assert resp.status_code == 400
+
+@pytest.mark.asyncio()
+async def test3_missing_offer_and_uri(
+        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
+    selection = CredentialSelection(
+        credential_configuration_id="DriversLicense")
+
+    with pytest.raises(HTTPException) as e:
+        await holder.request_authorization(selection, auth_header)
+    assert e.value.status_code == 400

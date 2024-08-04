@@ -2,6 +2,8 @@
 import pytest
 from fastapi import HTTPException
 
+from vclib.holder.src.models.login_register import LoginRequest, RegisterRequest
+
 # from fastapi import HTTPException
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
 from vclib.holder.src.web_holder import WebHolder
@@ -56,5 +58,107 @@ async def test4_token_expired(holder: WebHolder):
     auth_header = f"Bearer {holder._generate_jwt({"username": "asdf"})}"
     with pytest.raises(HTTPException) as e:
         await holder.refresh_all(auth_header)
+
+    assert e.value.status_code == 400
+
+def test5_register(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    resp = holder.user_register(RegisterRequest(
+        username=u,
+        password=pw,
+        confirm=pw
+    ))
+
+    assert resp.username == u
+    assert resp.token_type == 'Bearer'
+
+def test6_register_passwords_dont_match(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    with pytest.raises(HTTPException) as e:
+        holder.user_register(RegisterRequest(
+            username=u,
+            password=pw,
+            confirm="asdf"
+        ))
+
+    error = e.value
+    assert error.status_code == 400
+    assert "passwords don't match" in error.detail.lower()
+
+def test7_register_short_password(holder: WebHolder):
+    u = "asdf"
+    pw = "0"
+    with pytest.raises(HTTPException) as e:
+        holder.user_register(RegisterRequest(
+            username=u,
+            password=pw,
+            confirm=pw
+        ))
+    assert e.value.status_code == 400
+
+def test8_double_register(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    holder.user_register(RegisterRequest(
+        username=u,
+        password=pw,
+        confirm=pw
+    ))
+
+    with pytest.raises(HTTPException) as e:
+        holder.user_register(RegisterRequest(
+            username=u,
+            password=pw,
+            confirm=pw
+        ))
+    assert e.value.status_code == 400
+
+def test9_logout(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    holder.user_register(RegisterRequest(
+        username=u,
+        password=pw,
+        confirm=pw
+    ))
+
+    assert holder.store.active_user.username == "asdf"
+
+    holder.user_logout()
+
+    assert holder.store.active_user is None
+
+def test10_login(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    holder.user_register(RegisterRequest(
+        username=u,
+        password=pw,
+        confirm=pw
+    ))
+    holder.user_logout()
+
+    holder.user_login(LoginRequest(
+        username=u,
+        password=pw
+    ))
+
+def test11_login_wrong_password(holder: WebHolder):
+    u = "asdf"
+    pw = "1234567890"
+    holder.user_register(RegisterRequest(
+        username=u,
+        password=pw,
+        confirm=pw
+    ))
+    holder.user_logout()
+
+    with pytest.raises(HTTPException) as e:
+        holder.user_login(LoginRequest(
+            username=u,
+            password="asdf"
+        ))
 
     assert e.value.status_code == 400
