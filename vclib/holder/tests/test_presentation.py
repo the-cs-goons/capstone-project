@@ -172,7 +172,7 @@ def mock_data_with_2_creds(mock_data_with_cred, over_18_field_selection):
 
 ### unit testing
 @pytest.mark.asyncio()
-async def test0_presentation_initiation(httpx_mock: HTTPXMock, mock_data):
+async def test_presentation_initiation(httpx_mock: HTTPXMock, mock_data):
     over_18_auth_req, holder, auth_header = mock_data
     httpx_mock.add_response(
         url="https://example.com/request/over_18", json=over_18_auth_req
@@ -185,13 +185,13 @@ async def test0_presentation_initiation(httpx_mock: HTTPXMock, mock_data):
 
 
 @pytest.mark.asyncio()
-async def test1_invalid_scope(httpx_mock: HTTPXMock, mock_data):
+async def test_invalid_scope(httpx_mock: HTTPXMock, mock_data):
     # TODO: parse scope values in the wallet
     pass
 
 
 @pytest.mark.asyncio()
-async def test2_missing_pd(httpx_mock: HTTPXMock, mock_data):
+async def test_missing_pd(httpx_mock: HTTPXMock, mock_data):
     over_18_auth_req, holder, auth_header = mock_data
 
     over_18_auth_req.pop("presentation_definition")
@@ -206,7 +206,7 @@ async def test2_missing_pd(httpx_mock: HTTPXMock, mock_data):
 
 
 @pytest.mark.asyncio()
-async def test3_more_than_one_pd_type(httpx_mock: HTTPXMock, mock_data):
+async def test_more_than_one_pd_type(httpx_mock: HTTPXMock, mock_data):
     over_18_auth_req, holder, auth_header = mock_data
 
     over_18_auth_req["presentation_definition_uri"] = (
@@ -223,7 +223,7 @@ async def test3_more_than_one_pd_type(httpx_mock: HTTPXMock, mock_data):
 
 
 @pytest.mark.asyncio()
-async def test4_malformed_pd(httpx_mock: HTTPXMock, mock_data):
+async def test_malformed_pd(httpx_mock: HTTPXMock, mock_data):
     over_18_auth_req, holder, auth_header = mock_data
 
     # is missing presentation_definition id
@@ -239,19 +239,19 @@ async def test4_malformed_pd(httpx_mock: HTTPXMock, mock_data):
 
 
 @pytest.mark.asyncio()
-async def test5_unsupported_id_scheme(httpx_mock: HTTPXMock, mock_data):
+async def test_unsupported_id_scheme(httpx_mock: HTTPXMock, mock_data):
     # TODO: implement client_id_scheme checking and passing from wallet to verifier
     pass
 
 
 @pytest.mark.asyncio()
-async def test6_mismatching_id_scheme(httpx_mock: HTTPXMock, mock_data):
+async def test_mismatching_id_scheme(httpx_mock: HTTPXMock, mock_data):
     # TODO: implement client_id_scheme checking and passing from wallet to verifier
     pass
 
 
 @pytest.mark.asyncio()
-async def test10_working_presentation(
+async def test_working_presentation(
     httpx_mock: HTTPXMock, mock_data_with_cred, over_18_field_selection
 ):
     auth_req, holder, auth_header = mock_data_with_cred
@@ -269,7 +269,7 @@ async def test10_working_presentation(
 
 
 @pytest.mark.asyncio()
-async def test11_wallet_lacks_credentials(
+async def test_wallet_lacks_credentials(
     httpx_mock: HTTPXMock, mock_data, over_18_field_selection
 ):
     over_18_auth_req, holder, auth_header = mock_data
@@ -288,14 +288,14 @@ async def test11_wallet_lacks_credentials(
 
 
 @pytest.mark.asyncio()
-async def test12_no_ongoing_presentation(mock_data, over_18_field_selection):
+async def test_no_ongoing_presentation(mock_data, over_18_field_selection):
     _, holder, auth_header = mock_data
     with pytest.raises(HTTPException):
         await holder.present_selection(over_18_field_selection, auth_header)
 
 
 @pytest.mark.asyncio()
-async def test13_multiple_credential_presentation(
+async def test_multiple_credential_presentation(
     httpx_mock: HTTPXMock, mock_data_with_2_creds
 ):
     auth_req, holder, auth_header, selection = mock_data_with_2_creds
@@ -313,7 +313,7 @@ async def test13_multiple_credential_presentation(
 
 
 @pytest.mark.asyncio()
-async def test14_requested_multiple_fields_from_credential(
+async def test_requested_multiple_fields_from_credential(
     httpx_mock: HTTPXMock, mock_data_with_cred, over_18_field_selection
 ):
     auth_req, holder, auth_header = mock_data_with_cred
@@ -367,7 +367,7 @@ async def test14_requested_multiple_fields_from_credential(
 
 
 @pytest.mark.asyncio()
-async def test15_user_rejected_presentation_request(
+async def test_user_rejected_presentation_request(
     httpx_mock: HTTPXMock, mock_data_with_2_creds
 ):
     auth_req, holder, auth_header, _ = mock_data_with_2_creds
@@ -386,7 +386,7 @@ async def test15_user_rejected_presentation_request(
 
 
 @pytest.mark.asyncio()
-async def test16_request_property_in_payload(
+async def test_request_property_in_payload(
     httpx_mock: HTTPXMock, mock_data_with_2_creds
 ):
     _, holder, auth_header, _ = mock_data_with_2_creds
