@@ -16,12 +16,13 @@ class Field(BaseModel):
     filter: dict | None = None
     optional: bool | None = False
 
-    @field_validator('filter')
+    @field_validator("filter")
     @classmethod
     def filter_is_valid_jsonschema(cls, v: dict | None) -> str:
         if v:
             Validator.check_schema(v)
         return v
+
 
 class Constraints(BaseModel):
     """Each Constraint **MAY** have a "fields" property,
@@ -77,4 +78,6 @@ class AuthorizationRequestObject(BaseModel):
         if (self.presentation_definition and self.presentation_definition_uri) or (
             not self.presentation_definition and not self.presentation_definition_uri
         ):
-            raise ValueError("Expected one of `presentation_definition` or `presentation_definition_uri` but not both") # noqa: E501
+            raise ValueError(
+                "Expected one of `presentation_definition` or `presentation_definition_uri` but not both"
+            )  # noqa: E501

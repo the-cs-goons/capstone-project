@@ -1,3 +1,4 @@
+import os
 import datetime
 import json
 from typing import Any, override
@@ -120,28 +121,27 @@ class LicenseIssuer(DefaultIssuer):
         client_id: str | None = None,
         redirect_uri: str | None = None,
         state: str | None = None,
-        authorization_details: str | None = None
-        ) -> Any:
+        authorization_details: str | None = None,
+    ) -> Any:
         form = await super().authorize(
             response,
             response_type,
             client_id,
             redirect_uri,
             state,
-            authorization_details
-            )
+            authorization_details,
+        )
         if isinstance(form, RedirectResponse):
             return form
 
         auth_details = AuthorizationRequestDetails.model_validate(
-                json.loads(authorization_details)[0]
-            )
+            json.loads(authorization_details)[0]
+        )
 
         if "DriversLicense" in auth_details.credential_configuration_id:
             return HTMLResponse(content=html_license_form)
 
         return form
-
 
     @override
     def get_credential_status(self, cred_id: str) -> StatusResponse:
@@ -159,12 +159,17 @@ class LicenseIssuer(DefaultIssuer):
         )
 
 
+if os.getenv("CS3900_DOCKERISED") == "true":
+    examples_dir = "/usr/src/app/examples"
+else:
+    examples_dir = os.path.dirname(os.path.abspath(__file__))
+
 credential_issuer = LicenseIssuer(
-    "/usr/src/app/examples/demo_data/example_jwk_private.pem",
-    "/usr/src/app/examples/demo_data/example_diddoc.json",
-    "/usr/src/app/examples/demo_data/example_didconf.json",
-    "/usr/src/app/examples/demo_data/example_metadata_license.json",
-    "/usr/src/app/examples/demo_data/example_oauth_metadata_license.json",
+    f"{examples_dir}/demo_data/example_jwk_private.pem",
+    f"{examples_dir}/demo_data/example_diddoc.json",
+    f"{examples_dir}/demo_data/example_didconf.json",
+    f"{examples_dir}/demo_data/example_metadata_license.json",
+    f"{examples_dir}/demo_data/example_oauth_metadata_license.json",
     MOCK_DATA,
 )
 credential_issuer_server = credential_issuer.get_server()

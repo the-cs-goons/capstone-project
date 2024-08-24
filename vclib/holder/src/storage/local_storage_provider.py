@@ -180,6 +180,10 @@ class LocalStorageProvider(AbstractStorageProvider):
     config_db_path: Path
     active_user: ActiveUser | None
 
+    # concurrency is not supported here because the credential holder backend
+    # should only be for a single user, i.e. the holder frontend/backend come as
+    # a single unique package for a user.
+
     # Using argon2 for hashing.
     _pwd_hasher = PasswordHasher()
 
