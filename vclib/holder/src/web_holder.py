@@ -352,7 +352,9 @@ class WebHolder(Holder):
         self.check_token(authorization)
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(f"{request_uri}")
+            response = await client.post(request_uri)
+        if response.json() is None:
+            raise HTTPException(status_code=400, detail=f"Could not retrieve any data from request_uri")
 
         # just send the auth request to the frontend for now
         # what the backend sends to the fronend should be up to implementation
@@ -363,7 +365,7 @@ class WebHolder(Holder):
                 **response.json()
             )
         except ValidationError as e:
-            raise HTTPException(status_code=400, detail=f"invalid_request: {e}")
+            raise HTTPException(status_code=400, detail=f"Bad Request: {e}")
 
         return self.current_transaction
 
@@ -384,7 +386,7 @@ class WebHolder(Holder):
         ]
         if len(approved_fields) == 0:
             raise HTTPException(
-                status_code=403, detail="access_denied: credential request rejected"
+                status_code=403, detail="Access Denied: credential request rejected"
             )
         pd = self.current_transaction.presentation_definition
         ids = pd.input_descriptors
