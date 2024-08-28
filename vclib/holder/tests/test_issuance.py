@@ -21,12 +21,13 @@ OWNER_HOST = "https://localhost"
 OWNER_PORT = "8080"
 OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
 
+
 @pytest.fixture
 def holder(tmp_path_factory):
     holder = WebHolder(
         [f"{OWNER_URI}/add"],
         f"{OWNER_URI}/offer",
-        LocalStorageProvider(storage_dir_path=tmp_path_factory.mktemp("test_storage"))
+        LocalStorageProvider(storage_dir_path=tmp_path_factory.mktemp("test_storage")),
     )
 
     holder.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
@@ -46,70 +47,86 @@ def holder(tmp_path_factory):
     )
     return holder
 
+
 @pytest.fixture
 def auth_header(holder: WebHolder):
     holder.store.register("asdf", "1234567890")
     return f"Bearer {holder._generate_jwt({"username": "asdf"})}"
 
+
 ### Tests
 @pytest.mark.asyncio()
-async def test0_request_authorization_with_offer(
-        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
-
+async def test_request_authorization_with_offer(
+    httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str
+):
     httpx_mock.add_response(
         url="https://example.com/oauth2/register",
-        json={"client_id": "example",
-              "client_secret": "secret",
-              "issuer_uri": "https://example.com",
-              "redirect_uris": ["https://example.com"],
-              "credential_offer_endpoint": "somewhere.com"}
+        json={
+            "client_id": "example",
+            "client_secret": "secret",
+            "issuer_uri": "https://example.com",
+            "redirect_uris": ["https://example.com"],
+            "credential_offer_endpoint": "somewhere.com",
+        },
     )
-    await holder.request_authorization(CredentialSelection(
-        credential_configuration_id="DriversLicense",
-        credential_offer=CredentialOffer(
-            credential_issuer="https://example.com",
-            credential_configuration_ids=["DriversLicense"]
-        )
-    ), auth_header)
-
-@pytest.mark.asyncio()
-async def test1_request_authorization_with_uri(
-        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
-
-    httpx_mock.add_response(
-        url="https://example.com/oauth2/register",
-        json={"client_id": "example",
-              "client_secret": "secret",
-              "issuer_uri": "https://example.com",
-              "redirect_uris": ["https://example.com"],
-              "credential_offer_endpoint": "somewhere.com"}
+    await holder.request_authorization(
+        CredentialSelection(
+            credential_configuration_id="DriversLicense",
+            credential_offer=CredentialOffer(
+                credential_issuer="https://example.com",
+                credential_configuration_ids=["DriversLicense"],
+            ),
+        ),
+        auth_header,
     )
-    await holder.request_authorization(CredentialSelection(
-        credential_configuration_id="DriversLicense",
-        issuer_uri="https://example.com"
-    ), auth_header)
 
 
 @pytest.mark.asyncio()
-async def test2_two_credential_offer_methods(
-        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
+async def test_request_authorization_with_uri(
+    httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str
+):
+    httpx_mock.add_response(
+        url="https://example.com/oauth2/register",
+        json={
+            "client_id": "example",
+            "client_secret": "secret",
+            "issuer_uri": "https://example.com",
+            "redirect_uris": ["https://example.com"],
+            "credential_offer_endpoint": "somewhere.com",
+        },
+    )
+    await holder.request_authorization(
+        CredentialSelection(
+            credential_configuration_id="DriversLicense",
+            issuer_uri="https://example.com",
+        ),
+        auth_header,
+    )
+
+
+@pytest.mark.asyncio()
+async def test_two_credential_offer_methods(
+    httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str
+):
     selection = CredentialSelection(
         credential_configuration_id="DriversLicense",
         issuer_uri="https://example.com",
         credential_offer={
             "credential_issuer": "Service NSW",
-            "credential_configuration_ids": ["DriversLicense", "Passport"]
-        })
+            "credential_configuration_ids": ["DriversLicense", "Passport"],
+        },
+    )
 
     with pytest.raises(HTTPException):
         resp = await holder.request_authorization(selection, auth_header)
         assert resp.status_code == 400
 
+
 @pytest.mark.asyncio()
-async def test3_missing_offer_and_uri(
-        httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str):
-    selection = CredentialSelection(
-        credential_configuration_id="DriversLicense")
+async def test_missing_offer_and_uri(
+    httpx_mock: HTTPXMock, holder: WebHolder, auth_header: str
+):
+    selection = CredentialSelection(credential_configuration_id="DriversLicense")
 
     with pytest.raises(HTTPException) as e:
         await holder.request_authorization(selection, auth_header)

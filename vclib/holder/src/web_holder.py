@@ -348,8 +348,7 @@ class WebHolder(Holder):
         request_uri,
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
-        """Get authorization request from a verifier.
-        """
+        """Get authorization request from a verifier."""
         self.check_token(authorization)
 
         async with httpx.AsyncClient() as client:
@@ -360,14 +359,11 @@ class WebHolder(Holder):
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
         try:
-            self.current_transaction = (
-                vp_auth_request.AuthorizationRequestObject(**response.json())
+            self.current_transaction = vp_auth_request.AuthorizationRequestObject(
+                **response.json()
             )
         except ValidationError as e:
-            raise HTTPException(
-                status_code=400,
-                detail=f"invalid_request: {e}"
-            )
+            raise HTTPException(status_code=400, detail=f"invalid_request: {e}")
 
         return self.current_transaction
 
@@ -380,10 +376,7 @@ class WebHolder(Holder):
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
         if self.current_transaction is None:
-            raise HTTPException(
-                status_code=400,
-                detail="No ongoing presentation found"
-            )
+            raise HTTPException(status_code=400, detail="No ongoing presentation found")
 
         self.check_token(authorization)
         approved_fields = [
@@ -391,8 +384,7 @@ class WebHolder(Holder):
         ]
         if len(approved_fields) == 0:
             raise HTTPException(
-                status_code=403,
-                detail="access_denied: credential request rejected"
+                status_code=403, detail="access_denied: credential request rejected"
             )
         pd = self.current_transaction.presentation_definition
         ids = pd.input_descriptors
@@ -420,9 +412,9 @@ class WebHolder(Holder):
                 # we need to get rid of all the old credentials that don't
                 # have the field.
                 if not field.optional:
-                    creds = set(
-                        valid_credentials.keys()).intersection(
-                            set(new_valid_creds.keys()))
+                    creds = set(valid_credentials.keys()).intersection(
+                        set(new_valid_creds.keys())
+                    )
 
                     # Cull keys
                     valid_credentials = {c: valid_credentials[c] for c in creds}
