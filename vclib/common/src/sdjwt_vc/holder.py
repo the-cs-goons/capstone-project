@@ -12,8 +12,6 @@ class SDJWTVCHolder(SDJWTHolder):
     things, mostly verification of things that the SD JWT specification
     leaves blank but the SD JWT VC specification requires. Actually
     attempts to document the parent class.
-
-    TODO: Document further
     """
 
     _unverified_sd_jwt: JWT
@@ -25,7 +23,6 @@ class SDJWTVCHolder(SDJWTHolder):
         *,
         enforce_no_key_binding: bool = True,
     ):
-        """TODO: Docs"""
         super().__init__(sd_jwt_issuance, serialization_format)
         # Most of what's required is already implemented, we don't have to check
         # `status` because revocation is out of scope for this project.
@@ -69,9 +66,6 @@ class SDJWTVCHolder(SDJWTHolder):
         variables to create a KB-JWT. For creating presentations without
         enforcing KB JWTs, use `create_presentation`
 
-        TODO: Improve this so passing the claims_to_disclose obj doesn't\
-            suck
-
         ### Parameters
         - claims_to_disclose(`list | dict`): Claims to be disclosed in
         the presentation
@@ -98,5 +92,5 @@ class SDJWTVCHolder(SDJWTHolder):
         try:
             self._unverified_sd_jwt.validate(pub_key)
             self._is_verified = True
-        except Exception:
-            raise Exception  # TODO: Clearer exception type
+        except Exception as e:
+            raise e

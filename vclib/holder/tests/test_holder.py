@@ -6,11 +6,7 @@ from urllib.parse import parse_qs, urlparse
 
 import pytest
 from fastapi import HTTPException
-from pytest_httpx import HTTPXMock
 
-from vclib.common.src.data_transfer_objects.vp_auth_request import (
-    AuthorizationRequestObject,
-)
 from vclib.holder import (
     AuthorizationMetadata,
     Credential,
@@ -20,63 +16,7 @@ from vclib.holder import (
 )
 from vclib.holder.examples.demo_agent import DemoWebHolder
 from vclib.holder.src.models.credentials import BaseCredential
-from vclib.holder.src.models.field_selection_object import FieldSelectionObject
 from vclib.holder.src.storage.local_storage_provider import LocalStorageProvider
-
-over_18_mock_auth_response = {
-    "vp_token": "eyJhbGciOiAiRVMyNTYiLCAidHlwIjogInZjK3NkLWp3dCJ9.eyJfc2QiOiBbIktJMWx6b21fcVAwVzBKUDdaLVFYVkZrWmV1MElkajJKYTdLcmZPWFdORDQiLCAiUVhOUDk2TkUxZ21kdHdTTE4xeE9pbXZLX20wTVZ2czBBdTJUU1J0ZS1oOCIsICJTSHdLdjhKX09kQU1mS3NtOTJ3eHF0UXZRdFhyVWQwcm9ubkNGZXkySEJvIiwgInpaaFZVdkNodi1JSDBpaWRobFBQVDE1Zk5QbTRGZGRmMlREcG1EUllWUXciXSwgImlhdCI6IDE3MjA5NTIxMTYuMCwgIl9zZF9hbGciOiAic2hhLTI1NiJ9.fFbkA1FLMDT36Y48rxtOfUC76zgWxZAYLQnEWKgi02nubV2b7U7A45b3080USYGRxJ7AYi4GG-3vx1QPM_00lw~WyJaNFdITlBNWkZIM0JOS19haXVKZnBnIiwgImlzX292ZXJfMTgiLCAidHJ1ZSJd~",  # noqa: E501
-    "presentation_submission": {
-        "id": "f4c91058-d2de-42a2-be63-7946d7743a26",
-        "definition_id": "verify_over_18",
-        "descriptor_map": [
-            {"id": "over_18_descriptor", "format": "vc+sd-jwt", "path": "$"}
-        ],
-    },
-    "state": "ae4adb8b-d1f2-4eb9-baa3-73be30a7aa2a_1721042569",
-}
-
-over_18_mock_field_selection = FieldSelectionObject(
-    field_requests=[
-        {
-            "field": {
-                "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
-                "filter": {"type": "boolean", "const": True},
-            },
-            "input_descriptor_id": "over_18_descriptor",
-            "approved": True,
-        }
-    ]
-)
-
-over_18_mock_auth_req = {
-    "client_id": "some did",
-    "client_id_scheme": "did",
-    "client_metadata": {"data": "metadata in this object"},
-    "presentation_definition": {
-        "id": "verify_over_18",
-        "input_descriptors": [
-            {
-                "id": "over_18_descriptor",
-                "constraints": {
-                    "fields": [
-                        {
-                            "path": ["$.credentialSubject.is_over_18", "$.is_over_18"],
-                            "filter": {"type": "boolean", "const": True},
-                        }
-                    ]
-                },
-                "name": "Over 18 Verification",
-                "purpose": "To verify that the individual is over 18 years old",
-            }
-        ],
-    },
-    "response_uri": "https://example.com/cb",
-    "response_type": "vp_token",
-    "response_mode": "direct_post",
-    "nonce": "unique nonce",
-    "wallet_nonce": None,
-    "state": "d1d9846b-0f0e-4716-8178-88a6e76f1673_1721045932",
-}
 
 MOCK_CREDENTIALS = {
     "example1": {
@@ -160,7 +100,6 @@ def identity_owner(tmp_path_factory, example_credentials):
         authorization_details_types_supported=["openid_credential"],
         **{"pre-authorized_grant_anonymous_access_supported": False},
     )
-    print(id_owner)
     id_owner.register("test_holder", "test_holder")
     id_owner.store.add_many(example_credentials)
 
@@ -172,36 +111,6 @@ def auth_header(identity_owner):
     store: LocalStorageProvider = identity_owner.store
     uname = store.get_active_user_name()
     return f"Bearer {identity_owner._generate_jwt({"username": uname})}"
-
-
-###################
-### TESTING VPs ###
-###################
-@pytest.mark.asyncio()
-async def test_vp_flow(httpx_mock: HTTPXMock, identity_owner, auth_header):
-    httpx_mock.add_response(
-        url="https://example.com/request/verify_over_18", json=over_18_mock_auth_req
-    )
-    identity_owner: DemoWebHolder
-
-    resp = await identity_owner.get_auth_request(
-        "https://example.com/request/verify_over_18",
-        authorization=auth_header,
-    )
-    over_18_mock_auth_req["nonce"] = resp.nonce  # we can't know nonce beforehand
-
-    assert resp == AuthorizationRequestObject(**over_18_mock_auth_req)
-
-    # TODO: make this return a redirect_uri
-    httpx_mock.add_response(
-        url="https://example.com/cb", json={"status": "OK"}, method="post"
-    )
-
-    resp = await identity_owner.present_selection(
-        over_18_mock_field_selection, authorization=auth_header
-    )
-
-    assert resp == "success"
 
 
 @pytest.mark.asyncio

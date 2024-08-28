@@ -178,6 +178,10 @@ class LocalStorageProvider(AbstractStorageProvider):
 
     storage_dir_path: Path
     config_db_path: Path
+
+    # concurrency is not supported here because the credential holder backend
+    # should only be for a single user, i.e. the holder frontend/backend come as
+    # a single unique package for a user.
     active_user: ActiveUser | None
 
     # Using argon2 for hashing.
@@ -607,7 +611,6 @@ class LocalStorageProvider(AbstractStorageProvider):
         """
         self._check_active_user()
         params = cred.model_dump()
-        print(params)
 
         check_prev = """
         SELECT id, deferred FROM credential_info
@@ -632,7 +635,7 @@ class LocalStorageProvider(AbstractStorageProvider):
                     cursor.execute(
                         """
                     UPDATE deferred_credentials
-                    SET deferred_endpoint = :deferred_credential_endpoint
+                    SET deferred_endpoint = :deferred_credential_endpoint,
                         last_request = :last_request,
                         access_token = :access_token
                     WHERE credential_id = :id

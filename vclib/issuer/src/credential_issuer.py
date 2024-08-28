@@ -271,7 +271,6 @@ class CredentialIssuer:
         - error: The error code of the error that occured.
         - state: The state value given to the endpoint.
         """
-        # print(information)
         try:
             self._check_authorization_details(
                 response_type, client_id, redirect_uri, state, authorization_details
@@ -364,7 +363,6 @@ class CredentialIssuer:
             response.status_code = status.HTTP_400_BAD_REQUEST
             return {"error": "unsupported_grant_type"}
 
-        # TODO is this a correct variable name?
         payload = authorization.split(" ")[1]
         client_id, client_secret = (
             urlsafe_b64decode(payload.encode("utf-8") + b"==")

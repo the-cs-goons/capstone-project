@@ -60,9 +60,8 @@ function HideOnScroll({ children }: Readonly<SlideProps>) {
 
 export default function Auth() {
   const matches = useMatches();
-  // TODO: make this work in individual credential screens
   const [value, setValue] = useState(
-    matches.at(-1)?.pathname === "/credentials" ? 0 : 1,
+    ["/scan", "/present"].includes(matches.at(-1)?.pathname ?? "") ? 1 : 0,
   );
 
   return (

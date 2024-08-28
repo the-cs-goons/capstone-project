@@ -247,7 +247,7 @@ class WebHolder(Holder):
         self,
         cred_id: str,
         authorization: Annotated[str | None, Header()] = None,
-    ) -> str:
+    ):
         """
         Delete a credential by ID, if one exists
 
@@ -305,9 +305,7 @@ class WebHolder(Holder):
         `CredentialOffer`: The credential offer.
         """
         self.check_token(authorization)
-        return await self.get_credential_offer(
-            credential_offer_uri, credential_offer
-        )
+        return await self.get_credential_offer(credential_offer_uri, credential_offer)
 
     async def request_authorization(
         self,
@@ -341,7 +339,6 @@ class WebHolder(Holder):
                 detail="Please provide either issuer_uri or credential_offer.",
             )
 
-        # TODO: Remove this, very temporary fix
         return RedirectResponse(
             redirect_url.replace("issuer-lib", "localhost"), status_code=302
         )
@@ -349,19 +346,11 @@ class WebHolder(Holder):
     async def get_auth_request(
         self,
         request_uri,
-        # client_id,  # TODO
-        # client_id_scheme,
-        # request_uri_method: Literal['get', 'post'] = "post",  # TODO
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
         """Get authorization request from a verifier.
         """
         self.check_token(authorization)
-        # if client_id_scheme != "did": # TODO
-        #     raise HTTPException(
-        #         status_code=400,
-        #         detail=f"client_id_scheme {client_id_scheme} not supported",
-        #     )
 
         async with httpx.AsyncClient() as client:
             response = await client.post(f"{request_uri}")
@@ -491,7 +480,7 @@ class WebHolder(Holder):
             # return{"status_code": 403, "detail": "Presentation_failed"}
             raise HTTPException(
                 status_code=403,
-                detail="access_denied: No appropriate credentials found"
+                detail="Access Denied: No appropriate credentials found",
             )
 
         presentation_submission = vp_auth_response.PresentationSubmissionObject(

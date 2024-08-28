@@ -16,6 +16,7 @@ html_license_form = """<!DOCTYPE html>
                 license_no: +document.getElementById('license_no').value,
                 date_of_birth: document.getElementById('date_of_birth').value,
             });
+            window.location.href = 'https://localhost:8080/credentials';
         }
     </script>
 </head>
