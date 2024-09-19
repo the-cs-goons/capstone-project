@@ -8,6 +8,7 @@ import httpx
 from fastapi import FastAPI, Header, HTTPException
 from fastapi.responses import RedirectResponse
 from jwt import DecodeError, ExpiredSignatureError, decode, encode
+from pydantic import ValidationError
 
 from vclib.common import vp_auth_request, vp_auth_response
 from vclib.holder.src.models.login_register import (
@@ -347,23 +348,27 @@ class WebHolder(Holder):
         request_uri,
         authorization: Annotated[str | None, Header()] = None,
     ) -> vp_auth_request.AuthorizationRequestObject:
-        """
-        Get authorization request from a verifier.
-        """
+        """Get authorization request from a verifier."""
         self.check_token(authorization)
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(f"{request_uri}")
+            response = await client.post(request_uri)
+        if response.json() is None:
+            raise HTTPException(
+                status_code=400, detail="Could not retrieve any data from request_uri"
+            )
 
         # just send the auth request to the frontend for now
         # what the backend sends to the fronend should be up to implementation
         # although it shouldn't include sensitive info unless the user has
         # opted to share that information
-        self.current_transaction = (
-            vp_auth_request.AuthorizationRequestObject.model_validate_json(
-                response.text
+        try:
+            self.current_transaction = vp_auth_request.AuthorizationRequestObject(
+                **response.json()
             )
-        )
+        except ValidationError as e:
+            raise HTTPException(status_code=400, detail=f"Bad Request: {e}")
+
         return self.current_transaction
 
     async def present_selection(
@@ -371,15 +376,20 @@ class WebHolder(Holder):
         field_selections: FieldSelectionObject,
         authorization: Annotated[str | None, Header()] = None,
     ):
-        """
-        Send verifiable presentation to the verifier.
-        """
+        """Send verifiable presentation to the verifier."""
         # find which attributes in which credentials fit the presentation definition
         # mark which credential and attribute for disclosure
+        if self.current_transaction is None:
+            raise HTTPException(status_code=400, detail="No ongoing presentation found")
+
         self.check_token(authorization)
         approved_fields = [
             x.field for x in field_selections.field_requests if x.approved
         ]
+        if len(approved_fields) == 0:
+            raise HTTPException(
+                status_code=403, detail="Access Denied: credential request rejected"
+            )
         pd = self.current_transaction.presentation_definition
         ids = pd.input_descriptors
 
@@ -402,24 +412,21 @@ class WebHolder(Holder):
                 if valid_credentials == {}:
                     valid_credentials = new_valid_creds
                     continue
-                # make sure we keep creds with previously found fields
-                # ignore if field is optional
+                # if we the field is not optional,
+                # we need to get rid of all the old credentials that don't
+                # have the field.
                 if not field.optional:
                     creds = set(valid_credentials.keys()).intersection(
                         set(new_valid_creds.keys())
                     )
+
+                    # Cull keys
                     valid_credentials = {c: valid_credentials[c] for c in creds}
                     new_valid_creds = {c: new_valid_creds[c] for c in creds}
-
-                # valid credentials should equal new_valid_creds now
 
                 # add the new disclosures to the old disclosures
                 for cred in valid_credentials:
                     valid_credentials[cred] += new_valid_creds[cred]
-
-                # no valid credentials found
-                if valid_credentials == {}:
-                    break
 
             # if no valid credentials found, go next
             if valid_credentials == {}:
@@ -491,4 +498,6 @@ class WebHolder(Holder):
             )
 
         self.current_transaction = None
+        if response.status_code == 200:
+            return "success"
         return response.json()

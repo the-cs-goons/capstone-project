@@ -1,6 +1,7 @@
-from typing import Any, Literal
+from typing import Any, Literal, Self
 
-from pydantic import BaseModel
+from jsonschema.protocols import Validator
+from pydantic import BaseModel, field_validator, model_validator
 
 
 class Field(BaseModel):
@@ -14,6 +15,13 @@ class Field(BaseModel):
     name: str | None = None
     filter: dict | None = None
     optional: bool | None = False
+
+    @field_validator("filter")
+    @classmethod
+    def filter_is_valid_jsonschema(cls, v: dict | None) -> str:
+        if v:
+            Validator.check_schema(v)
+        return v
 
 
 class Constraints(BaseModel):
@@ -56,10 +64,21 @@ class AuthorizationRequestObject(BaseModel):
     client_id: str
     client_id_scheme: str = "did"
     client_metadata: dict
-    presentation_definition: PresentationDefinition
+    presentation_definition: PresentationDefinition | None = None
+    presentation_definition_uri: str | None = None
     response_uri: str
     response_type: str = "vp_token"
     response_mode: str = "direct_post"
     nonce: str
     wallet_nonce: str | None = None
     state: str | None = None  # transaction id
+
+    @model_validator(mode="after")
+    def verify_pd_inputs_exclusive(self) -> Self:
+        if (self.presentation_definition and self.presentation_definition_uri) or (
+            not self.presentation_definition and not self.presentation_definition_uri
+        ):
+            raise ValueError(
+                "Expected one of `presentation_definition` or `presentation_definition_uri` but not both"  # noqa: E501
+            )
+        return self

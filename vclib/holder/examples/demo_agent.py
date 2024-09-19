@@ -43,9 +43,9 @@ MOCK_STORE = {
 }
 
 EXAMPLE_ISSUER = "https://example.com"
-OWNER_HOST = environ.get("CS3900_HOLDER_AGENT_HOST", "https://localhost")
-OWNER_PORT = environ.get("CS3900_HOLDER_AGENT_PORT", "8081")
-OWNER_URI = f"{OWNER_HOST}:{OWNER_PORT}"
+HOLDER_HOST = environ.get("CS3900_HOLDER_AGENT_HOST", "https://localhost")
+HOLDER_PORT = environ.get("CS3900_HOLDER_AGENT_PORT", "8081")
+HOLDER_URI = f"{HOLDER_HOST}:{HOLDER_PORT}"
 
 
 class DemoWebHolder(WebHolder):
@@ -55,7 +55,7 @@ class DemoWebHolder(WebHolder):
         cred_offer_endpoint,
         storage_provider,
         *,
-        mock_uri=OWNER_URI,
+        mock_uri=HOLDER_URI,
         oauth_client_options={},
     ):
         self.mock_uri = mock_uri
@@ -99,7 +99,7 @@ WALLET_PATH = environ.get("CS3900_HOLDER_WALLET_PATH", None)
 storage_provider = LocalStorageProvider(storage_dir_path=WALLET_PATH)
 
 credential_holder = DemoWebHolder(
-    [f"{OWNER_URI}/add"], f"{OWNER_URI}/offer", storage_provider
+    [f"{HOLDER_URI}/add"], f"{HOLDER_URI}/offer", storage_provider
 )
 credential_holder.issuer_metadata_store[EXAMPLE_ISSUER] = IssuerMetadata(
     credential_issuer=EXAMPLE_ISSUER,
@@ -127,9 +127,7 @@ cred = Credential(
     c_type="sd_jwt",
 )
 
-try:
-    credential_holder.store.register("asdf", "1234567890")
-    credential_holder.store.add_credential(cred)
-except Exception as _:
-    pass
+credential_holder.store._purge_db()
+credential_holder.store.register("asdf", "1234567890")
+credential_holder.store.add_credential(cred)
 credential_holder_server = credential_holder.get_server()

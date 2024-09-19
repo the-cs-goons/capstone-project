@@ -233,3 +233,28 @@ def test_upsert_credentials(storage_provider, cred_1, cred_2, cred_3):
     assert len(storage_provider.get_deferred_credentials()) == 1
     assert len(storage_provider.get_received_credentials()) == 2
     assert len(storage_provider.all_credentials()) == 3
+
+
+def test_missing_storage_path():
+    with pytest.raises(Exception):
+        LocalStorageProvider(storage_dir_path="asdfghjkl1234567890")
+
+
+def test_default_storage_path():
+    LocalStorageProvider()
+
+
+def test_save_db_no_active_user():
+    LocalStorageProvider()._save_db_to_zip()
+
+
+def test_login_with_active_user(tmp_path_factory):
+    store = LocalStorageProvider(tmp_path_factory.mktemp("store"))
+    store._purge_db()
+    store.register("asdf", "1234567890")
+    assert store.active_user.username == "asdf"
+
+    store.register("qwer", "1234567890")
+    assert store.active_user.username == "qwer"
+
+    store.login("asdf", "1234567890")
