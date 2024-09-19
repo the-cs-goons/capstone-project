@@ -101,7 +101,7 @@ class Verifier:
             )
 
         while (nonce := str(uuid4())) in self.valid_nonces:
-            pass
+            continue
         self.valid_nonces.add(nonce)
 
         return vp_auth_request.AuthorizationRequestObject(

@@ -354,7 +354,9 @@ class WebHolder(Holder):
         async with httpx.AsyncClient() as client:
             response = await client.post(request_uri)
         if response.json() is None:
-            raise HTTPException(status_code=400, detail=f"Could not retrieve any data from request_uri")
+            raise HTTPException(
+                status_code=400, detail="Could not retrieve any data from request_uri"
+            )
 
         # just send the auth request to the frontend for now
         # what the backend sends to the fronend should be up to implementation

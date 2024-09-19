@@ -81,3 +81,4 @@ class AuthorizationRequestObject(BaseModel):
             raise ValueError(
                 "Expected one of `presentation_definition` or `presentation_definition_uri` but not both"  # noqa: E501
             )
+        return self
